@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scenario_characterization"
+version = "1.0.0"
+description = "Tool for characterizing scenarios."
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">=3.9, <4.0"
+dependencies = [
+    "easydict==1.10",
+    "joblib==1.2.0",
+    "numpy==1.21.2",
+    "pandas==2.0.3",
+    "shapely==2.0.3",
+    "tqdm==4.65.0",
+    "natsort==8.3.1",
+    "imageio==2.34.0",
+    "matplotlib==3.7.1",
+    "scipy==1.9.1",
+    "pyproj==3.6.1",
+    "scikit-spatial==9.0.1",
+    "intervaltree==3.1.0"
+]
+
+[tool.setuptools]
+packages = ["data_tools", "utils", "safeshift_tools"]
