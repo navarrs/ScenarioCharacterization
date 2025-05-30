@@ -25,8 +25,24 @@ cd safeshift_tools
 ./compute_features frenet training
 ```
 
-3. Compute Trajectory Anomalies
+3. Compute Trajectory Anomalies (here the split key doesn't matter tho)
 ```
 cd safeshift_tools
 ./compute_features primitives training
+```
+
+4. Compute Map Features
+```
+cd safeshift_tools
+./compute_features map training
+./compute_features map validation
+./compute_features map testing
+```
+
+5. Compute Conflict Points
+```
+cd safeshift_tools
+./compute_features conflictpoints training
+./compute_features conflictpoints validation
+./compute_features conflictpoints testing
 ```
