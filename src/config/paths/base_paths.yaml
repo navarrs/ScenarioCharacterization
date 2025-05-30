@@ -1,0 +1,8 @@
+base_path: /data/driving/waymo
+cache_path: ${paths.base_path}/cache
+
+output_paths: 
+  feature_cache_path: ${paths.cache_path}/features/${scenario_type}
+  scores_cache_path: ${paths.cache_path}/scores/${scenario_type}
+  stats_cache_path: ${paths.cache_path}/stats/${scenario_type}
+  vis_cache_path: ${paths.cache_path}/visualization/${scenario_type}

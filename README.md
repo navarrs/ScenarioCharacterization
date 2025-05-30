@@ -1,10 +1,14 @@
 # ScenarioCharacterization
 
+
 Re-spliting the data:
 ```
 cd data_tools
 python resplit.py --base_path /data/driving/waymo/
 ```
+
+
+
 
 Refactored process to get all SafeShift features:
 

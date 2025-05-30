@@ -1,0 +1,7 @@
+_target_: processors.feature_processor.FeatureProcessor
+config:
+  scenario_type: ${scenario_type}
+  parallel: ${parallel}
+  batch_size: 4
+  num_processes: ${num_processes}
+  save: ${save}
