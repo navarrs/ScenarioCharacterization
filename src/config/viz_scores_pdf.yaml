@@ -1,0 +1,8 @@
+defaults:
+  - run_score_processor.yaml
+
+score_types:
+  base_scores: ${paths.cache_path}/scores/gt/base_score.npz
+
+dpi: 300
+output_dir: ./output/

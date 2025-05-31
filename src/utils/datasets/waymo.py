@@ -6,40 +6,29 @@ from easydict import EasyDict
 from omegaconf import DictConfig
 
 from utils.common import SUPPORTED_SCENARIO_TYPES
-from utils.datasets.dataset import AbstractDataset
+from utils.datasets.dataset import BaseDataset
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-
-class WaymoData(AbstractDataset):
+class WaymoData(BaseDataset):
     def __init__(self, config: DictConfig) -> None:
         super().__init__()
 
         # TODO: Generalize dataset specific attributes
         # center_x, center_y, center_z, length, width, height, heading, velocity_x, velocity_y
-        self.AGENT_DIMS = [False, False, False, True, True, True, False, False, False]
-        self.HEADING_IDX = [
-            False,
-            False,
-            False,
-            False,
-            False,
-            False,
-            True,
-            False,
-            False,
-        ]
-        self.POS_XY_IDX = [True, True, False, False, False, False, False, False, False]
+        self.AGENT_DIMS  = [False, False, False, True, True, True, False, False, False]
+        self.HEADING_IDX = [False, False, False, False, False, False, True, False, False]
+        self.POS_XY_IDX  = [True, True, False, False, False, False, False, False, False]
         self.POS_XYZ_IDX = [True, True, True, False, False, False, False, False, False]
-        self.VEL_XY_IDX = [False, False, False, False, False, False, False, True, True]
+        self.VEL_XY_IDX  = [False, False, False, False, False, False, False, True, True]
 
         # Interpolated stuff
-        self.IPOS_XY_IDX = [True, True, False, False, False, False, False]
+        self.IPOS_XY_IDX  = [True, True, False, False, False, False, False]
         self.IPOS_SDZ_IDX = [False, False, True, True, True, False, False]
-        self.IPOS_SD_IDX = [False, False, False, True, True, False, False]
-        self.ILANE_IDX = [False, False, False, False, False, True, False]
-        self.IVALID_IDX = [False, False, False, False, False, False, True]
+        self.IPOS_SD_IDX  = [False, False, False, True, True, False, False]
+        self.ILANE_IDX    = [False, False, False, False, False, True, False]
+        self.IVALID_IDX   = [False, False, False, False, False, False, True]
 
         self.AGENT_TYPE_MAP = {
             "TYPE_VEHICLE": 0,
@@ -81,14 +70,11 @@ class WaymoData(AbstractDataset):
         logger.info(f"Loading WOMD scenario base data from {self.scenario_base_path}")
         with open(self.scenario_meta_path, "rb") as f:
             self.data.metas = pickle.load(f)[:: self.step]
+        self.data.scenarios_ids = [f'sample_{x["scenario_id"]}.pkl' for x in self.data.metas] 
         self.data.scenarios = [
-            (
-                f'sample_{x["scenario_id"]}.pkl',
-                f'{self.scenario_base_path}/sample_{x["scenario_id"]}.pkl',
-            )
-            for x in self.data.metas
-        ]
-        logger.info(f"\tLoading took {time.time() - start} seconds.")
+            f'{self.scenario_base_path}/sample_{x["scenario_id"]}.pkl' for x in self.data.metas
+        ] 
+        logger.info(f"Loading took {time.time() - start} seconds.")
 
         if self.num_shards > 1:
             n_per_shard = np.ceil(len(self.data.metas) / self.num_shards)
@@ -97,10 +83,12 @@ class WaymoData(AbstractDataset):
 
             self.data.metas = self.data.metas[shard_start:shard_end]
             self.data.scenarios = self.data.scenarios[shard_start:shard_end]
+            self.data.scenarios_ids = self.data.scenarios_ids[shard_start:shard_end]
 
         if self.num_scenarios != -1:
             self.data.metas = self.data.metas[: self.num_scenarios]
             self.data.scenarios = self.data.scenarios[: self.num_scenarios]
+            self.data.scenarios_ids = self.data.scenarios_ids[: self.num_scenarios]
 
     def get_zipped(self):
         """
@@ -109,7 +97,7 @@ class WaymoData(AbstractDataset):
         Returns:
             list: List of tuples containing scenario name and path.
         """
-        return zip(self.data.scenarios, self.data.metas)
+        return zip(self.data.scenarios_ids, self.data.scenarios, self.data.metas)
 
     def __len__(self):
         return len(self.data.scenarios)

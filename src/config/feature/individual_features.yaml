@@ -1,6 +1,0 @@
-defaults:
-  - features.yaml
-
-feature_type: 
-  _target_: processors.individual_features.IndividualFeaturesProcessor
-  config: null
