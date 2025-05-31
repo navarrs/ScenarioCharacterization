@@ -1,7 +1,5 @@
-import logging
-
 import colorlog
-
+import logging
 
 def get_logger(name=__name__):
     handler = colorlog.StreamHandler()
@@ -17,7 +15,6 @@ def get_logger(name=__name__):
             },
         )
     )
-
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
     if not logger.handlers:

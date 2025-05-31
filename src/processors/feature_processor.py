@@ -4,14 +4,13 @@ import pickle
 
 from omegaconf import DictConfig
 from tqdm import tqdm
+from typing import AnyStr
 
 from src.utils.datasets.dataset import BaseDataset
 from src.features.base_feature import BaseFeature
 from utils.logger import get_logger
 
-from typing import Dict, List, AnyStr
 logger = get_logger(__name__)
-
 
 class FeatureProcessor:
     def __init__(
@@ -31,10 +30,7 @@ class FeatureProcessor:
         self.feature = feature
 
     def name(self):
-        """
-        Identify the feature and dataset being processed.
-        This method can be overridden by subclasses to provide specific identification.
-        """
+        """ Identify the feature and dataset being processed. """
         return f"{self.__class__.__name__}"
 
     def run(self):

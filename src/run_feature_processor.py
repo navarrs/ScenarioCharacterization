@@ -14,7 +14,7 @@ def run(cfg: DictConfig) -> None:
     Args:
         cfg (DictConfig): Configuration dictionary.
     """
-    # NOTE: This function is called by hydra, so it should not be called directly.
+    # TODO: remove?
     _make_output_paths(cfg.copy())
 
     logger.info("Instatiating dataset: %s", cfg.dataset._target_)
@@ -38,6 +38,7 @@ def run(cfg: DictConfig) -> None:
         logger.error("Error Processing Data: %s", e)
         return
     logger.info("Processing completed successfully.")
+
 
 if __name__ == "__main__":
     run()

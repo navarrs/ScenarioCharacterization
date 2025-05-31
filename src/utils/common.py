@@ -4,7 +4,6 @@ from omegaconf import DictConfig
 
 SUPPORTED_SCENARIO_TYPES = ["gt"]
 
-
 def _make_output_paths(cfg: DictConfig) -> None:
     """
     Create output paths based on the configuration.
