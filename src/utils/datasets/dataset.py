@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 
 
-class AbstractDataset(ABC):
+class BaseDataset(ABC):
     def __init__(self):
         super().__init__()
         self.scenario_base_path = None
 
-    def identify(self) -> str:
+    def name(self) -> str:
         """
         Identify the dataset.
         """

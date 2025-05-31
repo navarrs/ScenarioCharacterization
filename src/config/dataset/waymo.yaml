@@ -3,7 +3,7 @@ config:
   seed: ${seed}
   step: 5
   scenario_type: ${scenario_type}  
-  scenario_base_path: ${paths.base_path}/new_processed_scenarios_test
+  scenario_base_path: ${paths.base_path}/new_processed_scenarios_testing
   scenario_meta_path: ${paths.base_path}/new_processed_scenarios_test_infos.pkl
 
   num_scenarios: ${num_scenarios}

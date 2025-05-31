@@ -5,3 +5,4 @@ config:
   batch_size: 4
   num_processes: ${num_processes}
   save: ${save}
+  output_path: ${paths.output_paths.feature_cache_path}
