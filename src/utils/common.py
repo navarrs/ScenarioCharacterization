@@ -1,11 +1,12 @@
+import colorlog
+import logging
 import os
 
 from omegaconf import DictConfig
 
 SUPPORTED_SCENARIO_TYPES = ["gt"]
 
-
-def _make_output_paths(cfg: DictConfig) -> None:
+def make_output_paths(cfg: DictConfig) -> None:
     """
     Create output paths based on the configuration.
 
@@ -15,8 +16,29 @@ def _make_output_paths(cfg: DictConfig) -> None:
     Returns:
         EasyDict: Dictionary containing output paths.
     """
-    # TODO: is there an automated and clearn way to do this?
-    os.makedirs(cfg.paths.output_paths.feature_cache_path, exist_ok=True)
-    os.makedirs(cfg.paths.output_paths.scores_cache_path, exist_ok=True)
-    os.makedirs(cfg.paths.output_paths.stats_cache_path, exist_ok=True)
-    os.makedirs(cfg.paths.output_paths.vis_cache_path, exist_ok=True)
+    os.makedirs(cfg.paths.cache_path, exist_ok=True)
+
+    for path in cfg.paths.output_paths.values():
+        os.makedirs(path, exist_ok=True)
+
+def get_logger(name=__name__):
+    handler = colorlog.StreamHandler()
+    handler.setFormatter(
+        colorlog.ColoredFormatter(
+            "%(log_color)s[%(levelname)s]%(reset)s %(name)s: %(message)s",
+            log_colors={
+                "DEBUG": "cyan",
+                "INFO": "green",
+                "WARNING": "yellow",
+                "ERROR": "red",
+                "CRITICAL": "bold_red",
+            },
+        )
+    )
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+    if not logger.handlers:
+        logger.addHandler(handler)
+        logger.propagate = False
+
+    return logger

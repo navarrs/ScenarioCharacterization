@@ -1,8 +1,10 @@
 _target_: processors.feature_processor.FeatureProcessor
 config:
   scenario_type: ${scenario_type}
-  parallel: ${parallel}
-  batch_size: 4
-  num_processes: ${num_processes}
+  
+  batch_size: ${batch_size}
+  num_workers: ${num_workers}
+  shuffle: ${shuffle}
+  
   save: ${save}
   output_path: ${paths.output_paths.feature_cache_path}

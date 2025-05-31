@@ -7,6 +7,6 @@ config:
   scenario_meta_path: ${paths.base_path}/new_processed_scenarios_test_infos.pkl
 
   num_scenarios: ${num_scenarios}
-  num_processes: ${num_processes}
+  num_workers: ${num_workers}
   num_shards: ${num_shards}
   shard_index: ${shard_index}

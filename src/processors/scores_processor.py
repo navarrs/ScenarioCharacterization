@@ -1,38 +1,69 @@
-import numpy as np
 import os
 import pickle
 
 from omegaconf import DictConfig
 from tqdm import tqdm
+from torch.utils.data import DataLoader, Dataset
 
-from src.utils.datasets.dataset import BaseDataset
-from src.scores.base_score import BaseScore
-from utils.logger import get_logger
+from features import SUPPORTED_FEATURES
+from scorer.base_scorer import BaseScorer
+from utils.common import get_logger
 
-from typing import Dict, List, AnyStr
 logger = get_logger(__name__)
 
-
 class ScoresProcessor:
-    def __init__(self, config: DictConfig, dataset: BaseDataset, scorer: BaseScore) -> None:
-        self.parallel = config.parallel if "parallel" in config else True
-        self.batch_size = config.batch_size if "batch_size" in config else 4
-        self.num_processes = config.num_processes if "num_processes" in config else 10
-        self.save = config.save if "save" in config else True
+    def __init__(self, config: DictConfig, dataset: Dataset, scorer: BaseScorer) -> None:
+        """
+        Initialize the ScoresProcessor with a configuration, dataset, and scorer.
+        :param config: Configuration for the scores processor, including parameters like
+                       batch size, number of workers, and whether to save the output.
+        :param dataset: The dataset to process, which should be a subclass of torch.utils.data.Dataset.
+        :param scorer: An instance of BaseScorer or its subclass that defines the scoring method.
+        """
         self.scenario_type = config.scenario_type if "scenario_type" in config else 'gt'
-        
-        self.feature_paths = config.feature_paths if "feature_paths" in config else None
-        if self.feature_paths is None:
-            raise ValueError("Feature paths must be specified in the configuration.")
-        self.features_to_score = list(self.feature_paths.keys())
 
-        self.output_path = config.output_path if "output_path" in config else None
-        if self.output_path is None:
-            raise ValueError("Output path must be specified in the configuration.")
+        # DataLoader parameters
+        self.batch_size = config.get("batch_size", 4)
+        self.num_workers = config.get("num_worker", 4)
+        self.shuffle = config.get("shuffle", False)
+
+        self.features = config.get("features", None)
+        if self.features is None:
+            logger.error("Features must be specified in the configuration.")
+            raise ValueError
+
+        unsupported = [f for f in self.features if f not in SUPPORTED_FEATURES]
+        if unsupported:
+            logger.error(f"Features {unsupported} not in supported list {SUPPORTED_FEATURES}")
+            raise ValueError
 
         self.dataset = dataset
         self.scorer = scorer
 
+        self.dataloader = DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=self.shuffle,
+            num_workers=self.num_workers,
+            collate_fn=self.dataset.collate_batch
+        )
+
+        self.save = config.get("save", True)
+        self.output_path = config.get("output_path", None)
+        if self.save:
+            if self.output_path is None:
+                logger.error("Output path must be specified in the configuration.")
+                raise ValueError
+            else: 
+                logger.info(f"Scores {self.scorer.name} will be saved to {self.output_path}")
+        
+        self.feature_path = config.get("feature_path", None)
+        if not self.feature_path:
+            logger.error("Feature paths must be specified in the configuration.")
+            raise ValueError
+        else:
+            logger.info(f"Features will be loaded from {self.feature_path}")
+        
     def name(self):
         """
         Identify the feature and dataset being processed.
@@ -41,30 +72,37 @@ class ScoresProcessor:
         return f"{self.__class__.__name__}"
 
     def run(self):
-        logger.info(f"Processing {self.features_to_score} {self.scorer.name} scores for {self.dataset.name()}.")
-
-        # TODO: generalize this unpacking 
-        features = {}
-        for key, path in self.feature_paths.items():
-            features[key] = [feature for feature in np.load(path, allow_pickle=True)['features']]
-        zipped = zip(*[features[key] for key in self.features_to_score])
-
-        if self.parallel:
-            from joblib import Parallel, delayed
-            scores = Parallel(n_jobs=self.num_processes, batch_size=self.batch_size)(
-                delayed(self.scorer.compute)(scenario_features=feature)
-                for feature in tqdm(zipped, total=len(self.dataset))
-            )
-        else:
-            scores = []
-            for feature in tqdm(zipped, total=len(self.dataset)):
-                out = self.scorer.compute(scenario_features=feature)
-                scores.append(out)
-
-        if self.save:
-            cache_filepath = os.path.join(self.output_path, f"{self.scorer.name}.npz")
-            logger.info(f"Saving processed scores to {cache_filepath}")
-            with open(cache_filepath, 'wb') as f:
-                np.savez_compressed(f, scores=scores)
+        logger.info(f"Processing {self.features} {self.scorer.name} scores for {self.dataset.name}.")
         
-        return scores
+        # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop. 
+        for scenario_batch in tqdm(self.dataloader, desc="Processing scenarios"):
+            for scenario in scenario_batch['scenario']:
+                
+                scenario_id = scenario['scenario_id']
+                # Get corresponding features for the current scenario 
+                scenario_feature_file = os.path.join(self.feature_path, f"{scenario_id}.pkl")
+                with open(scenario_feature_file, 'rb') as f:
+                    scenario_features = pickle.load(f)
+                
+                # TODO: this might add too much overhead, probably need to optimize.
+                # Maybe by saving all features for all scenarios in a single large file. This would
+                # still require to check that the scenario features for a given scenario are in the 
+                # file. 
+                missing_features = [f for f in self.features if f not in scenario_features]
+                if missing_features:
+                    logger.error(f"Scenario {scenario_id} is missing features: {missing_features}")
+                    raise ValueError
+
+                scores = self.scorer.compute(scenario_features=scenario_features)
+               
+                score_data = {}
+                scenario_score_file = os.path.join(self.output_path, f"{scenario_id}.pkl")
+                if os.path.exists(scenario_score_file):
+                    with open(scenario_score_file, 'rb') as f:
+                        score_data = pickle.load(f)
+
+                for key, value in scores.items():
+                    score_data[key] = value
+                
+                with open(scenario_score_file, 'wb') as f:
+                    pickle.dump(score_data, f, protocol=pickle.HIGHEST_PROTOCOL)

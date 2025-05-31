@@ -7,10 +7,12 @@ defaults:
 
 seed: 42
 num_scenarios: null
-num_processes: 10
 num_shards: 10
 shard_index: 0
+
+num_workers: 4
+batch_size: 4
+shuffle: false
 save: true
 
-parallel: true
 scenario_type: 'gt'
