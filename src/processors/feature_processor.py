@@ -1,78 +1,95 @@
-import numpy as np
 import os
 import pickle
 
 from omegaconf import DictConfig
 from tqdm import tqdm
-from typing import AnyStr
+from torch.utils.data import DataLoader, Dataset
 
-from src.utils.datasets.dataset import BaseDataset
 from src.features.base_feature import BaseFeature
-from utils.logger import get_logger
+from utils.common import get_logger
 
 logger = get_logger(__name__)
 
 class FeatureProcessor:
     def __init__(
-        self, config: DictConfig, dataset: BaseDataset, feature: BaseFeature 
+        self, config: DictConfig, dataset: Dataset, feature: BaseFeature 
     ) -> None:
-        self.parallel = config.parallel if "parallel" in config else True
-        self.batch_size = config.batch_size if "batch_size" in config else 4
-        self.num_processes = config.num_processes if "num_processes" in config else 10
-        self.save = config.save if "save" in config else True
+        """ Initialize the FeatureProcessor with a configuration, dataset, and feature.
+        :param config: Configuration for the feature processor, including parameters like
+                       batch size, number of workers, and whether to save the output.
+        :param dataset: The dataset to process, which should be a subclass of torch.utils.data.Dataset.
+        :param feature: An instance of BaseFeature or its subclass that defines the feature to compute.
+        """
         self.scenario_type = config.scenario_type if "scenario_type" in config else 'gt'
 
-        self.output_path = config.output_path if "output_path" in config else None
-        if self.output_path is None:
-            raise ValueError("Output path must be specified in the configuration.")
+        # DataLoader parameters
+        self.batch_size = config.get("batch_size", 4)
+        self.num_workers = config.get("num_worker", 4)
+        self.shuffle = config.get("shuffle", False)
 
         self.dataset = dataset
         self.feature = feature
 
+        self.dataloader = DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=self.shuffle,
+            num_workers=self.num_workers,
+            collate_fn=self.dataset.collate_batch
+        )
+
+        self.save = config.get("save", True)
+        self.output_path = config.get("output_path", None)
+        if self.save:
+            if self.output_path is None:
+                logger.error("Output path must be specified in the configuration.")
+                raise ValueError
+            else: 
+                logger.info(f"Features {self.feature.name} will be saved to {self.output_path}")
+
+    @property
     def name(self):
         """ Identify the feature and dataset being processed. """
         return f"{self.__class__.__name__}"
 
     def run(self):
-        logger.info(f"Processing {self.feature.name} features for {self.dataset.name()}.")
-        zipped = self.dataset.get_zipped()
-        if self.parallel:
-            from joblib import Parallel, delayed
+        """ Run the feature processing on the dataset.
 
-            features = Parallel(n_jobs=self.num_processes, batch_size=self.batch_size)(
-                delayed(self.process_scenario)(
-                    scenario_id=scenario_id, 
-                    scenario_path=scenario_path
-                )
-                for scenario_id, scenario_path, scenario_meta in tqdm(zipped, total=len(self.dataset))
-            )
-        else:
-            features = []
-            for scenario_id, scenario_path, scenario_meta in tqdm(zipped, total=len(self.dataset)):
-                out = self.process_scenario(scenario_id=scenario_id, scenario_path=scenario_path)
-                features.append(out)
-
-        if self.save:
-            cache_filepath = os.path.join(self.output_path, f"{self.feature.name}.npz")
-            logger.info(f"Saving processed features to {cache_filepath}")
-            with open(cache_filepath, 'wb') as f:
-                np.savez_compressed(f, features=features)
+        A single scenario is a dictionary containing the following keys:
+            'num_agents'         -> int, number of agents in the scenario
+            'scenario_id'        -> str, unique identifier for the scenario
+            'ego_index'          -> int, index of the ego vehicle in the scenario  
+            'ego_id'             -> int, unique identifier for the ego vehicle
+            'agent_ids'          -> np.ndarray(num_agents,), unique identifiers for each agent
+            'agent_types'        -> np.ndarray(num_agents,), types of each agent
+            'agent_valid'        -> np.ndarray(num_agents, timesteps), if an agent's timestep is valid
+            'agent_positions'    -> np.ndarray(num_agents, timesteps, 3), agent [x, y, z] positions
+            'agent_velocities'   -> np.ndarray(num_agents, timesteps, 2), agent [vx, vy] velocities  
+            'agent_headings'     -> np.ndarray(num_agents, timesteps, 1), agent headings in radians
+            'current_time_index' -> int, index of the last observed time step in the scenario
+            'timestamps'         ->  np.ndarray(timesteps,), scenario timestamps for each time step
+        """
+        logger.info(f"Processing {self.feature.name} features for {self.dataset.name}.")
         
-        return features
+        # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop. 
+        for scenario_batch in tqdm(self.dataloader, desc="Processing scenarios"):
+            for scenario in scenario_batch['scenario']:
+                
+                # At this point, the scenario dictionary should be standarized regardless of the 
+                # dataset type. See docstring for the expected keys.  
+                feature = self.feature.compute(scenario)
+            
+                # TODO: make the saver a separate class to support arbitrary saving formats?
+                if self.save:
+                    scenario_id = scenario['scenario_id']
+                    feature_data = {}
+                    scenario_feature_file = os.path.join(self.output_path, f"{scenario_id}.pkl")
+                    if os.path.exists(scenario_feature_file):
+                        with open(scenario_feature_file, 'rb') as f:
+                            feature_data = pickle.load(f)
 
-    def process_scenario(self, scenario_id: AnyStr, scenario_path: AnyStr):
-        """
-        Base method to process a file.
-        Should be overridden by subclasses.
-
-        :param file_path: Path to the file to process
-        """
-        # TODO: Should not pass a path and load anything here in principle. 
-        # TODO: Remove any pickle loading
-        with open(scenario_path, 'rb') as f:
-            scenario = pickle.load(f)
-
-        # -------------------------------
-        # TODO: handle scenario type here
-        # -------------------------------
-        return self.feature.compute(scenario, scenario_id)
+                    for key, value in feature.items():
+                        feature_data[key] = value
+                    
+                    with open(scenario_feature_file, 'wb') as f:
+                        pickle.dump(feature_data, f, protocol=pickle.HIGHEST_PROTOCOL)

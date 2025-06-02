@@ -1,25 +1,28 @@
+import numpy as np
 import pickle
 import time
 
+from easydict import EasyDict
 from omegaconf import DictConfig
-
+from typing import Dict
 
 from utils.datasets.dataset import BaseDataset
-from utils.logger import get_logger
+from utils.common import get_logger
 
 logger = get_logger(__name__)
 
 class WaymoData(BaseDataset):
     def __init__(self, config: DictConfig) -> None:
-        super().__init__(config=config)
+        super(WaymoData, self).__init__(config=config)
 
-        # TODO: Generalize dataset specific attributes
-        # center_x, center_y, center_z, length, width, height, heading, velocity_x, velocity_y
-        self.AGENT_DIMS  = [False, False, False, True, True, True, False, False, False]
-        self.HEADING_IDX = [False, False, False, False, False, False, True, False, False]
-        self.POS_XY_IDX  = [True, True, False, False, False, False, False, False, False]
-        self.POS_XYZ_IDX = [True, True, True, False, False, False, False, False, False]
-        self.VEL_XY_IDX  = [False, False, False, False, False, False, False, True, True]
+        # Waymo dataset masks
+        # center_x, center_y, center_z, length, width, height, heading, velocity_x, velocity_y, valid
+        self.AGENT_DIMS  = [False, False, False, True, True, True, False, False, False, False]
+        self.HEADING_IDX = [False, False, False, False, False, False, True, False, False, False]
+        self.POS_XY_IDX  = [True, True, False, False, False, False, False, False, False, False]
+        self.POS_XYZ_IDX = [True, True, True, False, False, False, False, False, False, False]
+        self.VEL_XY_IDX  = [False, False, False, False, False, False, False, True, True, False]
+        self.AGENT_VALID = [False, False, False, False, False, False, False, False, False, True]
 
         # Interpolated stuff
         self.IPOS_XY_IDX  = [True, True, False, False, False, False, False]
@@ -57,13 +60,77 @@ class WaymoData(BaseDataset):
         ] 
         logger.info(f"Loading took {time.time() - start} seconds.")
 
+        # TODO: add support for sharding?
         self.shard() 
+    
+    def collate_batch(self, batch_data) -> EasyDict:
+        batch_size = len(batch_data)
+        # key_to_list = {}
+        # for key in batch_data[0].keys():
+        #     key_to_list[key] = [batch_data[idx][key] for idx in range(batch_size)]
 
-    def get_zipped(self):
+        # input_dict = {}
+        # for key, val_list in key_to_list.items():
+        #     if key in ['scenario_id', 'num_agents', 'ego_index', 'ego_id', 'current_time_index']:
+        #         input_dict[key] = np.asarray(val_list)
+            
+        return {
+            'batch_size': batch_size,
+            'scenario': batch_data,
+        }
+    
+    def transform_scenario_data(self, scenario_data: Dict) -> Dict:
         """
-        Get the zipped scenarios.
+        Transform the scene data into a format suitable for processing.
 
+        Actors keys:
+            'scenario_id'        -> size(1) 
+            'current_time_index' -> size(1) 
+            'timestamps_seconds' -> size(LAST_TIMESTEP)
+            'sdc_track_index'    -> size(1)
+            'track_infos'
+                'object_id'      -> size(NUM_AGENTS)
+                'object_type'    -> size(NUM_AGENTS)
+                'trajs'          -> size(NUM_AGENTS, self.LAST_TIMESTEP, len(self.AGENT_DIMS)),
+        
+        TODO: Add map data keys:
+            'map_infos', 
+            'dynamic_map_infos'
+                'lane_id'        
+                'state'          
+                'stop_point'     
+            'objects_of_interest', 
+            'tracks_to_predict'
+        """
+        sdc_index = scenario_data['sdc_track_index']
+        trajs = scenario_data['track_infos']['trajs']
+        return {
+            'num_agents': trajs.shape[0],
+            'scenario_id': scenario_data['scenario_id'],
+            'ego_index': sdc_index,
+            'ego_id': scenario_data['track_infos']['object_id'][sdc_index],
+            'agent_ids': scenario_data['track_infos']['object_id'],
+            'agent_types': scenario_data['track_infos']['object_type'],
+            'agent_valid': trajs[:, :, self.AGENT_VALID],
+            'agent_positions': trajs[:, :, self.POS_XYZ_IDX],
+            'agent_velocities': trajs[:, :, self.VEL_XY_IDX],
+            'agent_headings': trajs[:, :, self.HEADING_IDX],
+            'current_time_index': scenario_data['current_time_index'],
+            'timestamps': scenario_data['timestamps_seconds'],
+        }
+  
+    def __getitem__(self, index: int) -> Dict:
+        """ Gets a single scenario by index. 
+        Args:
+            index (int): Index of the scenario to retrieve.
         Returns:
-            list: List of tuples containing scenario name and path.
+            Dict: A dictionary containing the scenario ID, metadata, and scenario data.
         """
-        return zip(self.data.scenarios_ids, self.data.scenarios, self.data.metas)
+        with open(self.data.scenarios[index], 'rb') as f:
+            scenario = pickle.load(f)
+        
+        # ------------------------------------
+        # TODO: Figure out if needed
+        scenario_meta = self.data.metas[index]
+        # ------------------------------------
+        return self.transform_scenario_data(scenario)

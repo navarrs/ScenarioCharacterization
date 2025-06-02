@@ -1,2 +1,2 @@
-_target_: scores.base_score.BaseScore
+_target_: scorer.base_scorer.BaseScorer
 config: null 

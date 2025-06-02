@@ -1,13 +1,14 @@
-import os
-
 import hydra
 import matplotlib.pyplot as plt
-import numpy as np
+import os
 import pandas as pd
+import pickle
 import seaborn as sns
+
 from omegaconf import DictConfig
 
-from utils.logger import get_logger
+from scorer import SUPPORTED_SCORERS
+from utils.common import get_logger
 
 logger = get_logger(__name__)
 
@@ -19,18 +20,28 @@ def run(cfg: DictConfig) -> None:
     Args:
         cfg (DictConfig): Configuration dictionary.
     """
+    # TODO: adapt to multiple score types
     os.makedirs(cfg.output_dir, exist_ok=True)
 
-    scores = {}
-    for score_type, score_type_path in cfg.score_types.items():
-        # TODO: this is pretty hacky, need to be simplified
-        scores_cache = np.load(score_type_path, allow_pickle=True)["scores"]
-        if scores.get("scenario") is None:
-            scores["scenario"] = [list(s.keys())[0] for s in scores_cache]
+    unsupported_scorers = [scorer for scorer in cfg.scorers if scorer not in SUPPORTED_SCORERS]
+    if unsupported_scorers:
+        logger.error(f"Scorers {unsupported_scorers} not in supported list {SUPPORTED_SCORERS}")
+        raise ValueError
+    else:
+        scores = {}
+        for scorer in cfg.scorers:
+            scores[scorer] = []
+        
+    logger.info(f"Visualizing density function for scorers: {cfg.scorers}")
 
-        scores[score_type] = [
-            float(s[list(s.keys())[0]]["scene_score"]) for s in scores_cache
-        ]
+    # Load scores from score path
+    scenario_scores = [os.path.join(cfg.scores_path, f) for f in os.listdir(cfg.scores_path)]
+    for scenario in scenario_scores:
+        with open(scenario, "rb") as f:
+            scenario_scores = pickle.load(f)
+        
+        for scorer in cfg.scorers:
+            scores[scorer].append(scenario_scores[scorer]["scene_score"])
 
     scores_df = pd.DataFrame(scores)
     for key in scores_df.keys():

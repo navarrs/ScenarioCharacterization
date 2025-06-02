@@ -1,12 +1,14 @@
 _target_: processors.scores_processor.ScoresProcessor
 config:
   scenario_type: ${scenario_type}
-  parallel: ${parallel}
-  batch_size: 4
-  num_processes: ${num_processes}
+  
+  batch_size: ${batch_size}
+  num_workers: ${num_workers}
+  shuffle: ${shuffle}
+
   save: ${save}
-
-  feature_paths:
-    base_features: ${paths.output_paths.feature_cache_path}/base_feature.npz
-
   output_path: ${paths.output_paths.scores_cache_path}
+  
+  feature_path: ${paths.output_paths.feature_cache_path}
+  features:
+    - random_feature 
