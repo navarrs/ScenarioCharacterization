@@ -14,6 +14,7 @@ class BaseFeature(ABC):
                        relevant to feature computation, such as thresholds or parameters.
         """
         self.config = config
+        self.characterizer_type = 'feature'
 
     @property
     def name(self) -> str:

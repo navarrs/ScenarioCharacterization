@@ -2,8 +2,8 @@ defaults:
   - _self_
   - paths: base_paths
   - dataset: waymo
-  - processor: scores
-  - scorer: score  
+  - processor: features
+  - characterizer: feature  
 
 seed: 42
 num_scenarios: null

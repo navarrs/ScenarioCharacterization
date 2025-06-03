@@ -1,6 +1,16 @@
 # ScenarioCharacterization
 
+## Running a feature processor
+```
+uv run src/run_processor.py processor=features characterizer=feature
+```
 
+## Running a score processor
+```
+uv run src/run_processor.py processor=scores characterizer=score
+```
+
+### OLD STUFF
 Re-spliting the data:
 ```
 cd data_tools

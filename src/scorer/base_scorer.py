@@ -14,6 +14,7 @@ class BaseScorer(ABC):
         :param config: Configuration for the feature.
         """
         self.config = config
+        self.characterizer_type = 'score'
         self.name = 'base_score'
 
     def compute(self, scenario_features: Dict) -> Dict:
