@@ -57,7 +57,6 @@ class BaseDataset(Dataset):
         This is useful for distributed processing or handling large datasets.
         """
         if self.num_shards > 1:
-            n_per_shard = np.ceil(len(self.data.metas) / self.num_shards)
             n_per_shard = math.ceil(len(self.data.metas) / self.num_shards)
             shard_start = int(n_per_shard * self.shard_index)
             shard_end = int(n_per_shard * (self.shard_index + 1))

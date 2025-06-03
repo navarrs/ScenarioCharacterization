@@ -6,3 +6,4 @@ output_paths:
   scores_cache_path: ${paths.cache_path}/scores/${scenario_type}
   stats_cache_path: ${paths.cache_path}/stats/${scenario_type}
   vis_cache_path: ${paths.cache_path}/visualization/${scenario_type}
+  shards_cache_path: ${paths.cache_path}/shards/${scenario_type}
