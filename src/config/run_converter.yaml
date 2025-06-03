@@ -1,0 +1,16 @@
+defaults:
+  - _self_
+  - paths: base_paths  
+
+num_shards: 10
+shard_index: 0
+
+scenario_type: 'gt'
+features:
+  - random_feature
+
+scores:
+  - base_score
+
+input_features_path: ${paths.cache_path}/features/${scenario_type}
+input_scores_path: ${paths.cache_path}/scores/${scenario_type}
