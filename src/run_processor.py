@@ -3,13 +3,14 @@ import hydra
 from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
-from processors.scores_processor import ScoresProcessor
-from scorer.base_scorer import BaseScorer
-from utils.common import make_output_paths, get_logger
+from src.features.base_feature import BaseFeature
+from src.scorer.base_scorer import BaseScorer
+from src.processors.base_processor import BaseProcessor
+from src.utils.common import make_output_paths, get_logger
 
 logger = get_logger(__name__)
 
-@hydra.main(config_path="config", config_name="run_score_processor", version_base="1.3")
+@hydra.main(config_path="config", config_name="run_processor", version_base="1.3")
 def run(cfg: DictConfig) -> None:
     """
     Run the processor with the given configuration.
@@ -17,19 +18,22 @@ def run(cfg: DictConfig) -> None:
     Args:
         cfg (DictConfig): Configuration dictionary.
     """
-    # TODO: is this automatically handled?
     make_output_paths(cfg.copy())
-
+    
     logger.info("Instatiating dataset: %s", cfg.dataset._target_)
     dataset: Dataset = hydra.utils.instantiate(cfg.dataset)
 
-    logger.info("Instatiating scorer: %s", cfg.scorer._target_)
-    scorer: BaseScorer = hydra.utils.instantiate(cfg.scorer)
+    logger.info("Instatiating characterizer: %s", cfg.characterizer._target_)
+    characterizer: BaseFeature | BaseScorer = hydra.utils.instantiate(cfg.characterizer)
 
     logger.info("Instatiating processor: %s", cfg.processor._target_)
-    processor: ScoresProcessor = hydra.utils.instantiate(cfg.processor, dataset=dataset, scorer=scorer)
+    processor: BaseProcessor = hydra.utils.instantiate(
+        cfg.processor, 
+        dataset=dataset, 
+        characterizer=characterizer
+    )
     try:
-        logger.info("Generating scenario scores...")
+        logger.info("Generating scenario features...")
         processor.run()
     except Exception as e:
         logger.error("Error Processing Data: %s", e)
