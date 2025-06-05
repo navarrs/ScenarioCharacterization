@@ -6,7 +6,15 @@ config:
   scenario_base_path: ${paths.base_path}/new_processed_scenarios_testing
   scenario_meta_path: ${paths.base_path}/new_processed_scenarios_test_infos.pkl
 
+  parallel: ${parallel}
+  batch_size: ${batch_size}
+  
   num_scenarios: ${num_scenarios}
   num_workers: ${num_workers}
   num_shards: ${num_shards}
   shard_index: ${shard_index}
+
+  conflict_points_path: ${paths.output_paths.conflict_points_cache_path}
+  conflict_points:
+    intersection_threshold: 0.5 # meters
+    resample_factor: 3

@@ -1,0 +1,3 @@
+_target_: features.individual_features.IndividualFeatures
+config:
+  return_criteria: critical # Can be 'critical', 'average', or 'none'

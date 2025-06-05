@@ -27,6 +27,11 @@ class BaseDataset(Dataset):
         self.scenario_base_path = config.scenario_base_path
         self.scenario_meta_path = config.scenario_meta_path
 
+        self.conflict_points_path = config.conflict_points_path
+        self.conflict_points_cfg = config.get("conflict_points", None)
+
+        self.parallel = config.get("parallel", True)
+        self.batch_size = config.get("batch_size", 4)
         self.step = config.get("step", 1)
         self.num_scenarios = config.get("num_scenarios", -1)
         self.num_workers = config.get("num_workers", 0)
@@ -36,6 +41,7 @@ class BaseDataset(Dataset):
         self.data = EasyDict()
         self.data.scenarios = []
         self.data.scenarios_ids = []
+        self.data.conflict_points = []
         self.data.metas = []
 
         try:
@@ -43,7 +49,9 @@ class BaseDataset(Dataset):
             self.load_data()
         except Exception as e:
             logger.error("Error loading scenario infos: %s", e)
+            raise AssertionError(e)
 
+        
     @property
     def name(self) -> str:
         """

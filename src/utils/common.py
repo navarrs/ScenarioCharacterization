@@ -4,6 +4,7 @@ import os
 
 from omegaconf import DictConfig
 
+EPS = 1e-6
 SUPPORTED_SCENARIO_TYPES = ["gt"]
 
 def make_output_paths(cfg: DictConfig) -> None:
@@ -25,7 +26,8 @@ def get_logger(name=__name__):
     handler = colorlog.StreamHandler()
     handler.setFormatter(
         colorlog.ColoredFormatter(
-            "%(log_color)s[%(levelname)s]%(reset)s %(name)s: %(message)s",
+            '%(log_color)s[%(levelname)s]%(reset)s %(name)s '
+            '(%(filename)s:%(lineno)d): %(message)s',
             log_colors={
                 "DEBUG": "cyan",
                 "INFO": "green",

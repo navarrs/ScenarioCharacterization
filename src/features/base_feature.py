@@ -1,7 +1,7 @@
 import numpy as np
+import re
 
 from abc import ABC
-
 from omegaconf import DictConfig
 from typing import Dict
 
@@ -18,7 +18,8 @@ class BaseFeature(ABC):
 
     @property
     def name(self) -> str:
-        return 'base_feature'
+        # Get the class name and add a space before each capital letter (except the first)
+        return re.sub(r'(?<!^)([A-Z])', r' \1', self.__class__.__name__).lower()
 
     def compute(self, scenario: Dict) -> Dict:
         """ Produces a dummy output for the feature computation.

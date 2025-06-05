@@ -32,12 +32,15 @@ def run(cfg: DictConfig) -> None:
         dataset=dataset, 
         characterizer=characterizer
     )
+    
     try:
         logger.info("Generating scenario features...")
         processor.run()
     except Exception as e:
-        logger.error("Error Processing Data: %s", e)
-        return
+        import traceback
+        logger.error(f"Error Processing Data: %{e}\n{traceback.print_exc}")
+        raise AssertionError(e)
+    
     logger.info("Processing completed successfully.")
 
 if __name__ == "__main__":
