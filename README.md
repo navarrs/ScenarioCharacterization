@@ -1,5 +1,9 @@
 # ScenarioCharacterization
 
+## Pre-requisites
+
+TBD
+
 ## Running a feature processor
 ```
 uv run src/run_processor.py processor=features characterizer=feature
@@ -10,15 +14,28 @@ uv run src/run_processor.py processor=features characterizer=feature
 uv run src/run_processor.py processor=scores characterizer=score
 ```
 
-### OLD STUFF
+## Individual Features
+ - Speed Limit
+ - Waiting Period
+ - In Lane
+ - Trajectory Anomaly
+
+## Social Features
+ - Time Headway
+ - Time to Collision
+ - Minimum Time to Conflict Point
+ - Collisions
+ - Trajectory-Pair Anomaly
+
+
+
+
+### OLD STUFF (ignore)
 Re-spliting the data:
 ```
 cd data_tools
 python resplit.py --base_path /data/driving/waymo/
 ```
-
-
-
 
 Refactored process to get all SafeShift features:
 
