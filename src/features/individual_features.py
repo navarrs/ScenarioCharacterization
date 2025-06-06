@@ -65,9 +65,11 @@ class IndividualFeatures(BaseFeature):
 
         agent_positions = scenario["agent_positions"]
         # NOTE: this is not really an individual feature and would be useful for interactive features.
-        state['agent_to_agent_closest_dists'] = np.linalg.norm(
-            agent_positions[:, np.newaxis, :] - agent_positions[np.newaxis, :, :], axis=-1).min(axis=-1)
-        
+        state["agent_to_agent_closest_dists"] = np.linalg.norm(
+            agent_positions[:, np.newaxis, :] - agent_positions[np.newaxis, :, :],
+            axis=-1,
+        ).min(axis=-1)
+
         N = scenario["num_agents"]
 
         # NOTE: Handling sequentially since each agent may have different valid masks which will

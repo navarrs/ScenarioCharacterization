@@ -1,1 +1,1 @@
-SUPPORTED_SCORERS = ["base_score"]
+SUPPORTED_SCORERS = ["individual_scorer"]
