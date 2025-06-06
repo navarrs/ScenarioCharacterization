@@ -1,14 +1,14 @@
 # ScenarioCharacterization (Work-in-Progress)
 
-This repository is for automated scenario characterization for trajectory datasets. Currently, 
-it builds from the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift).
+Generalizable automated scenario characterization for trajectory datasets. Currently, 
+it is a re-implementation of the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift).
 
 ## Pre-requisites
 
 This repository is using: 
 - [uv](https://docs.astral.sh/uv/) as package manager.
 - [Hydra](https://hydra.cc/docs/intro/) for hierarchical configurations. 
-- **WIP: Pydantic**
+- [Pydantic](https://docs.pydantic.dev/latest/) for Input/Output data validation. 
 
 ## Repository Organization 
 
