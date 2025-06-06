@@ -7,12 +7,14 @@ import time
 from easydict import EasyDict
 from natsort import natsorted
 from omegaconf import DictConfig
+from pydantic import ValidationError
 from scipy.signal import resample
 from tqdm import tqdm
 from typing import Dict
 
-from utils.datasets.dataset import BaseDataset
-from utils.common import get_logger
+from src.utils.common import get_logger
+from src.utils.datasets.dataset import BaseDataset
+from src.utils.schemas import Scenario
 
 logger = get_logger(__name__)
 
@@ -83,7 +85,6 @@ class WaymoData(BaseDataset):
         """
         sdc_index = scenario_data['sdc_track_index']
         trajs = scenario_data['track_infos']['trajs']
-
         return {
             'num_agents': trajs.shape[0],
             'scenario_id': scenario_data['scenario_id'],
@@ -229,7 +230,8 @@ class WaymoData(BaseDataset):
         if lane_intersections.shape[0] > 0:
             conflict_point_list.append(lane_intersections)
 
-        conflict_points = np.concatenate(conflict_point_list) if len(conflict_point_list) else None
+        conflict_points = np.concatenate(
+            conflict_point_list, dtype=np.float32) if len(conflict_point_list) else None
 
         return {
             "static":  static_conflict_points, 
@@ -255,7 +257,13 @@ class WaymoData(BaseDataset):
         # TODO: Figure out if needed
         scenario_meta = self.data.metas[index]
         # ------------------------------------
-        return self.transform_scenario_data(scenario, conflict_points)
+        scenario_data = self.transform_scenario_data(scenario, conflict_points)
+        try:
+            Scenario(**scenario_data)  # Validate scenario data
+        except ValidationError as e: 
+            logger.error(f"Validation error for scenario {index}: {e}")
+            raise e
+        return scenario_data
 
     def collate_batch(self, batch_data) -> EasyDict:
         batch_size = len(batch_data)
