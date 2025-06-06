@@ -1,1 +1,10 @@
-SUPPORTED_FEATURES = ["random_feature"]
+SUPPORTED_FEATURES = [
+    "random_feature", 
+    "speed",
+    "acceleration",
+    "deceleration",
+    "jerk",
+    "waiting_period",
+    "waiting_intervals",
+    "waiting_distances",
+]

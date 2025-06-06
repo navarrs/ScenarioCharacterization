@@ -10,5 +10,4 @@ config:
   output_path: ${paths.output_paths.scores_cache_path}
   
   feature_path: ${paths.output_paths.feature_cache_path}
-  features:
-    - random_feature 
+  features: ${characterizer.config.features}

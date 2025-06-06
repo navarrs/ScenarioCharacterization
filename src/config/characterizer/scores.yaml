@@ -1,0 +1,4 @@
+defaults:
+ - feature.yaml
+
+_target_: scorer.base_scorer.BaseScorer
