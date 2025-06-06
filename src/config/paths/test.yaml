@@ -1,6 +1,6 @@
-base_path: /data/driving/waymo
+base_path: ./
 cache_path: ${paths.base_path}/cache
-scenario_base_path: ${paths.base_path}/new_processed_scenarios_testing
+scenario_base_path: ${paths.base_path}/samples
 scenario_meta_path: ${paths.base_path}/new_processed_scenarios_test_infos.pkl
 
 output_paths: 

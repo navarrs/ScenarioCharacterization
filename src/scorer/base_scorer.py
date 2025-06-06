@@ -29,8 +29,8 @@ class BaseScorer(ABC):
             str: The formatted class name.
         """
         # Get the class name and add a space before each capital letter (except the first)
-        return re.sub(r"(?<!^)([A-Z])", r" \1", self.__class__.__name__).lower()
-    
+        return re.sub(r"(?<!^)([A-Z])", r"_\1", self.__class__.__name__).lower()
+
     def compute(self, scenario: Dict, scenario_features: Dict) -> Dict:
         """Produces a dummy output for the feature computation.
 

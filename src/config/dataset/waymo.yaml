@@ -3,8 +3,8 @@ config:
   seed: ${seed}
   step: 5
   scenario_type: ${scenario_type}  
-  scenario_base_path: ${paths.base_path}/new_processed_scenarios_testing
-  scenario_meta_path: ${paths.base_path}/new_processed_scenarios_test_infos.pkl
+  scenario_base_path: ${paths.scenario_base_path}
+  scenario_meta_path: ${paths.scenario_meta_path}
 
   parallel: ${parallel}
   batch_size: ${batch_size}

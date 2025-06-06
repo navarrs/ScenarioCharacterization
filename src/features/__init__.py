@@ -1,5 +1,5 @@
 SUPPORTED_FEATURES = [
-    "random_feature", 
+    "random_feature",
     "speed",
     "acceleration",
     "deceleration",

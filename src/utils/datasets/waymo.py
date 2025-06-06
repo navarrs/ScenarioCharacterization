@@ -29,12 +29,12 @@ class WaymoData(BaseDataset):
         # length, width, height -> dimensions of the object's BBox in meters
         # heading -> yaw angle in radians of the forward direction of the the BBox
         # velocity_x, velocity_y -> x and y components of the object's velocity in m/s
-        self.AGENT_DIMS = [False,False,False,True,True,True,False,False,False,False]
-        self.HEADING_IDX = [False,False,False,False,False,False,True,False,False,False]
-        self.POS_XY_IDX = [True,True,False,False,False,False,False,False,False,False]
-        self.POS_XYZ_IDX = [True,True,True,False,False,False,False,False,False,False]
-        self.VEL_XY_IDX = [False,False,False,False,False,False,False,True,True,False]
-        self.AGENT_VALID = [False,False,False,False,False,False,False,False,False,True]
+        self.AGENT_DIMS = [False,False,False,True,True,True,False,False,False,False,]
+        self.HEADING_IDX = [False,False,False,False,False,False,True,False,False,False,]
+        self.POS_XY_IDX = [True,True,False,False,False,False,False,False,False,False,]
+        self.POS_XYZ_IDX = [True,True,True,False,False,False,False,False,False,False,]
+        self.VEL_XY_IDX = [False,False,False,False,False,False,False,True,True,False,]
+        self.AGENT_VALID = [False,False,False,False,False,False,False,False,False,True,]
 
         # Interpolated stuff
         self.IPOS_XY_IDX = [True, True, False, False, False, False, False]
@@ -82,7 +82,7 @@ class WaymoData(BaseDataset):
         logger.info(f"Loading data took {time.time() - start} seconds.")
 
         # TODO: remove this
-        self.shard()
+        # self.shard()
 
         num_scenarios = len(self.data.scenarios_ids)
 

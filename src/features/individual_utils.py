@@ -14,7 +14,7 @@ def compute_speed(velocities: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         velocities (np.ndarray): The velocity vectors of the agent over time.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray]: 
+        Tuple[np.ndarray, np.ndarray]:
             - speeds: The speed time series.
             - speeds_limit_diff: The difference between speed and speed limit (currently zeros).
     """
@@ -52,7 +52,7 @@ def compute_acceleration_profile(
         timestamps (np.ndarray): The timestamps corresponding to each velocity measurement.
 
     Returns:
-        Tuple[Tuple, np.array]: 
+        Tuple[Tuple, np.array]:
             - acceleration_raw: The raw acceleration time series.
             - acceleration: The sum of positive acceleration intervals.
             - deceleration: The sum of negative acceleration intervals (absolute value).

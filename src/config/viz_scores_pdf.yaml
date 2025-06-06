@@ -1,11 +1,17 @@
 defaults:
   - _self_
-  - run_score_processor.yaml
+  - run_processor.yaml
 
 scores_path: ${paths.output_paths.scores_cache_path}
   
 scorers:
-  - base_score
+  - individual_scorer
 
 dpi: 300
 output_dir: ./output/
+
+percentiles:
+  - 10
+  - 50
+  - 90
+min_scenarios_to_plot: 10

@@ -42,7 +42,6 @@ class ScoresProcessor(BaseProcessor):
             logger.error("Features must be specified in the configuration.")
             raise ValueError
 
-
         unsupported = [f for f in self.features if f not in SUPPORTED_FEATURES]
         if unsupported:
             logger.error(
@@ -91,7 +90,8 @@ class ScoresProcessor(BaseProcessor):
                     raise ValueError
 
                 scores = self.characterizer.compute(
-                    scenario=scenario, scenario_features=scenario_features)
+                    scenario=scenario, scenario_features=scenario_features
+                )
 
                 if self.save:
                     self.to_pickle(scores, scenario["scenario_id"])
