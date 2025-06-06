@@ -1,3 +1,1 @@
-SUPPORTED_FEATURES = [
-    "random_feature"
-]
+SUPPORTED_FEATURES = ["random_feature"]

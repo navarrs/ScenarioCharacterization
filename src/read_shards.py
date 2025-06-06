@@ -1,5 +1,5 @@
-import pyarrow.dataset as ds
 import duckdb
+import pyarrow.dataset as ds
 
 shard_path = "/data/driving/waymo/cache/shards/gt/"
 data = ds.dataset(shard_path, format="parquet")

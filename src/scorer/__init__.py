@@ -1,3 +1,1 @@
-SUPPORTED_SCORERS = [
-    "base_score"
-]
+SUPPORTED_SCORERS = ["base_score"]
