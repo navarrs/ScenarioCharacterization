@@ -1,11 +1,12 @@
-import colorlog
 import logging
 import os
 
+import colorlog
 from omegaconf import DictConfig
 
 EPS = 1e-6
 SUPPORTED_SCENARIO_TYPES = ["gt"]
+
 
 def make_output_paths(cfg: DictConfig) -> None:
     """
@@ -22,12 +23,18 @@ def make_output_paths(cfg: DictConfig) -> None:
     for path in cfg.paths.output_paths.values():
         os.makedirs(path, exist_ok=True)
 
+
 def get_logger(name=__name__):
+    """
+    Create a logger with colorized output for better readability.
+    Args:
+        name (str): Name of the logger. Defaults to the module's name.
+    """
     handler = colorlog.StreamHandler()
     handler.setFormatter(
         colorlog.ColoredFormatter(
-            '%(log_color)s[%(levelname)s]%(reset)s %(name)s '
-            '(%(filename)s:%(lineno)d): %(message)s',
+            "%(log_color)s[%(levelname)s]%(reset)s %(name)s "
+            "(%(filename)s:%(lineno)d): %(message)s",
             log_colors={
                 "DEBUG": "cyan",
                 "INFO": "green",

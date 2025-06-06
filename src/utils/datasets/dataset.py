@@ -1,22 +1,29 @@
 import math
-
 from abc import abstractmethod
-from easydict import EasyDict
-from omegaconf import DictConfig
-
-from torch.utils.data import Dataset
 from typing import Dict
 
-from utils.common import SUPPORTED_SCENARIO_TYPES
-from utils.common import get_logger
+from easydict import EasyDict
+from omegaconf import DictConfig
+from torch.utils.data import Dataset
+
+from utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
 
 logger = get_logger(__name__)
 
+
 class BaseDataset(Dataset):
-    """ 
-    Base class for datasets that handle scenarios.
-    """
+    """Base class for datasets that handle scenarios."""
+
     def __init__(self, config: DictConfig):
+        """Initializes the BaseDataset with configuration.
+
+        Args:
+            config (DictConfig): Configuration for the dataset, including paths and parameters.
+
+        Raises:
+            AssertionError: If the scenario type is not supported.
+            Exception: If loading scenario information fails.
+        """
         super(BaseDataset, self).__init__()
 
         self.scenario_type = config.scenario_type
@@ -50,17 +57,19 @@ class BaseDataset(Dataset):
         except AssertionError as e:
             logger.error("Error loading scenario infos: %s", e)
             raise e
-        
+
     @property
     def name(self) -> str:
-        """
-        Identify the dataset.
+        """Identifies the dataset.
+
+        Returns:
+            str: The name of the dataset class and its base path.
         """
         return f"{self.__class__.__name__}\n\t(from: {self.scenario_base_path})"
 
     def shard(self) -> None:
-        """
-        Shard the dataset into smaller parts.
+        """Shards the dataset into smaller parts.
+
         This is useful for distributed processing or handling large datasets.
         """
         if self.num_shards > 1:
@@ -78,11 +87,19 @@ class BaseDataset(Dataset):
             self.data.scenarios_ids = self.data.scenarios_ids[: self.num_scenarios]
 
     def __len__(self):
+        """Returns the number of scenarios in the dataset.
+
+        Returns:
+            int: Number of scenarios.
+        """
         return len(self.data.scenarios)
 
     @abstractmethod
     def load_data(self):
-        """Load the dataset."""
+        """Loads the dataset.
+
+        This method should load the dataset and populate the data attribute.
+        """
         logger.error(
             "Method load_data is not implemented yet."
             "This method should load the dataset and populate the data attribute."
@@ -90,16 +107,30 @@ class BaseDataset(Dataset):
 
     @abstractmethod
     def collate_batch(self, batch_data) -> Dict:
+        """Collates a batch of data into a single EasyDict.
+
+        Args:
+            batch_data: The batch data to collate.
+
+        Returns:
+            Dict: The collated batch.
+        """
         logger.error(
             "Method collate_batch is not implemented yet. "
             "This method should collate a batch of data into a single EasyDict."
         )
-    
+
     @abstractmethod
     def __getitem__(self, index: int) -> Dict:
+        """Returns the data for the given index.
+
+        Args:
+            index (int): The index of the data to retrieve.
+
+        Returns:
+            Dict: The data for the given index.
+        """
         logger.error(
             "Method __getitem__ is not implemented yet. "
             "This method should return the data for the given index."
         )
-
-

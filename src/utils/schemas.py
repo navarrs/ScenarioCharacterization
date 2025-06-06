@@ -1,8 +1,9 @@
-import numpy as np
+from typing import Any, List
 
-from pydantic import BaseModel, GetCoreSchemaHandler, PositiveInt, NonNegativeInt
+import numpy as np
+from pydantic import BaseModel, GetCoreSchemaHandler, NonNegativeInt, PositiveInt
 from pydantic_core import core_schema
-from typing import List, Any
+
 
 class BooleanNDArray3D:
     @classmethod
@@ -18,6 +19,7 @@ class BooleanNDArray3D:
 
         return core_schema.no_info_plain_validator_function(validate)
 
+
 class Float32NDArray3D:
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type, handler: GetCoreSchemaHandler):
@@ -29,7 +31,9 @@ class Float32NDArray3D:
             if value.dtype != np.float32:
                 raise ValueError("Array must be of float32 type")
             return value
+
         return core_schema.no_info_plain_validator_function(validate)
+
 
 class Float32NDArray2D:
     @classmethod
@@ -42,7 +46,9 @@ class Float32NDArray2D:
             if value.dtype != np.float32:
                 raise ValueError("Array must be of float32 type")
             return value
+
         return core_schema.no_info_plain_validator_function(validate)
+
 
 class Float32NDArray1D:
     @classmethod
@@ -55,8 +61,10 @@ class Float32NDArray1D:
             if value.dtype != np.float32:
                 raise ValueError("Array must be of float32 type")
             return value
+
         return core_schema.no_info_plain_validator_function(validate)
-    
+
+
 class Scenario(BaseModel):
     num_agents: PositiveInt
     scenario_id: str
@@ -68,6 +76,7 @@ class Scenario(BaseModel):
     agent_positions: Float32NDArray3D
     agent_velocities: Float32NDArray3D
     agent_headings: Float32NDArray3D
+    agent_relevance: Float32NDArray1D
     last_observed_timestep: PositiveInt
     total_timesteps: PositiveInt
     stationary_speed: float

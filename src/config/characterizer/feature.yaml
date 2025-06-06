@@ -1,2 +1,3 @@
 _target_: features.base_feature.BaseFeature
-config: null
+config:
+  return_criteria: critical
