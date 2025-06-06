@@ -1,3 +1,4 @@
+import re
 from abc import ABC
 from itertools import combinations
 from typing import Dict
@@ -13,11 +14,24 @@ class BaseScorer(ABC):
         Args:
             config (DictConfig): Configuration for the scorer.
         """
+        super(BaseScorer, self).__init__()
         self.config = config
         self.characterizer_type = "score"
-        self.name = "base_score"
+        self.features = self.config.features
+        self.detections = self.config.detections
+        self.weights = self.config.weights
 
-    def compute(self, scenario_features: Dict) -> Dict:
+    @property
+    def name(self) -> str:
+        """Gets the class name formatted as a lowercase string with spaces.
+
+        Returns:
+            str: The formatted class name.
+        """
+        # Get the class name and add a space before each capital letter (except the first)
+        return re.sub(r"(?<!^)([A-Z])", r" \1", self.__class__.__name__).lower()
+    
+    def compute(self, scenario: Dict, scenario_features: Dict) -> Dict:
         """Produces a dummy output for the feature computation.
 
         This method should be overridden by subclasses to compute actual features.

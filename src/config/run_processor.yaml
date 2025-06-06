@@ -17,3 +17,4 @@ shuffle: false
 save: true
 
 scenario_type: 'gt'
+return_criteria: 'critical'

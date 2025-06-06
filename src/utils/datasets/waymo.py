@@ -25,6 +25,10 @@ class WaymoData(BaseDataset):
 
         # Waymo dataset masks
         # center_x, center_y, center_z, length, width, height, heading, velocity_x, velocity_y, valid
+        # center_x, center_y, center_z -> coordinates fo the object's BBox center
+        # length, width, height -> dimensions of the object's BBox in meters
+        # heading -> yaw angle in radians of the forward direction of the the BBox
+        # velocity_x, velocity_y -> x and y components of the object's velocity in m/s
         self.AGENT_DIMS = [False,False,False,True,True,True,False,False,False,False]
         self.HEADING_IDX = [False,False,False,False,False,False,True,False,False,False]
         self.POS_XY_IDX = [True,True,False,False,False,False,False,False,False,False]
