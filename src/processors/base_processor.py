@@ -31,7 +31,7 @@ class BaseProcessor(ABC):
 
         # DataLoader parameters
         self.batch_size = config.get("batch_size", 4)
-        self.num_workers = config.get("num_worker", 4)
+        self.num_workers = config.get("num_workers", 4)
         self.shuffle = config.get("shuffle", False)
 
         self.save = config.get("save", True)

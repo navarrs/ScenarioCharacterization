@@ -1,9 +1,9 @@
-import numpy as np
 import math
 
 from abc import abstractmethod
 from easydict import EasyDict
 from omegaconf import DictConfig
+
 from torch.utils.data import Dataset
 from typing import Dict
 
@@ -47,10 +47,9 @@ class BaseDataset(Dataset):
         try:
             logger.info("Loading scenario infos...")
             self.load_data()
-        except Exception as e:
+        except AssertionError as e:
             logger.error("Error loading scenario infos: %s", e)
-            raise AssertionError(e)
-
+            raise e
         
     @property
     def name(self) -> str:
@@ -102,3 +101,5 @@ class BaseDataset(Dataset):
             "Method __getitem__ is not implemented yet. "
             "This method should return the data for the given index."
         )
+
+
