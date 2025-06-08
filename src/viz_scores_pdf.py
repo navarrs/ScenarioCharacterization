@@ -11,11 +11,9 @@ from torch.utils.data import Dataset
 
 from src.scorer import SUPPORTED_SCORERS
 from src.utils.common import get_logger
-from src.utils.datasets.dataset import BaseDataset
 from src.utils.viz.visualizer import BaseVisualizer
 
 logger = get_logger(__name__)
-
 
 def get_sample_to_plot(
     df: pd.DataFrame,

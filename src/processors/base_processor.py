@@ -1,11 +1,9 @@
 import os
 import pickle
 from abc import ABC, abstractmethod
-from typing import AnyStr, Dict
 
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader, Dataset
-from tqdm import tqdm
 
 from src.features.base_feature import BaseFeature
 from src.scorer.base_scorer import BaseScorer
@@ -79,7 +77,7 @@ class BaseProcessor(ABC):
         """
         raise NotImplementedError("The run method must be implemented in the subclass.")
 
-    def to_pickle(self, input_data: Dict, tag: AnyStr):
+    def to_pickle(self, input_data: dict, tag: str) -> None:
         """Saves data to a pickle file.
 
         Args:
@@ -98,7 +96,7 @@ class BaseProcessor(ABC):
         with open(data_file, "wb") as f:
             pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def from_pickle(self, data_file: AnyStr) -> Dict:
+    def from_pickle(self, data_file: str) -> dict:
         """Loads data from a pickle file.
 
         Args:

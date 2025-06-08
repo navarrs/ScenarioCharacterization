@@ -1,5 +1,3 @@
-from typing import Dict
-
 import numpy as np
 from omegaconf import DictConfig
 
@@ -22,7 +20,7 @@ class IndividualFeatures(BaseFeature):
 
         self.return_criteria = config.get("return_criteria", "critical")
 
-    def reset_state(self) -> Dict:
+    def reset_state(self) -> dict:
         """Resets the state dictionary for feature computation.
 
         Returns:
@@ -44,7 +42,7 @@ class IndividualFeatures(BaseFeature):
             "agent_to_agent_closest_dists": [],
         }
 
-    def compute(self, scenario: Dict) -> Dict:
+    def compute(self, scenario: dict) -> dict:
         """Computes features for each agent in the scenario.
 
         Args:
