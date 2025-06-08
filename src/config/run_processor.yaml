@@ -10,6 +10,7 @@ seed: 42
 num_scenarios: null
 num_shards: 10
 shard_index: 0
+step: 1
 
 parallel: false
 batch_size: 1
