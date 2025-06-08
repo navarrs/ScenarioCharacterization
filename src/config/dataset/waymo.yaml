@@ -2,7 +2,7 @@ _target_: utils.datasets.waymo.WaymoData
 config:
   load: true
   seed: ${seed}
-  step: 5
+  step: ${step}
   scenario_type: ${scenario_type}  
   scenario_base_path: ${paths.scenario_base_path}
   scenario_meta_path: ${paths.scenario_meta_path}

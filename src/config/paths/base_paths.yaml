@@ -6,8 +6,8 @@ scenario_meta_path: ${paths.base_path}/new_processed_scenarios_test_infos.pkl
 output_paths: 
   feature_cache_path: ${paths.cache_path}/features/${scenario_type}_${characterizer.config.return_criteria}
   scores_cache_path: ${paths.cache_path}/scores/${scenario_type}_${characterizer.config.return_criteria}
-  stats_cache_path: ${paths.cache_path}/stats/${scenario_type}_${characterizer.config.return_criteria}
+  # stats_cache_path: ${paths.cache_path}/stats/${scenario_type}_${characterizer.config.return_criteria}
+  # shards_cache_path: ${paths.cache_path}/shards/${scenario_type}_${characterizer.config.return_criteria}
   vis_cache_path: ${paths.cache_path}/visualization/${scenario_type}_${characterizer.config.return_criteria}
-  shards_cache_path: ${paths.cache_path}/shards/${scenario_type}_${characterizer.config.return_criteria}
 
   conflict_points_cache_path: ${paths.cache_path}/conflict_points/
