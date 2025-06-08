@@ -8,7 +8,7 @@ scorers:
   - individual_scorer
 
 dpi: 300
-output_dir: ./output/
+output_dir: ${paths.output_paths.vis_cache_path}
 
 percentiles:
   - 10

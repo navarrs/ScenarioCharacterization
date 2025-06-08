@@ -1,7 +1,7 @@
-base_path: ./
-cache_path: ${paths.base_path}/cache
-scenario_base_path: ${paths.base_path}/samples
-scenario_meta_path: ${paths.base_path}/new_processed_scenarios_test_infos.pkl
+base_path: .
+cache_path: ${paths.base_path}/output/cache
+scenario_base_path: ${paths.base_path}/samples/scenarios
+scenario_meta_path: ${paths.base_path}/samples/sample_infos.pkl
 
 output_paths: 
   feature_cache_path: ${paths.cache_path}/features/${scenario_type}_${characterizer.config.return_criteria}
