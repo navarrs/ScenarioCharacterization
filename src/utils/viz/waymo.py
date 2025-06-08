@@ -45,7 +45,9 @@ class WaymoVisualizer(BaseVisualizer):
             ax.set_xticks([])
             ax.set_yticks([])
 
-        plt.title(title)
+        plt.suptitle(title)
+        axs[0].set_title("All Agents Trajectories")
+        axs[1].set_title("Highlighted Relevant and SDC Agent Trajectories")
         plt.subplots_adjust(wspace=0.05)
         plt.savefig(output_filepath, dpi=300, bbox_inches='tight')
         plt.close()
