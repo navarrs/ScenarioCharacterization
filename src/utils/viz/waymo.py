@@ -6,77 +6,254 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import cm
 from matplotlib import pyplot as plt
+from torch.utils.data import Dataset
 
-COLORS = {
-    "lane": "k",
-    "crosswalk": "cyan",
-    "speed_bump": "orange",
-    "road_edge": "k",
-    "road_line": "k",
-}
-ALPHAS = {
-    "lane": 0.1,
-    "crosswalk": 0.6,
-    "speed_bump": 0.6,
-    "road_edge": 0.1,
-    "road_line": 0.1,
-}
-AGENT_COLOR = {
-    "TYPE_VEHICLE": "blue",
-    "TYPE_PEDESTRIAN": "green",
-    "TYPE_CYCLIST": "cyan",
-}
+from src.utils.viz.visualizer import BaseVisualizer
+from src.utils.datasets.dataset import BaseDataset
 
-# def plot_scene(scenario, 
-#                scores_gt, total_score_gt, interp_gt, 
-#                scores_fe, total_score_fe, interp_fe,
-#                total_score_asym_combined,
-#                tag):
-#     num_windows = 2
-#     point_size = 1
-#     alpha = 0.5
-#     fig, axs = plt.subplots(1, num_windows, figsize=(5 * num_windows, 5 * 1))
+class WaymoVisualizer(BaseVisualizer):
+    def __init__(self, config, dataset: Dataset):
+        super().__init__(config, dataset=dataset)
 
-#     static_map_infos = scenario['map_infos']
-#     dynamic_map_infos = scenario['dynamic_map_infos']
-#     to_predict = scenario['tracks_to_predict']['track_index']
+    def visualize_scenario(
+        self, scenario: dict, title: str = "Scenario", output_filepath: str = 'temp.png'
+    ) -> None:
+        """Visualizes a single Waymo scenario.
 
-#     plot_static_map_infos(static_map_infos, axs, num_windows=num_windows)
-#     plot_dynamic_map_infos(dynamic_map_infos, axs, num_windows=num_windows)
+        Args:
+            scenario (dict): The scenario data to visualize.
+            output_filepath (str, optional): Path to save the visualization output. If None, will not save.
+
+        Returns:
+            None: This method should handle visualization and save the output.
+        """
+        num_windows = 2
+        point_size = 1
+        alpha = 0.5
+        fig, axs = plt.subplots(1, num_windows, figsize=(5 * num_windows, 5 * 1))
+
+        static_map_information = scenario['map_infos']
+        dynamic_map_information = scenario['dynamic_map_infos']
+        self.plot_static_map_infos(static_map_information, axs, num_windows=num_windows)
+        self.plot_dynamic_map_infos(dynamic_map_information, axs, num_windows=num_windows)
+
+        tf_scenario = self.dataset.transform_scenario_data(scenario) 
+        self.plot_sequences(tf_scenario, axs[0])
+        self.plot_sequences(tf_scenario, axs[1], show_relevant=True)
+
+        for ax in axs.reshape(-1):
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+        plt.title(title)
+        plt.subplots_adjust(wspace=0.05)
+        plt.savefig(output_filepath, dpi=300, bbox_inches='tight')
+        plt.close()
     
-#     for ax, interp_trajectories, scores, total_score, load_type in zip(axs.reshape(-1), [interp_gt, interp_fe], [scores_gt, scores_fe], 
-#                                                 [total_score_gt, total_score_fe], ['gt', 'fe']):
-#         score_vals = np.array([x for x in scores.values()])
-#         if not np.allclose(score_vals, 0.0):
-#             alphas = (score_vals - score_vals.min()) / (score_vals.max() - score_vals.min())
-#         alphas = np.clip(alphas, 0.2, 1.0)
-#         alphas = {k: v for k, v in zip(scores.keys(), alphas)}
-#         for n in scores.keys():
-#             # Uses interpolated and extrapolated regions 
-#             if np.any(np.isnan(interp_trajectories[n, :, IPOS_XY_IDX])):
-#                 continue
+    def plot_sequences(self, tf_scenario: dict, ax: plt.Axes, show_relevant: bool = False) -> None:
+        """Plots the agent trajectories in a simple manner.
 
-#             pos = interp_trajectories[n, :, IPOS_XY_IDX].T
-#             if load_type == 'gt':
-#                 # Uses interpolated regions only
-#                 mask = np.where(interp_trajectories[n, :, -1] == 1)[0]
-#                 if mask.shape[0] == 0:
-#                     continue
-#                 pos = interp_trajectories[n, mask[0]:(mask[-1]+1), IPOS_XY_IDX].T
+        Args:
+            tf_scenario (dict): Transformed scenario data containing agent positions and validity.
+            ax (matplotlib.axes.Axes): Axes to plot on.
 
-#             color = 'blue' if n not in to_predict else 'green'
-#             ax.plot(pos[:, 0], pos[:, 1], color=color, alpha=alphas[n])
+        Returns:
+            None: This method modifies the axes directly.
+        """
+        agent_positions = tf_scenario['agent_positions']
+        agent_types = tf_scenario['agent_types']
+        agent_valid = tf_scenario['agent_valid']
+        agent_relevance = tf_scenario['agent_relevance']
+        ego_index = tf_scenario['ego_index']
+        relevant_indeces = np.where(agent_relevance > 0.0)[0]
 
-#         ax.set_title(f'Scene Score {load_type.upper()}: {round(total_score, 3)}')
-#         ax.set_xticks([])
-#         ax.set_yticks([])
+        if show_relevant:
+            # TODO: make agent_types a numpy array
+            for idx in relevant_indeces:
+                agent_types[idx] = 'TYPE_RELEVANT'
+            agent_types[ego_index] = 'TYPE_SDC'  # Mark ego agent for visualization
         
-#     plt.subplots_adjust(wspace=0.05)
-#     plt.savefig(
-#         f"{tag}_score_{round(total_score_asym_combined, 3)}.png", 
-#         dpi=300, bbox_inches='tight')
-#     plt.clf()
+        zipped = zip(agent_positions, agent_valid, agent_types)
+        for agent_positions, agent_mask, agent_type in zipped:
+            if not agent_mask.any() or agent_mask.sum() < 2:
+                continue
 
+            pos = agent_positions[agent_mask.squeeze(-1), :]
+            color = self.agent_colors[agent_type]
+            ax.plot(pos[:, 0], pos[:, 1], color=color, linewidth=2)
+
+    def plot_static_map_infos(
+        self, map_information: dict, ax: plt.Axes, num_windows: int = 0, dim: int = 2
+    ) -> None:
+        """Plots static map information such as lanes, stop signs, and crosswalks.
+
+        Args:
+            map_information (dict): Dictionary containing map information.
+            ax (matplotlib.axes.Axes, optional): Axes to plot on.
+            num_windows (int, optional): Number of subplot windows.
+            dim (int, optional): Number of dimensions to plot.
+
+        Returns:
+            dict: Dictionary of plotted map info positions.
+        """
+        road_graph = map_information["all_polylines"][:, :dim]
+
+        map_infos_pos = {}
+        for key in self.static_map_keys:
+            if key not in map_information.keys():
+                continue
+
+            if key == "stop_sign":
+                map_infos_pos[key] = self.plot_stop_signs(
+                    map_information[key], 
+                    ax, 
+                    num_windows, 
+                    color=self.map_colors[key],
+                    dim=dim
+                )
+            else:
+                map_infos_pos[key] = self.plot_polylines(
+                    map_information[key], 
+                    road_graph, 
+                    ax, 
+                    num_windows, 
+                    color=self.map_colors[key],
+                    alpha=self.map_alphas[key], 
+                    dim=dim,
+                )
+
+    def plot_dynamic_map_infos(
+        self, map_information: dict, ax: plt.Axes, num_windows: int = 0, dim: int = 2
+    ):
+        """Plots dynamic map information such as stop points.
+
+        Args:
+            map_infos (dict): Dictionary containing dynamic map information.
+            ax (matplotlib.axes.Axes, optional): Axes to plot on.
+            num_windows (int, optional): Number of subplot windows.
+            keys (list, optional): List of dynamic map info keys to plot.
+            dim (int, optional): Number of dimensions to plot.
+
+        Returns:
+            dict: Dictionary of plotted dynamic map info positions.
+        """
+        for key in self.dynamic_map_keys:
+            if key not in map_information.keys():
+                continue
+            if key == "stop_point":
+                if len(map_information[key]) <= 0:
+                    continue
+                stop_points = map_information[key][0]
+                for i in range(stop_points.shape[1]):
+                    pos = stop_points[0, i, :2]
+                    if ax is None:
+                        continue
+
+                    if num_windows == 1:
+                        ax.scatter(
+                            pos[0], 
+                            pos[1], 
+                            s=6, 
+                            c=self.map_colors[key], 
+                            marker="s", 
+                            alpha=self.map_alphas[key]
+                        )
+                    else:
+                        for a in ax.reshape(-1):
+                            a.scatter(
+                                pos[0], 
+                                pos[1], 
+                                s=6, 
+                                c=self.map_colors[key], 
+                                marker="s", 
+                                alpha=self.map_alphas[key]
+                            )
+        
+    def plot_stop_signs(
+        self, stop_signs, ax: plt.Axes = None, num_windows: int = 0, color: str = "red", dim: int = 2
+    ) -> np.ndarray:
+        """Plots stop signs on the given axes.
+
+        Args:
+            stop_signs (list): List of stop sign dictionaries with 'position'.
+            ax (matplotlib.axes.Axes, optional): Axes to plot on.
+            num_windows (int, optional): Number of subplot windows.
+            color (str, optional): Color for the stop signs.
+            dim (int, optional): Number of dimensions to plot.
+
+        Returns:
+            np.ndarray: Array of stop sign positions.
+        """
+        stop_sign_xy = np.zeros(shape=(len(stop_signs), dim))
+        for i, stop_sign in enumerate(stop_signs):
+            pos = stop_sign["position"]
+            stop_sign_xy[i] = pos[:dim]
+            if ax is None:
+                continue
+
+            if num_windows == 1:
+                ax.scatter(pos[0], pos[1], s=16, c=color, marker="H", alpha=1.0)
+            else:
+                for a in ax.reshape(-1):
+                    a.scatter(pos[0], pos[1], s=16, c=color, marker="H", alpha=1.0)
+
+        return stop_sign_xy
+    
+    def plot_polylines(
+        self, polylines: np.ndarray, road_graph: np.ndarray, ax: plt.Axes = None,
+        num_windows=0,
+        color="k",
+        alpha=1.0,
+        linewidth=0.5,
+        dim=2,
+    ):
+        """Plots polylines on the given axes.
+
+        Args:
+            polylines (list): List of polyline dictionaries with 'polyline_index'.
+            road_graph (np.ndarray): Array of road graph points.
+            ax (matplotlib.axes.Axes, optional): Axes to plot on.
+            num_windows (int, optional): Number of subplot windows.
+            color (str, optional): Color for the polylines.
+            alpha (float, optional): Alpha transparency.
+            linewidth (float, optional): Line width.
+            dim (int, optional): Number of dimensions to plot.
+
+        Returns:
+            list: List of polyline position arrays.
+        """
+        polyline_pos_list = []
+        for pl in polylines:
+            start_idx, end_idx = pl["polyline_index"]
+            polyline_pos = road_graph[start_idx:end_idx, :dim]
+            polyline_pos_list.append(polyline_pos)
+            if ax is None:
+                continue
+            if num_windows == 1:
+                ax.plot(
+                    polyline_pos[:, 0],
+                    polyline_pos[:, 1],
+                    color,
+                    alpha=alpha,
+                    linewidth=linewidth,
+                    ms=2,
+                )
+            else:
+                for a in ax.reshape(-1):
+                    a.plot(
+                        polyline_pos[:, 0],
+                        polyline_pos[:, 1],
+                        color,
+                        alpha=alpha,
+                        linewidth=linewidth,
+                        ms=2,
+                    )
+        return polyline_pos_list
+
+
+# --------------------------------------------------------------------------------------------------
+# NOTE: Unused functions for now
+# --------------------------------------------------------------------------------------------------
 def get_color_map(num_colors):
     """Returns a color map dictionary with a specified number of unique colors.
 
@@ -135,180 +312,6 @@ def plot_cluster_overlap(num_clusters, num_components, labels, scores, shards, t
     filename = f"{tag}_kmeans-{num_clusters}_pca-{num_components}_overlap_shards{shards[0]}-{shards[-1]}.png"
     plt.savefig(filename, dpi=300, bbox_inches="tight")
     plt.close()
-
-
-def plot_polylines(
-    polylines,
-    road_graph,
-    ax=None,
-    num_windows=0,
-    color="k",
-    alpha=1.0,
-    linewidth=0.5,
-    dim=2,
-):
-    """Plots polylines on the given axes.
-
-    Args:
-        polylines (list): List of polyline dictionaries with 'polyline_index'.
-        road_graph (np.ndarray): Array of road graph points.
-        ax (matplotlib.axes.Axes, optional): Axes to plot on.
-        num_windows (int, optional): Number of subplot windows.
-        color (str, optional): Color for the polylines.
-        alpha (float, optional): Alpha transparency.
-        linewidth (float, optional): Line width.
-        dim (int, optional): Number of dimensions to plot.
-
-    Returns:
-        list: List of polyline position arrays.
-    """
-    polyline_pos_list = []
-    for pl in polylines:
-        start_idx, end_idx = pl["polyline_index"]
-        polyline_pos = road_graph[start_idx:end_idx, :dim]
-        polyline_pos_list.append(polyline_pos)
-        if ax is None:
-            continue
-        if num_windows == 1:
-            ax.plot(
-                polyline_pos[:, 0],
-                polyline_pos[:, 1],
-                color,
-                alpha=alpha,
-                linewidth=linewidth,
-                ms=2,
-            )
-        else:
-            for a in ax.reshape(-1):
-                a.plot(
-                    polyline_pos[:, 0],
-                    polyline_pos[:, 1],
-                    color,
-                    alpha=alpha,
-                    linewidth=linewidth,
-                    ms=2,
-                )
-    return polyline_pos_list
-
-
-def plot_stop_signs(stop_signs, ax=None, num_windows=0, color="red", dim=2):
-    """Plots stop signs on the given axes.
-
-    Args:
-        stop_signs (list): List of stop sign dictionaries with 'position'.
-        ax (matplotlib.axes.Axes, optional): Axes to plot on.
-        num_windows (int, optional): Number of subplot windows.
-        color (str, optional): Color for the stop signs.
-        dim (int, optional): Number of dimensions to plot.
-
-    Returns:
-        np.ndarray: Array of stop sign positions.
-    """
-    stop_sign_xy = np.zeros(shape=(len(stop_signs), dim))
-    for i, stop_sign in enumerate(stop_signs):
-        pos = stop_sign["position"]
-        stop_sign_xy[i] = pos[:dim]
-        if ax is None:
-            continue
-
-        if num_windows == 1:
-            ax.scatter(pos[0], pos[1], s=16, c=color, marker="H", alpha=1.0)
-        else:
-            for a in ax.reshape(-1):
-                a.scatter(pos[0], pos[1], s=16, c=color, marker="H", alpha=1.0)
-
-    return stop_sign_xy
-
-
-def plot_static_map_infos(
-    map_infos,
-    ax=None,
-    num_windows=0,
-    keys=["lane", "stop_sign", "crosswalk", "speed_bump", "road_edge", "road_line"],
-    dim=2,
-):
-    """Plots static map information such as lanes, stop signs, and crosswalks.
-
-    Args:
-        map_infos (dict): Dictionary containing map information.
-        ax (matplotlib.axes.Axes, optional): Axes to plot on.
-        num_windows (int, optional): Number of subplot windows.
-        keys (list, optional): List of map info keys to plot.
-        dim (int, optional): Number of dimensions to plot.
-
-    Returns:
-        dict: Dictionary of plotted map info positions.
-    """
-    road_graph = map_infos["all_polylines"][:, :dim]
-    map_infos_pos = {}
-    for key in keys:
-        if key not in map_infos.keys():
-            continue
-
-        if key == "stop_sign":
-            map_infos_pos[key] = plot_stop_signs(
-                map_infos[key], ax, num_windows, dim=dim
-            )
-        else:
-            map_infos_pos[key] = plot_polylines(
-                map_infos[key],
-                road_graph,
-                ax,
-                num_windows,
-                color=COLORS[key],
-                alpha=ALPHAS[key],
-                dim=dim,
-            )
-
-    return map_infos_pos
-
-
-def plot_dynamic_map_infos(
-    map_infos, ax=None, num_windows=0, keys=["stop_point"], dim=2
-):
-    """Plots dynamic map information such as stop points.
-
-    Args:
-        map_infos (dict): Dictionary containing dynamic map information.
-        ax (matplotlib.axes.Axes, optional): Axes to plot on.
-        num_windows (int, optional): Number of subplot windows.
-        keys (list, optional): List of dynamic map info keys to plot.
-        dim (int, optional): Number of dimensions to plot.
-
-    Returns:
-        dict: Dictionary of plotted dynamic map info positions.
-    """
-    map_infos_pos = {}
-    for key in keys:
-        if key not in map_infos.keys():
-            continue
-
-        if key == "stop_point":
-            if len(map_infos[key]) <= 0:
-                continue
-
-            stop_points = map_infos[key][0]
-            for i in range(stop_points.shape[1]):
-                pos = stop_points[0, i, :2]
-                if ax is None:
-                    continue
-
-                if num_windows == 1:
-                    ax.scatter(pos[0], pos[1], s=6, c="purple", marker="s", alpha=1.0)
-                else:
-                    for a in ax.reshape(-1):
-                        a.scatter(
-                            pos[0], pos[1], s=6, c="purple", marker="s", alpha=1.0
-                        )
-
-        # if key == 'stop_sign':
-        #     map_infos_pos[key] = plot_stop_signs(map_infos[key], ax)
-        # else:
-        #     map_infos_pos[key] = plot_polylines(
-        #         map_infos[key], road_graph, ax, color=COLORS[key], alpha=ALPHAS[key])
-
-    return map_infos_pos
-
 
 def plot_lanes_by_distance(lanes, order, dists, ax, k=-1):
     """Plots lanes colored by their distance.

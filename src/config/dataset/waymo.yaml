@@ -1,5 +1,6 @@
 _target_: utils.datasets.waymo.WaymoData
 config:
+  load: true
   seed: ${seed}
   step: 5
   scenario_type: ${scenario_type}  

@@ -2,10 +2,8 @@ import itertools
 import os
 import pickle
 import time
-from typing import Dict
 
 import numpy as np
-from easydict import EasyDict
 from natsort import natsorted
 from omegaconf import DictConfig
 from pydantic import ValidationError
@@ -17,7 +15,6 @@ from src.utils.datasets.dataset import BaseDataset
 from src.utils.schemas import Scenario
 
 logger = get_logger(__name__)
-
 
 class WaymoData(BaseDataset):
     def __init__(self, config: DictConfig) -> None:
@@ -94,20 +91,22 @@ class WaymoData(BaseDataset):
         ), f"Mismatch in number of scenarios and conflict points: {num_scenarios} vs {num_conflict_points}"
 
     def transform_scenario_data(
-        self, scenario_data: Dict, conflict_points: Dict
-    ) -> Dict:
+        self, scenario_data: dict, conflict_points: dict | None = None
+    ) -> dict:
         """Transforms the scene data into a format suitable for processing.
 
         Args:
-            scenario_data (Dict): The raw scenario data.
-            conflict_points (Dict): The conflict points for the scenario.
+            scenario_data (dict): The raw scenario data.
+            conflict_points (dict): The conflict points for the scenario.
 
         Returns:
-            Dict: The transformed scenario data.
+            dict: The transformed scenario data.
         """
         sdc_index = scenario_data["sdc_track_index"]
         trajs = scenario_data["track_infos"]["trajs"]
         num_agents = trajs.shape[0]
+
+        conflict_points = None if conflict_points is None else conflict_points['all_conflict_points']
 
         # TODO: improve this relevance criteria
         agent_relevance = np.zeros(num_agents, dtype=np.float32)
@@ -143,7 +142,7 @@ class WaymoData(BaseDataset):
             "timestamps": np.asarray(
                 scenario_data["timestamps_seconds"], dtype=np.float32
             ),
-            "map_conflict_points": conflict_points["all_conflict_points"],
+            "map_conflict_points": conflict_points,
         }
 
     def check_conflict_points(self):
@@ -203,16 +202,16 @@ class WaymoData(BaseDataset):
         )
 
     def find_conflict_points(
-        self, static_map_info: Dict, dynamic_map_info: Dict
-    ) -> Dict:
+        self, static_map_info: dict, dynamic_map_info: dict
+    ) -> dict:
         """Finds the conflict points in the map.
 
         Args:
-            static_map_info (Dict): The static map information.
-            dynamic_map_info (Dict): The dynamic map information.
+            static_map_info (dict): The static map information.
+            dynamic_map_info (dict): The dynamic map information.
 
         Returns:
-            Dict: The conflict points in the map divided into:
+            dict: The conflict points in the map divided into:
                 - 'static': (Ns, 3) static points (e.g., crosswalks, speed bumps, stop signs)
                 - 'dynamic': (Nd, 3) dynamic points (e.g., traffic lights)
                 - 'lane_intersections': (Nl, 3) intersections between lanes
@@ -318,14 +317,14 @@ class WaymoData(BaseDataset):
             "all_conflict_points": conflict_points,
         }
 
-    def __getitem__(self, index: int) -> Dict:
+    def __getitem__(self, index: int) -> dict:
         """Gets a single scenario by index.
 
         Args:
             index (int): Index of the scenario to retrieve.
 
         Returns:
-            Dict: A dictionary containing the scenario ID, metadata, and scenario data.
+            dict: A dictionary containing the scenario ID, metadata, and scenario data.
 
         Raises:
             ValidationError: If the scenario data does not pass schema validation.
@@ -348,14 +347,14 @@ class WaymoData(BaseDataset):
             raise e
         return scenario_data
 
-    def collate_batch(self, batch_data) -> EasyDict:
+    def collate_batch(self, batch_data) -> dict:
         """Collates a batch of scenario data.
 
         Args:
             batch_data (list): List of scenario data dictionaries.
 
         Returns:
-            EasyDict: A dictionary containing the batch size and the batch of scenarios.
+            dict: A dictionary containing the batch size and the batch of scenarios.
         """
         batch_size = len(batch_data)
         # key_to_list = {}

@@ -51,12 +51,14 @@ class BaseDataset(Dataset):
         self.data.conflict_points = []
         self.data.metas = []
 
-        try:
-            logger.info("Loading scenario infos...")
-            self.load_data()
-        except AssertionError as e:
-            logger.error("Error loading scenario infos: %s", e)
-            raise e
+        self.load = config.get("load", True)
+        if self.load:
+            try:
+                logger.info("Loading scenario infos...")
+                self.load_data()
+            except AssertionError as e:
+                logger.error("Error loading scenario infos: %s", e)
+                raise e
 
     @property
     def name(self) -> str:

@@ -2,6 +2,7 @@ defaults:
   - _self_
   - paths: base_paths
   - dataset: waymo
+  - viz: waymo
   - processor: features
   - characterizer: feature  
 
