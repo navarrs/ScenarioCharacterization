@@ -1,6 +1,5 @@
 import math
 from abc import abstractmethod
-from typing import Dict
 
 from easydict import EasyDict
 from omegaconf import DictConfig
@@ -108,7 +107,7 @@ class BaseDataset(Dataset):
         )
 
     @abstractmethod
-    def collate_batch(self, batch_data) -> Dict:
+    def collate_batch(self, batch_data) -> dict:
         """Collates a batch of data into a single EasyDict.
 
         Args:
@@ -123,7 +122,7 @@ class BaseDataset(Dataset):
         )
 
     @abstractmethod
-    def __getitem__(self, index: int) -> Dict:
+    def __getitem__(self, index: int) -> dict:
         """Returns the data for the given index.
 
         Args:

@@ -1,6 +1,4 @@
 
-from typing import Dict
-
 import numpy as np
 from omegaconf import DictConfig
 
@@ -44,7 +42,7 @@ class IndividualScorer(BaseScorer):
             )
         )
 
-    def compute(self, scenario: Dict, scenario_features: Dict) -> Dict:
+    def compute(self, scenario: dict, scenario_features: dict) -> dict:
         """Produces a dummy output for the feature computation.
 
         This method should be overridden by subclasses to compute actual features.

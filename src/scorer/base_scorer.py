@@ -31,7 +31,7 @@ class BaseScorer(ABC):
         # Get the class name and add a space before each capital letter (except the first)
         return re.sub(r"(?<!^)([A-Z])", r"_\1", self.__class__.__name__).lower()
 
-    def compute(self, scenario: Dict, scenario_features: Dict) -> Dict:
+    def compute(self, scenario: dict, scenario_features: dict) -> dict:
         """Produces a dummy output for the feature computation.
 
         This method should be overridden by subclasses to compute actual features.

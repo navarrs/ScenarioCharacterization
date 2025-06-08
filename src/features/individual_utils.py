@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import numpy as np
 
 from src.utils.common import EPS, get_logger
@@ -7,14 +5,14 @@ from src.utils.common import EPS, get_logger
 logger = get_logger(__name__)
 
 
-def compute_speed(velocities: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def compute_speed(velocities: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Computes the speed profile of an agent.
 
     Args:
         velocities (np.ndarray): The velocity vectors of the agent over time.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray]:
+        tuple[np.ndarray, np.ndarray]:
             - speeds: The speed time series.
             - speeds_limit_diff: The difference between speed and speed limit (currently zeros).
     """
@@ -44,7 +42,7 @@ def compute_speed(velocities: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
 def compute_acceleration_profile(
     velocity: np.ndarray, timestamps: np.ndarray
-) -> Tuple[Tuple, np.array]:
+) -> tuple[tuple, np.array]:
     """Computes the acceleration profile from the speed (m/s) and time delta.
 
     Args:
@@ -52,13 +50,13 @@ def compute_acceleration_profile(
         timestamps (np.ndarray): The timestamps corresponding to each velocity measurement.
 
     Returns:
-        Tuple[Tuple, np.array]:
+        tuple[tuple, np.array]:
             - acceleration_raw: The raw acceleration time series.
             - acceleration: The sum of positive acceleration intervals.
             - deceleration: The sum of negative acceleration intervals (absolute value).
     """
 
-    def get_acc_sums(acc: np.array, idx: np.array) -> Tuple[np.array, np.array]:
+    def get_acc_sums(acc: np.array, idx: np.array) -> tuple[np.array, np.array]:
         diff = idx[1:] - idx[:-1]
         diff = np.array([-1] + np.where(diff > 1)[0].tolist() + [diff.shape[0]])
         se_idxs = [(idx[s + 1], idx[e] + 1) for s, e in zip(diff[:-1], diff[1:])]
@@ -130,7 +128,7 @@ def compute_waiting_period(
         stationary_speed (float, optional): The speed threshold below which the agent is considered stationary. Defaults to 0.0.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        tuple[np.ndarray, np.ndarray, np.ndarray]:
             - waiting_period: The waiting interval over the distance to the closest conflict point at that distance.
             - waiting_intervals: The duration of each waiting interval.
             - waiting_distances: The minimum distance to conflict points during each waiting interval.

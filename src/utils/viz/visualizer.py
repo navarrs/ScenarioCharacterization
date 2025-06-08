@@ -1,11 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Dict
 
 from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
 from src.utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
-from src.utils.datasets.dataset import BaseDataset
 
 logger = get_logger(__name__)
 
@@ -44,7 +42,7 @@ class BaseVisualizer(ABC):
         self.dataset = dataset
 
     @abstractmethod
-    def visualize_scenario(self, scenario: Dict):
+    def visualize_scenario(self, scenario: dict) -> None:
         """Visualizes a single scenario.
 
         Args:
