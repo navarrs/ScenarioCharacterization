@@ -149,12 +149,12 @@ uv run src/viz_scores_pdf.py
 
 <div style="display: inline-block; text-align: center;">
   <strong>Individual, Low Score</strong><br>
-  <img src="./assets/individual_low-score_scenario.png" alt="(PDF)" width="300">
+  <img src="./assets/individual_low-score_scenario.png" alt="(PDF)" width="1000">
 </div>
 
 <div style="display: inline-block; text-align: center;">
   <strong>Individual, High Score</strong><br>
-  <img src="./assets/individual_high-score_scenario.png" alt="(PDF)" width="300">
+  <img src="./assets/individual_high-score_scenario.png" alt="(PDF)" width="1000">
 </div>
 
 </div>
@@ -163,12 +163,12 @@ uv run src/viz_scores_pdf.py
 
 <div style="display: inline-block; text-align: center;">
   <strong>Interaction, Low Score</strong><br>
-  <img src="./assets/interaction_low-score_scenario.png" alt="(PDF)" width="300">
+  <img src="./assets/interaction_low-score_scenario.png" alt="(PDF)" width="1000">
 </div>
 
 <div style="display: inline-block; text-align: center;">
   <strong>Interaction, High Score</strong><br>
-  <img src="./assets/interaction_high-score_scenario.png" alt="(PDF)" width="300">
+  <img src="./assets/interaction_high-score_scenario.png" alt="(PDF)" width="1000">
 </div>
 
 </div>
