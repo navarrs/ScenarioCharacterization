@@ -40,9 +40,7 @@ def compute_speed(velocities: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return speeds, speeds_limit_diff
 
 
-def compute_acceleration_profile(
-    velocity: np.ndarray, timestamps: np.ndarray
-) -> tuple[tuple, np.array]:
+def compute_acceleration_profile(velocity: np.ndarray, timestamps: np.ndarray) -> tuple[tuple, np.array]:
     """Computes the acceleration profile from the speed (m/s) and time delta.
 
     Args:
@@ -152,15 +150,11 @@ def compute_waiting_period(
         starts = np.where(is_waiting == 1)[0]
         ends = np.where(is_waiting == -1)[0]
 
-        waiting_intervals = np.array(
-            [dt[start:end].sum() for start, end in zip(starts, ends)]
-        )
+        waiting_intervals = np.array([dt[start:end].sum() for start, end in zip(starts, ends)])
         # intervals = np.array([end - start for start, end in zip(starts, ends)])
 
         # For every timestep, get the minimum distance to the set of conflict points
-        waiting_distances = np.linalg.norm(
-            conflict_points[:, None] - position[starts], axis=-1
-        ).min(axis=0)
+        waiting_distances = np.linalg.norm(conflict_points[:, None] - position[starts], axis=-1).min(axis=0)
 
         # TODO:
         # # Get the index of the longest interval. Then, get the longest interval and the distance to

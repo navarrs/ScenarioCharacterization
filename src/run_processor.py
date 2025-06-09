@@ -27,15 +27,14 @@ def run(cfg: DictConfig) -> None:
     characterizer: BaseFeature | BaseScorer = hydra.utils.instantiate(cfg.characterizer)
 
     logger.info("Instatiating processor: %s", cfg.processor._target_)
-    processor: BaseProcessor = hydra.utils.instantiate(
-        cfg.processor, dataset=dataset, characterizer=characterizer
-    )
+    processor: BaseProcessor = hydra.utils.instantiate(cfg.processor, dataset=dataset, characterizer=characterizer)
 
     try:
         logger.info("Generating scenario features...")
         processor.run()
     except AssertionError as e:
         import traceback
+
         logger.error(f"Error Processing Data: %{e}\n{traceback.print_exc}")
         raise e
     logger.info("Processing completed successfully.")

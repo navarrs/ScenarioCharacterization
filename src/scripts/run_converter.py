@@ -47,9 +47,7 @@ def run(cfg: DictConfig) -> None:
     features_files = natsorted(os.listdir(features_path))
     scores_files = natsorted(os.listdir(scores_path))
     try:
-        assert set(features_files) == set(
-            scores_files
-        ), "Feature files and score files must match."
+        assert set(features_files) == set(scores_files), "Feature files and score files must match."
     except AssertionError as e:
         logger.error(f"Error: {e}")
         return
@@ -108,9 +106,7 @@ def run(cfg: DictConfig) -> None:
             N = len(infos["scenario_id"])
             infos = reset_infos(cfg)
 
-            logger.info(
-                f"Wrote shard {n // n_per_shard} with {N} scenarios to: {output_path}"
-            )
+            logger.info(f"Wrote shard {n // n_per_shard} with {N} scenarios to: {output_path}")
 
 
 if __name__ == "__main__":

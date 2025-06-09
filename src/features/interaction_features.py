@@ -9,12 +9,14 @@ from utils.common import get_logger, EPS
 
 logger = get_logger(__name__)
 
+
 class InteractionStatus(Enum):
     UNKNOWN = -1
     COMPUTED_OK = 0
     MASK_NOT_VALID = 1
     AGENT_DISTANCE_TOO_FAR = 2
     AGENTS_STATIONARY = 3
+
 
 class InteractionFeatures(BaseFeature):
     def __init__(self, config: DictConfig) -> None:
@@ -43,7 +45,8 @@ class InteractionFeatures(BaseFeature):
             "interaction_status": interaction_status.copy(),
             "separation": [],
             "intersection": [],
-            "mttcp": [],  
+            "mttcp": [],
+            "collision": [],
             "agent_pair_indeces": [(i, j) for i, j in agent_combinations],
             "agents_pair_types": [(agent_types[i], agent_types[j]) for i, j in agent_combinations],
         }
@@ -61,9 +64,7 @@ class InteractionFeatures(BaseFeature):
             ValueError: If the 'scenario' dictionary does not contain the key 'num_agents'.
         """
         if not scenario.get("num_agents", None):
-            raise ValueError(
-                "The 'scenario' dictionary must contain the key 'num_agents'."
-            )
+            raise ValueError("The 'scenario' dictionary must contain the key 'num_agents'.")
 
         N = scenario["num_agents"]
         agent_combinations = list(itertools.combinations(range(N), 2))
@@ -80,25 +81,26 @@ class InteractionFeatures(BaseFeature):
         stationary_speed = scenario["stationary_speed"]
         agent_to_agent_max_distance = scenario["agent_to_agent_max_distance"]
         agent_to_conflict_point_max_distance = scenario["agent_to_conflict_point_max_distance"]
+        agent_to_agent_distance_breach = scenario["agent_to_agent_distance_breach"]
 
         state = self.reset_state(agent_combinations, agent_types)
 
         # Compute distance to conflict points
         for n, (i, j) in enumerate(agent_combinations):
-            for feature  in self.features:
+            for feature in self.features:
                 state[feature].append([])  # Initialize feature lists
 
             mask_i, mask_j = agent_masks[i], agent_masks[j]
             mask = np.where(mask_i & mask_j)[0]
             if not mask.sum():
                 # No valid data for this pair of agents
-                state['interaction_status'][n] = InteractionStatus.MASK_NOT_VALID
+                state["interaction_status"][n] = InteractionStatus.MASK_NOT_VALID
                 continue
-            
-            self.agent_i.position, self.agent_j.position = agent_positions[i][mask], agent_positions[j][mask] 
+
+            self.agent_i.position, self.agent_j.position = agent_positions[i][mask], agent_positions[j][mask]
             self.agent_i.velocity, self.agent_j.velocity = agent_velocities[i][mask], agent_velocities[j][mask]
             self.agent_i.heading, self.agent_j.heading = agent_headings[i][mask], agent_headings[j][mask]
-            self.agent_i.agent_type, self.agent_j.agent_type = agent_types[i], agent_types[j]    
+            self.agent_i.agent_type, self.agent_j.agent_type = agent_types[i], agent_types[j]
 
             timestamps_ij = timestamps[mask]
             if conflict_points is not None:
@@ -108,41 +110,46 @@ class InteractionFeatures(BaseFeature):
             # Check if agents are within a valid distance threshold to compute interactions
             separation = interaction.compute_separation(self.agent_i, self.agent_j)
             if not np.any(separation <= agent_to_agent_max_distance):
-                state['interaction_status'][n] = InteractionStatus.AGENT_DISTANCE_TOO_FAR
+                state["interaction_status"][n] = InteractionStatus.AGENT_DISTANCE_TOO_FAR
                 continue
 
             # Check if agents are stationary
             if self.agent_i.is_stationary(stationary_speed) and self.agent_i.is_stationary(stationary_speed):
-                state['interaction_status'][n] = InteractionStatus.AGENTS_STATIONARY
+                state["interaction_status"][n] = InteractionStatus.AGENTS_STATIONARY
                 continue
-            
+
             # Check if agents are close to conflict points
             self.agent_i.in_conflict_point, self.agent_j.in_conflict_point = 0, 0
-            
-            # Compute interaction features  
+
+            # Compute interaction features
             separation = interaction.compute_separation(self.agent_i, self.agent_j)
             intersections = interaction.compute_intersections(self.agent_i, self.agent_j)
+            collisions = (separation <= agent_to_agent_distance_breach) | intersections
+            intersections = intersections.astype(np.float32)
+            collisions = collisions.astype(np.float32)
 
             # Minimum time to conflict point (mTTCP)
-            mttcp = interaction.compute_mttcp(
-                self.agent_i, self.agent_j, agent_to_conflict_point_max_distance
-            )
-            
+            mttcp = interaction.compute_mttcp(self.agent_i, self.agent_j, agent_to_conflict_point_max_distance)
+
             if self.return_criteria == "critical":
                 separation = separation.min()
                 intersections = intersections.sum()
+                collisions = collisions.sum()
                 mttcp = mttcp.min()
             elif self.return_criteria == "average":
                 separation = separation.mean()
                 intersections = intersections.mean()
+                collisions = collisions.mean()
                 mttcp = mttcp.mean()
-            
+
             self.agent_i.reset()
             self.agent_j.reset()
-        
-            state['separation'][n] = separation
-            state['intersection'][n] = intersections
-            state['mttcp'][n] = mttcp
-            state['interaction_status'][n] = InteractionStatus.COMPUTED_OK
+            
+            # Store computed features in the state dictionary
+            state["separation"][n] = separation
+            state["intersection"][n] = intersections
+            state["collision"][n] = collisions
+            state["mttcp"][n] = mttcp
+            state["interaction_status"][n] = InteractionStatus.COMPUTED_OK
 
         return state
