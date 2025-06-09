@@ -19,6 +19,7 @@ class BaseScorer(ABC):
         self.features = self.config.features
         self.detections = self.config.detections
         self.weights = self.config.weights
+        self.score_clip = self.config.score_clip
 
     @property
     def name(self) -> str:

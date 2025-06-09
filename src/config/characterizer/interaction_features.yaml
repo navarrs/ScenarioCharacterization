@@ -5,4 +5,5 @@ config:
   features:
     - separation
     - intersection
+    - collision
     - mttcp

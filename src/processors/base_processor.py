@@ -47,9 +47,7 @@ class BaseProcessor(ABC):
                 logger.error("Output path must be specified in the configuration.")
                 raise ValueError
             else:
-                logger.info(
-                    f"Features {self.characterizer.name} will be saved to {self.output_path}"
-                )
+                logger.info(f"Features {self.characterizer.name} will be saved to {self.output_path}")
 
         self.dataloader = DataLoader(
             dataset,

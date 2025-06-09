@@ -1,4 +1,4 @@
-# ScenarioCharacterization (Work-in-Progress)
+# ![WIP](https://img.shields.io/badge/status-WIP-orange) ScenarioCharacterization 
 
 Generalizable automated scenario characterization for trajectory datasets. Currently, 
 it is a re-implementation of the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift).
@@ -39,21 +39,26 @@ class Scenario(BaseModel):
     agent_types: List[str]
     agent_valid: BooleanNDArray3D
     agent_positions: Float32NDArray3D
+    agent_dimensions: Float32NDArray3D
     agent_velocities: Float32NDArray3D
     agent_headings: Float32NDArray3D
     agent_relevance: Float32NDArray1D
     last_observed_timestep: PositiveInt
     total_timesteps: PositiveInt
     stationary_speed: float
+    agent_to_agent_max_distance: float
+    agent_to_conflict_point_max_distance: float
+    agent_to_agent_distance_breach: float
     timestamps: Float32NDArray1D
     map_conflict_points: Float32NDArray2D | None
+    agent_distances_to_conflict_points: Float32NDArray3D | None
 ```
 
 ## Scenario Processors
 
 The processor classes are designed to take a set of input scenarios and produce a specified characterization. 
 
-### Feature processor
+### ![WIP](https://img.shields.io/badge/status-WIP-orange)  Feature processor
 
 The feature processor takes in a feature class specified in the `characterizer` configuration and produces specialized features for a set of input scenarios specified in the `paths` configuration file. 
 
@@ -64,7 +69,7 @@ uv run src/run_processor.py processor=features characterizer=[feature_type]
 Currently, we provide these feature groups, located under `config/characterizer`:
 - `feature`: which computes a dummy random feature. **Only used for debugging purposes.**
 - `individual_feature`: which computes a set of individual agent descriptors.
-- **WIP: `interactive_feature`: which computes a set of interactive agent descriptors:**
+- `interaction_feature`: which computes a set of interactive agent descriptors:**
 
 #### Individual Features
 
@@ -82,22 +87,22 @@ Currently supported features:
 - **WIP: Agent In-Lane**: deviation from a lane
 - **WIP: Trajectory Anomaly**: distance to the closest behavior primitive.
 
-#### WIP: Interactive Features
+#### Interaction Features
 
-**WIP** To run this characterizer: 
+To run this characterizer: 
 ```bash
-uv run src/run_processor.py processor=features characterizer=interactive_features
+uv run src/run_processor.py processor=features characterizer=interaction_features
 ```
 
 Currently supported features:
+ - Collisions
+ - Minimum Time to Conflict Point (mTTCP)
  - **WIP: Time Headway**
  - **WIP: Time to Collision**
- - **WIP: Minimum Time to Conflict Point**
- - **WIP: Collisions**
  - **WIP: Trajectory-Pair Anomaly**
 
 
-## Score Processor
+## ![WIP](https://img.shields.io/badge/status-WIP-orange) Score Processor
 
 The scorer takes in a list of features specified in the `characterizer` configuration for a set of input scenarios specified in the `paths` configuration file, and produces a specialized score. 
 ```bash
@@ -107,41 +112,65 @@ uv run src/run_processor.py processor=scores characterizer=[score_type]
 Currently, we provide these feature groups, located under `config/characterizer`:
 - `scores`: which computes a dummy score from a random feature. **Only used for debugging purposes.**
 - `individual_scores`: which computes agent and scenario scores out of a set of individual agent descriptors.
-- **WIP: `interactive_scores`: which computes agent and scenario scores out of a set of interactive agent descriptors.**
+- `interaction_scores`: which computes agent and scenario scores out of a set of interactive agent descriptors.
 
-#### Individual Scorer
+### Individual Scorer
 
 To run this characterizer: 
 ```bash
 uv run src/run_processor.py processor=scores characterizer=individual_scores
 ```
 
-#### WIP: Interactive Scorer
+### Interaction Scorer
 
-**WIP** To run this characterizer: 
+To run this characterizer: 
 ```bash
-uv run src/run_processor.py processor=features characterizer=interactive_features
+uv run src/run_processor.py processor=scores characterizer=interaction_scores
 ```
 
-## WIP: Scenario Probing
+## ![TO-DO](https://img.shields.io/badge/status-TODO-red) Scenario Probing
 
-**WIP**
 
-## Visualizer 
+## ![WIP](https://img.shields.io/badge/status-WIP-orange)  Visualizer 
 
 The visualizer produces a density function over the scored scenarios and generates a few scenario samples across specified percentiles.
 ```bash
 uv run src/viz_scores_pdf.py
 ```
+### Visualizing the density function over the scored scenarios across different characterizers
 
 <div align="center">
-  <img width="800" src="./assets/density_plot.png" alt="(PDF)">
-  <h5>PDF over scored scenarios.</h5>
+  <img src="./assets/density_plot.png" alt="(PDF)">
 </div>
 
-<div align="center">
-  <img width="800" src="./assets/scenario.png" alt="(PDF)">
-  <h5>Scored Scenario.</h5>
+### Visualizing Scored Scenarios
+
+<div align="center" style="display: flex; justify-content: center; gap: 32px;">
+
+<div style="display: inline-block; text-align: center;">
+  <strong>Individual, Low Score</strong><br>
+  <img src="./assets/individual_low-score_scenario.png" alt="(PDF)" width="500">
+</div>
+
+<div style="display: inline-block; text-align: center;">
+  <strong>Individual, High Score</strong><br>
+  <img src="./assets/individual_high-score_scenario.png" alt="(PDF)" width="500">
+</div>
+
+</div>
+
+<div align="center" style="display: flex; justify-content: center; gap: 32px;">
+
+<div style="display: inline-block; text-align: center;">
+  <strong>Interaction, Low Score</strong><br>
+  <img src="./assets/interaction_low-score_scenario.png" alt="(PDF)" width="500">
+</div>
+
+<div style="display: inline-block; text-align: center;">
+  <strong>Interaction, High Score</strong><br>
+  <img src="./assets/interaction_high-score_scenario.png" alt="(PDF)" width="500">
+</div>
+
 </div>
 
 

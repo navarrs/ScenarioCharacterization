@@ -55,9 +55,7 @@ class IndividualFeatures(BaseFeature):
             ValueError: If the 'scenario' dictionary does not contain the key 'num_agents'.
         """
         if not scenario.get("num_agents", None):
-            raise ValueError(
-                "The 'scenario' dictionary must contain the key 'num_agents'."
-            )
+            raise ValueError("The 'scenario' dictionary must contain the key 'num_agents'.")
 
         state = self.reset_state()
 
@@ -93,21 +91,17 @@ class IndividualFeatures(BaseFeature):
 
             # Acceleration/Deceleration Profile
             # NOTE: acc and dec are accumulated abs acceleration and deceleration profiles.
-            acceleration, acc, dec = individual.compute_acceleration_profile(
-                speed, timestamps
-            )
+            acceleration, acc, dec = individual.compute_acceleration_profile(speed, timestamps)
 
             # Jerk Profile
             jerk = individual.compute_jerk(speed, timestamps)
 
-            waiting_period, waiting_intervals, waiting_distances = (
-                individual.compute_waiting_period(
-                    agent_positions,
-                    speed,
-                    timestamps,
-                    conflict_points,
-                    stationary_speed,
-                )
+            waiting_period, waiting_intervals, waiting_distances = individual.compute_waiting_period(
+                agent_positions,
+                speed,
+                timestamps,
+                conflict_points,
+                stationary_speed,
             )
 
             if self.return_criteria == "critical":

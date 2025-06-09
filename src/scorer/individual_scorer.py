@@ -18,27 +18,17 @@ class IndividualScorer(BaseScorer):
 
     def aggregate_simple_score(self, **kwargs) -> np.ndarray:
         # Detection values are roughly obtained from: https://arxiv.org/abs/2202.07438
+        speed = kwargs.get("speed", 0.0)
+        acceleration = kwargs.get("acceleration", 0.0)
+        deceleration = kwargs.get("deceleration", 0.0)
+        jerk = kwargs.get("jerk", 0.0)
+        waiting_period = kwargs.get("waiting_period", 0.0)
         return (
-            min(
-                self.detections.speed, 
-                self.weights.speed * kwargs.get("speed", 0.0)
-            )
-            + min(
-                self.detections.acceleration,
-                self.weights.acceleration * kwargs.get("acceleration", 0.0),
-            )
-            + min(
-                self.detections.deceleration,
-                self.weights.deceleration * kwargs.get("deceleration", 0.0),
-            )
-            + min(
-                self.detections.jerk, 
-                self.weights.jerk * kwargs.get("jerk", 0.0)
-            )
-            + min(
-                self.detections.waiting_period,
-                self.weights.waiting_period * np.sqrt(kwargs.get("waiting_period", 0.0)),
-            )
+            min(self.detections.speed, self.weights.speed * speed)
+            + min(self.detections.acceleration, self.weights.acceleration * acceleration)
+            + min(self.detections.deceleration, self.weights.deceleration * deceleration)
+            + min(self.detections.jerk, self.weights.jerk * jerk)
+            + min(self.detections.waiting_period, self.weights.waiting_period * waiting_period)
         )
 
     def compute(self, scenario: dict, scenario_features: dict) -> dict:
@@ -53,13 +43,9 @@ class IndividualScorer(BaseScorer):
             Dict: A dictionary with computed scores.
         """
         # NOTE: should we avoid this overhead?
-        missing_features = [
-            feature for feature in self.features if feature not in scenario_features
-        ]
+        missing_features = [feature for feature in self.features if feature not in scenario_features]
         if missing_features:
-            raise ValueError(
-                f"Missing features in scenario_features: {missing_features}"
-            )
+            raise ValueError(f"Missing features in scenario_features: {missing_features}")
 
         agent_to_agent_dists = scenario_features["agent_to_agent_closest_dists"]
         relevant_agents = np.where(scenario["agent_relevance"] > 0.0)[0]
@@ -79,9 +65,7 @@ class IndividualScorer(BaseScorer):
             )
             # An agent's contribution to the score is inversely proportional to the closest distance
             # between the agent and the relevant agents
-            weight = relevant_agents_values[argmin_dist] * min(
-                1.0 / (min_dist + EPS), 1.0
-            )
+            weight = relevant_agents_values[argmin_dist] * min(1.0 / (min_dist + EPS), 1.0)
 
             scores[n] = weight * self.aggregate_simple_score(
                 speed=scenario_features["speed"][n],
@@ -96,6 +80,6 @@ class IndividualScorer(BaseScorer):
         return {
             self.name: {
                 "agent_scores": scores,
-                "scene_score": scores.mean(),
+                "scene_score": np.clip(scores.mean(), a_min=self.score_clip.min, a_max=self.score_clip.max)
             }
         }

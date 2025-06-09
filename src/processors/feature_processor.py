@@ -22,9 +22,9 @@ class FeatureProcessor(BaseProcessor):
         Args:
             config (DictConfig): Configuration for the feature processor, including parameters like
                 batch size, number of workers, and whether to save the output.
-            dataset (Dataset): The dataset to process, which should be a subclass of 
+            dataset (Dataset): The dataset to process, which should be a subclass of
                 torch.utils.data.Dataset.
-            characterizer (BaseFeature | BaseScorer): An instance of BaseFeature or its subclass that 
+            characterizer (BaseFeature | BaseScorer): An instance of BaseFeature or its subclass that
                 defines the feature to compute.
 
         Raises:
@@ -44,9 +44,7 @@ class FeatureProcessor(BaseProcessor):
         Returns:
             None
         """
-        logger.info(
-            f"Processing {self.characterizer.name} features for {self.dataset.name}."
-        )
+        logger.info(f"Processing {self.characterizer.name} features for {self.dataset.name}.")
 
         # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop.
         for scenario_batch in tqdm(self.dataloader, desc="Processing scenarios"):
@@ -58,6 +56,4 @@ class FeatureProcessor(BaseProcessor):
                 if self.save:
                     self.to_pickle(feature, scenario["scenario_id"])
 
-        logger.info(
-            f"Finished processing {self.characterizer.name} features for {self.dataset.name}."
-        )
+        logger.info(f"Finished processing {self.characterizer.name} features for {self.dataset.name}.")
