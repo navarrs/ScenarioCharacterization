@@ -9,9 +9,9 @@ import seaborn as sns
 from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
-from src.scorer import SUPPORTED_SCORERS
-from src.utils.common import get_logger
-from src.utils.viz.visualizer import BaseVisualizer
+from scorer import SUPPORTED_SCORERS
+from utils.common import get_logger
+from utils.viz.visualizer import BaseVisualizer
 
 logger = get_logger(__name__)
 

@@ -1,9 +1,8 @@
-
 import numpy as np
 from omegaconf import DictConfig
 
-from src.scorer.base_scorer import BaseScorer
-from src.utils.common import EPS, get_logger
+from scorer.base_scorer import BaseScorer
+from utils.common import EPS, get_logger
 
 logger = get_logger(__name__)
 
