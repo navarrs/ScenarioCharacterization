@@ -183,6 +183,7 @@ To assess functionality of the pipeline follow these steps:
 ### 1. Compute the Individual Features:
 ```bash
 uv run src/run_processor.py processor=features characterizer=individual_features paths=test
+uv run src/run_processor.py processor=features characterizer=interaction_features paths=test
 ```
 This will create an `output/cache` folder containing the following temporary feature information: 
 * `output/cache/conflict_points`, one file per sample scenario containing conflict regions in a given scenario. 
@@ -191,11 +192,12 @@ This will create an `output/cache` folder containing the following temporary fea
 ### 2. Compute the Individual Scores:
 ```bash
 uv run src/run_processor.py processor=scores characterizer=individual_scores paths=test
+uv run src/run_processor.py processor=scores characterizer=interactoion_scores paths=test
 ```
 This will utilize the pre-computed features and generate per-agent, per-scenario scores to `output/cache/scores/gt_critical`. 
 
 ### 3. Visualize Scores and Scenarios
 ```bash
-uv run src/viz_scores_pdf.py paths=test
+uv run src/viz_scores_pdf.py paths=test output_dir=./output_test
 ```
 This will generate and save a density plot over the scored scenarios to `output/cache/visualization/gt_critical/individual_scorer`.
