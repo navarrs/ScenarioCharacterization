@@ -1,7 +1,6 @@
 import re
 from abc import ABC
 from itertools import combinations
-from typing import Dict
 
 import numpy as np
 from omegaconf import DictConfig

@@ -2,10 +2,10 @@ from omegaconf import DictConfig
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from src.features.base_feature import BaseFeature
-from src.processors.base_processor import BaseProcessor
-from src.scorer.base_scorer import BaseScorer
-from src.utils.common import get_logger
+from features.base_feature import BaseFeature
+from processors.base_processor import BaseProcessor
+from scorer.base_scorer import BaseScorer
+from utils.common import get_logger
 
 logger = get_logger(__name__)
 
@@ -22,8 +22,10 @@ class FeatureProcessor(BaseProcessor):
         Args:
             config (DictConfig): Configuration for the feature processor, including parameters like
                 batch size, number of workers, and whether to save the output.
-            dataset (Dataset): The dataset to process, which should be a subclass of torch.utils.data.Dataset.
-            characterizer (BaseFeature | BaseScorer): An instance of BaseFeature or its subclass that defines the feature to compute.
+            dataset (Dataset): The dataset to process, which should be a subclass of 
+                torch.utils.data.Dataset.
+            characterizer (BaseFeature | BaseScorer): An instance of BaseFeature or its subclass that 
+                defines the feature to compute.
 
         Raises:
             AssertionError: If the characterizer is not of type 'feature'.

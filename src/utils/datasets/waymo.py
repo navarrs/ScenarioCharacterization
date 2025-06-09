@@ -10,15 +10,41 @@ from pydantic import ValidationError
 from scipy.signal import resample
 from tqdm import tqdm
 
-from src.utils.common import get_logger
-from src.utils.datasets.dataset import BaseDataset
-from src.utils.schemas import Scenario
+from utils.common import get_logger, compute_dists_to_conflict_points
+from utils.datasets.dataset import BaseDataset
+from utils.schemas import Scenario
 
 logger = get_logger(__name__)
 
 class WaymoData(BaseDataset):
     def __init__(self, config: DictConfig) -> None:
         super(WaymoData, self).__init__(config=config)
+
+    def load_data(self) -> None:
+        """Loads the dataset.
+
+        Raises:
+            AssertionError: If the number of scenarios and conflict points do not match.
+        """
+        start = time.time()
+        logger.info(f"Loading WOMD scenario base data from {self.scenario_base_path}")
+        with open(self.scenario_meta_path, "rb") as f:
+            self.data.metas = pickle.load(f)[:: self.step]
+        self.data.scenarios_ids = natsorted(
+            [f'sample_{x["scenario_id"]}.pkl' for x in self.data.metas]
+        )
+        self.data.scenarios = natsorted(
+            [
+                f'{self.scenario_base_path}/sample_{x["scenario_id"]}.pkl'
+                for x in self.data.metas
+            ]
+        )
+        logger.info(f"Loading data took {time.time() - start} seconds.")
+
+        # TODO: remove this
+        self.shard()
+
+        num_scenarios = len(self.data.scenarios_ids)
 
         # Waymo dataset masks
         # center_x, center_y, center_z, length, width, height, heading, velocity_x, velocity_y, valid
@@ -55,33 +81,13 @@ class WaymoData(BaseDataset):
 
         self.LAST_TIMESTEP = 91
         self.HIST_TIMESTEP = 11
+
         self.STATIONARY_SPEED = 0.25  # m/s
+        self.AGENT_TO_AGENT_MAX_DISTANCE = 50.0 # meters
+        self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE = 2.0 # meters
 
-    def load_data(self) -> None:
-        """Loads the dataset.
-
-        Raises:
-            AssertionError: If the number of scenarios and conflict points do not match.
-        """
-        start = time.time()
-        logger.info(f"Loading WOMD scenario base data from {self.scenario_base_path}")
-        with open(self.scenario_meta_path, "rb") as f:
-            self.data.metas = pickle.load(f)[:: self.step]
-        self.data.scenarios_ids = natsorted(
-            [f'sample_{x["scenario_id"]}.pkl' for x in self.data.metas]
-        )
-        self.data.scenarios = natsorted(
-            [
-                f'{self.scenario_base_path}/sample_{x["scenario_id"]}.pkl'
-                for x in self.data.metas
-            ]
-        )
-        logger.info(f"Loading data took {time.time() - start} seconds.")
-
-        # TODO: remove this
-        # self.shard()
-
-        num_scenarios = len(self.data.scenarios_ids)
+        self.AGENT_TO_AGENT_MAX_HEADING = 45.0 # degrees
+        self.AGENT_TO_AGENT_MAX_CONFLICT_DISTANCE = 2.0 # meters
 
         # Pre-checks: conflict points
         self.check_conflict_points()
@@ -106,7 +112,10 @@ class WaymoData(BaseDataset):
         trajs = scenario_data["track_infos"]["trajs"]
         num_agents = trajs.shape[0]
 
-        conflict_points = None if conflict_points is None else conflict_points['all_conflict_points']
+        agent_distances_to_conflict_points = None \
+            if conflict_points is None else conflict_points['agent_distances_to_conflict_points']
+        conflict_points = None \
+            if conflict_points is None else conflict_points['all_conflict_points']
 
         # TODO: improve this relevance criteria
         agent_relevance = np.zeros(num_agents, dtype=np.float32)
@@ -133,16 +142,20 @@ class WaymoData(BaseDataset):
             "agent_types": scenario_data["track_infos"]["object_type"],
             "agent_valid": trajs[:, :, self.AGENT_VALID].astype(np.bool_),
             "agent_positions": trajs[:, :, self.POS_XYZ_IDX],
+            "agent_dimensions": trajs[:, :, self.AGENT_DIMS],
             "agent_velocities": trajs[:, :, self.VEL_XY_IDX],
             "agent_headings": trajs[:, :, self.HEADING_IDX],
             "agent_relevance": agent_relevance,
             "last_observed_timestep": scenario_data["current_time_index"],
             "total_timesteps": self.LAST_TIMESTEP,
             "stationary_speed": self.STATIONARY_SPEED,
+            "agent_to_agent_max_distance": self.AGENT_TO_AGENT_MAX_DISTANCE,
+            "agent_to_conflict_point_max_distance": self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE,
             "timestamps": np.asarray(
                 scenario_data["timestamps_seconds"], dtype=np.float32
             ),
             "map_conflict_points": conflict_points,
+            "agent_distances_to_conflict_points": agent_distances_to_conflict_points
         }
 
     def check_conflict_points(self):
@@ -167,8 +180,9 @@ class WaymoData(BaseDataset):
 
             static_map_infos = scenario["map_infos"]
             dynamic_map_infos = scenario["dynamic_map_infos"]
+            agent_positions = scenario["track_infos"]["trajs"][:, :, self.POS_XYZ_IDX]
             conflict_points = self.find_conflict_points(
-                static_map_infos, dynamic_map_infos
+                static_map_infos, dynamic_map_infos, agent_positions
             )
 
             with open(conflict_points_filepath, "wb") as f:
@@ -202,7 +216,7 @@ class WaymoData(BaseDataset):
         )
 
     def find_conflict_points(
-        self, static_map_info: dict, dynamic_map_info: dict
+        self, static_map_info: dict, dynamic_map_info: dict, agent_positions: np.ndarray
     ) -> dict:
         """Finds the conflict points in the map.
 
@@ -310,11 +324,16 @@ class WaymoData(BaseDataset):
             else None
         )
 
+        dists_to_conflict_points = compute_dists_to_conflict_points(
+            conflict_points, agent_positions
+        ) if conflict_points is not None else None
+
         return {
             "static": static_conflict_points,
             "dynamic": dynamic_conflict_points,
             "lane_intersections": lane_intersections,
             "all_conflict_points": conflict_points,
+            "agent_distances_to_conflict_points": dists_to_conflict_points
         }
 
     def __getitem__(self, index: int) -> dict:

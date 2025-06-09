@@ -5,9 +5,9 @@ from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader, Dataset
 
-from src.features.base_feature import BaseFeature
-from src.scorer.base_scorer import BaseScorer
-from src.utils.common import get_logger
+from features.base_feature import BaseFeature
+from scorer.base_scorer import BaseScorer
+from utils.common import get_logger
 
 logger = get_logger(__name__)
 

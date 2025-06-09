@@ -1,0 +1,7 @@
+defaults:
+ - default.yaml
+
+base_path: /data/driving/waymo
+
+scenario_base_path: ${paths.base_path}/new_processed_scenarios_testing
+scenario_meta_path: ${paths.base_path}/new_processed_scenarios_test_infos.pkl

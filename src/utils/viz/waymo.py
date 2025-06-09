@@ -8,8 +8,7 @@ from matplotlib import cm
 from matplotlib import pyplot as plt
 from torch.utils.data import Dataset
 
-from src.utils.viz.visualizer import BaseVisualizer
-from src.utils.datasets.dataset import BaseDataset
+from utils.viz.visualizer import BaseVisualizer
 
 class WaymoVisualizer(BaseVisualizer):
     def __init__(self, config, dataset: Dataset):
