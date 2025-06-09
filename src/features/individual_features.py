@@ -1,9 +1,9 @@
 import numpy as np
 from omegaconf import DictConfig
 
-import src.features.individual_utils as individual
-from src.features.base_feature import BaseFeature
-from src.utils.common import get_logger
+import features.individual_utils as individual
+from features.base_feature import BaseFeature
+from utils.common import get_logger
 
 logger = get_logger(__name__)
 

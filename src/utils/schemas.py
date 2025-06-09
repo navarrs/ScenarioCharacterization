@@ -74,11 +74,15 @@ class Scenario(BaseModel):
     agent_types: List[str]
     agent_valid: BooleanNDArray3D
     agent_positions: Float32NDArray3D
+    agent_dimensions: Float32NDArray3D
     agent_velocities: Float32NDArray3D
     agent_headings: Float32NDArray3D
     agent_relevance: Float32NDArray1D
     last_observed_timestep: PositiveInt
     total_timesteps: PositiveInt
     stationary_speed: float
+    agent_to_agent_max_distance: float
+    agent_to_conflict_point_max_distance: float
     timestamps: Float32NDArray1D
     map_conflict_points: Float32NDArray2D | None
+    agent_distances_to_conflict_points: Float32NDArray3D | None

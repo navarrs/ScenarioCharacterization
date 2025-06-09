@@ -5,9 +5,9 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 
 from features import SUPPORTED_FEATURES
+from features.base_feature import BaseFeature
+from processors.base_processor import BaseProcessor
 from scorer.base_scorer import BaseScorer
-from src.features.base_feature import BaseFeature
-from src.processors.base_processor import BaseProcessor
 from utils.common import get_logger
 
 logger = get_logger(__name__)
