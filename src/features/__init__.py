@@ -8,6 +8,7 @@ SUPPORTED_FEATURES = [
     "waiting_intervals",
     "waiting_distances",
     "separation",
-    "intersections",
+    "intersection",
+    "collision",
     "mttcp",
 ]

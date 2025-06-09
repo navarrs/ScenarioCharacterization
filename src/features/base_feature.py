@@ -42,8 +42,6 @@ class BaseFeature(ABC):
             ValueError: If the 'scenario' dictionary does not contain the key 'num_agents'.
         """
         if not scenario.get("num_agents", None):
-            raise ValueError(
-                "The 'scenario' dictionary must contain the key 'num_agents'."
-            )
+            raise ValueError("The 'scenario' dictionary must contain the key 'num_agents'.")
         N = scenario["num_agents"]
         return {"random_feature": 10.0 * np.random.rand(N).astype(np.float32)}

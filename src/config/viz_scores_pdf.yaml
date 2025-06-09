@@ -6,6 +6,7 @@ scores_path: ${paths.output_paths.scores_cache_path}
   
 scorers:
   - individual_scorer
+  - interaction_scorer
 
 dpi: 300
 output_dir: ${paths.output_paths.vis_cache_path}

@@ -44,9 +44,7 @@ class ScoresProcessor(BaseProcessor):
 
         unsupported = [f for f in self.features if f not in SUPPORTED_FEATURES]
         if unsupported:
-            logger.error(
-                f"Features {unsupported} not in supported list {SUPPORTED_FEATURES}"
-            )
+            logger.error(f"Features {unsupported} not in supported list {SUPPORTED_FEATURES}")
             raise ValueError
 
         self.feature_path = config.get("feature_path", None)
@@ -65,33 +63,23 @@ class ScoresProcessor(BaseProcessor):
         Returns:
             None
         """
-        logger.info(
-            f"Processing {self.features} {self.characterizer.name} scores for {self.dataset.name}."
-        )
+        logger.info(f"Processing {self.features} {self.characterizer.name} scores for {self.dataset.name}.")
 
         # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop.
         for scenario_batch in tqdm(self.dataloader, desc="Processing scenarios"):
             for scenario in scenario_batch["scenario"]:
 
                 scenario_id = scenario["scenario_id"]
-                scenario_feature_file = os.path.join(
-                    self.feature_path, f"{scenario_id}.pkl"
-                )
+                scenario_feature_file = os.path.join(self.feature_path, f"{scenario_id}.pkl")
                 scenario_features = self.from_pickle(scenario_feature_file)
 
                 # TODO: pre-check that features have been computed
-                missing_features = [
-                    f for f in self.features if f not in scenario_features
-                ]
+                missing_features = [f for f in self.features if f not in scenario_features]
                 if missing_features:
-                    logger.error(
-                        f"Scenario {scenario_id} is missing features: {missing_features}"
-                    )
+                    logger.error(f"Scenario {scenario_id} is missing features: {missing_features}")
                     raise ValueError
 
-                scores = self.characterizer.compute(
-                    scenario=scenario, scenario_features=scenario_features
-                )
+                scores = self.characterizer.compute(scenario=scenario, scenario_features=scenario_features)
 
                 if self.save:
                     self.to_pickle(scores, scenario["scenario_id"])

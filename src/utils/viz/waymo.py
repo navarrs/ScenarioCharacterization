@@ -10,13 +10,12 @@ from torch.utils.data import Dataset
 
 from utils.viz.visualizer import BaseVisualizer
 
+
 class WaymoVisualizer(BaseVisualizer):
     def __init__(self, config, dataset: Dataset):
         super().__init__(config, dataset=dataset)
 
-    def visualize_scenario(
-        self, scenario: dict, title: str = "Scenario", output_filepath: str = 'temp.png'
-    ) -> None:
+    def visualize_scenario(self, scenario: dict, title: str = "Scenario", output_filepath: str = "temp.png") -> None:
         """Visualizes a single Waymo scenario.
 
         Args:
@@ -31,12 +30,12 @@ class WaymoVisualizer(BaseVisualizer):
         alpha = 0.5
         fig, axs = plt.subplots(1, num_windows, figsize=(5 * num_windows, 5 * 1))
 
-        static_map_information = scenario['map_infos']
-        dynamic_map_information = scenario['dynamic_map_infos']
+        static_map_information = scenario["map_infos"]
+        dynamic_map_information = scenario["dynamic_map_infos"]
         self.plot_static_map_infos(static_map_information, axs, num_windows=num_windows)
         self.plot_dynamic_map_infos(dynamic_map_information, axs, num_windows=num_windows)
 
-        tf_scenario = self.dataset.transform_scenario_data(scenario) 
+        tf_scenario = self.dataset.transform_scenario_data(scenario)
         self.plot_sequences(tf_scenario, axs[0])
         self.plot_sequences(tf_scenario, axs[1], show_relevant=True)
 
@@ -48,9 +47,9 @@ class WaymoVisualizer(BaseVisualizer):
         axs[0].set_title("All Agents Trajectories")
         axs[1].set_title("Highlighted Relevant and SDC Agent Trajectories")
         plt.subplots_adjust(wspace=0.05)
-        plt.savefig(output_filepath, dpi=300, bbox_inches='tight')
+        plt.savefig(output_filepath, dpi=300, bbox_inches="tight")
         plt.close()
-    
+
     def plot_sequences(self, tf_scenario: dict, ax: plt.Axes, show_relevant: bool = False) -> None:
         """Plots the agent trajectories in a simple manner.
 
@@ -61,19 +60,19 @@ class WaymoVisualizer(BaseVisualizer):
         Returns:
             None: This method modifies the axes directly.
         """
-        agent_positions = tf_scenario['agent_positions']
-        agent_types = tf_scenario['agent_types']
-        agent_valid = tf_scenario['agent_valid']
-        agent_relevance = tf_scenario['agent_relevance']
-        ego_index = tf_scenario['ego_index']
+        agent_positions = tf_scenario["agent_positions"]
+        agent_types = tf_scenario["agent_types"]
+        agent_valid = tf_scenario["agent_valid"]
+        agent_relevance = tf_scenario["agent_relevance"]
+        ego_index = tf_scenario["ego_index"]
         relevant_indeces = np.where(agent_relevance > 0.0)[0]
 
         if show_relevant:
             # TODO: make agent_types a numpy array
             for idx in relevant_indeces:
-                agent_types[idx] = 'TYPE_RELEVANT'
-            agent_types[ego_index] = 'TYPE_SDC'  # Mark ego agent for visualization
-        
+                agent_types[idx] = "TYPE_RELEVANT"
+            agent_types[ego_index] = "TYPE_SDC"  # Mark ego agent for visualization
+
         zipped = zip(agent_positions, agent_valid, agent_types)
         for agent_positions, agent_mask, agent_type in zipped:
             if not agent_mask.any() or agent_mask.sum() < 2:
@@ -83,9 +82,7 @@ class WaymoVisualizer(BaseVisualizer):
             color = self.agent_colors[agent_type]
             ax.plot(pos[:, 0], pos[:, 1], color=color, linewidth=2)
 
-    def plot_static_map_infos(
-        self, map_information: dict, ax: plt.Axes, num_windows: int = 0, dim: int = 2
-    ) -> None:
+    def plot_static_map_infos(self, map_information: dict, ax: plt.Axes, num_windows: int = 0, dim: int = 2) -> None:
         """Plots static map information such as lanes, stop signs, and crosswalks.
 
         Args:
@@ -106,26 +103,20 @@ class WaymoVisualizer(BaseVisualizer):
 
             if key == "stop_sign":
                 map_infos_pos[key] = self.plot_stop_signs(
-                    map_information[key], 
-                    ax, 
-                    num_windows, 
-                    color=self.map_colors[key],
-                    dim=dim
+                    map_information[key], ax, num_windows, color=self.map_colors[key], dim=dim
                 )
             else:
                 map_infos_pos[key] = self.plot_polylines(
-                    map_information[key], 
-                    road_graph, 
-                    ax, 
-                    num_windows, 
+                    map_information[key],
+                    road_graph,
+                    ax,
+                    num_windows,
                     color=self.map_colors[key],
-                    alpha=self.map_alphas[key], 
+                    alpha=self.map_alphas[key],
                     dim=dim,
                 )
 
-    def plot_dynamic_map_infos(
-        self, map_information: dict, ax: plt.Axes, num_windows: int = 0, dim: int = 2
-    ):
+    def plot_dynamic_map_infos(self, map_information: dict, ax: plt.Axes, num_windows: int = 0, dim: int = 2):
         """Plots dynamic map information such as stop points.
 
         Args:
@@ -151,25 +142,13 @@ class WaymoVisualizer(BaseVisualizer):
                         continue
 
                     if num_windows == 1:
-                        ax.scatter(
-                            pos[0], 
-                            pos[1], 
-                            s=6, 
-                            c=self.map_colors[key], 
-                            marker="s", 
-                            alpha=self.map_alphas[key]
-                        )
+                        ax.scatter(pos[0], pos[1], s=6, c=self.map_colors[key], marker="s", alpha=self.map_alphas[key])
                     else:
                         for a in ax.reshape(-1):
                             a.scatter(
-                                pos[0], 
-                                pos[1], 
-                                s=6, 
-                                c=self.map_colors[key], 
-                                marker="s", 
-                                alpha=self.map_alphas[key]
+                                pos[0], pos[1], s=6, c=self.map_colors[key], marker="s", alpha=self.map_alphas[key]
                             )
-        
+
     def plot_stop_signs(
         self, stop_signs, ax: plt.Axes = None, num_windows: int = 0, color: str = "red", dim: int = 2
     ) -> np.ndarray:
@@ -199,9 +178,12 @@ class WaymoVisualizer(BaseVisualizer):
                     a.scatter(pos[0], pos[1], s=16, c=color, marker="H", alpha=1.0)
 
         return stop_sign_xy
-    
+
     def plot_polylines(
-        self, polylines: np.ndarray, road_graph: np.ndarray, ax: plt.Axes = None,
+        self,
+        polylines: np.ndarray,
+        road_graph: np.ndarray,
+        ax: plt.Axes = None,
         num_windows=0,
         color="k",
         alpha=1.0,
@@ -314,6 +296,7 @@ def plot_cluster_overlap(num_clusters, num_components, labels, scores, shards, t
     plt.savefig(filename, dpi=300, bbox_inches="tight")
     plt.close()
 
+
 def plot_lanes_by_distance(lanes, order, dists, ax, k=-1):
     """Plots lanes colored by their distance.
 
@@ -397,9 +380,7 @@ def plot_interaction(
         linewidth=1,
     )
 
-    ax[ax_idx].scatter(
-        pos_j[0, 0], pos_j[0, 1], color=AGENT_COLOR[agent_type_j], marker="*", s=10
-    )
+    ax[ax_idx].scatter(pos_j[0, 0], pos_j[0, 1], color=AGENT_COLOR[agent_type_j], marker="*", s=10)
     ax[ax_idx].plot(
         pos_j[:, 0],
         pos_j[:, 1],
@@ -419,9 +400,7 @@ def plot_interaction(
             label="Conflict Point",
         )
     if j_idx != -1:
-        ax[ax_idx].scatter(
-            traj_j[j_idx, 0], traj_j[j_idx, 1], color="red", marker="+", s=10
-        )
+        ax[ax_idx].scatter(traj_j[j_idx, 0], traj_j[j_idx, 1], color="red", marker="+", s=10)
 
     ax[ax_idx].legend()
     ax[ax_idx].set_title(title)
@@ -470,9 +449,7 @@ def fig_canvas_image(fig):
         np.ndarray: Image array of the figure canvas.
     """
     # Just enough margin in the figure to display xticks and yticks.
-    fig.subplots_adjust(
-        left=0.08, bottom=0.08, right=0.98, top=0.98, wspace=0.0, hspace=0.0
-    )
+    fig.subplots_adjust(left=0.08, bottom=0.08, right=0.98, top=0.98, wspace=0.0, hspace=0.0)
     fig.canvas.draw()
     data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
     return data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
@@ -607,9 +584,7 @@ def create_animation(images):
         ax.set_yticks([])
         ax.grid("off")
 
-    anim = animation.FuncAnimation(
-        fig, animate_func, frames=len(images) // 2, interval=100
-    )
+    anim = animation.FuncAnimation(fig, animate_func, frames=len(images) // 2, interval=100)
     plt.close(fig)
     return anim
 
@@ -640,12 +615,8 @@ def visualize_all_agents_smooth(
     #     [decoded_example['state/current/x'], decoded_example['state/current/y']],
     #     -1).numpy()
     # current_states_mask = decoded_example['state/current/valid'].numpy() > 0.0
-    current_states = decoded_example["track_infos"]["trajs"][:, 10, :2][
-        :, np.newaxis, :
-    ]
-    current_states_mask = (
-        decoded_example["track_infos"]["trajs"][:, 10, -1][:, np.newaxis] > 0.0
-    )
+    current_states = decoded_example["track_infos"]["trajs"][:, 10, :2][:, np.newaxis, :]
+    current_states_mask = decoded_example["track_infos"]["trajs"][:, 10, -1][:, np.newaxis] > 0.0
 
     # [num_agents, num_future_steps, 2] float32.
     # future_states = tf.stack(
@@ -668,10 +639,7 @@ def visualize_all_agents_smooth(
     all_states = np.concatenate([past_states, current_states, future_states], 1)
 
     # [num_agens, num_past_steps + 1 + num_future_steps] float32.
-    all_states_mask = (
-        np.concatenate([past_states_mask, current_states_mask, future_states_mask], 1)
-        > 0.0
-    )
+    all_states_mask = np.concatenate([past_states_mask, current_states_mask, future_states_mask], 1) > 0.0
 
     center_y, center_x, width = get_viewport(all_states, all_states_mask)
 

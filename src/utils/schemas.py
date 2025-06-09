@@ -83,6 +83,7 @@ class Scenario(BaseModel):
     stationary_speed: float
     agent_to_agent_max_distance: float
     agent_to_conflict_point_max_distance: float
+    agent_to_agent_distance_breach: float
     timestamps: Float32NDArray1D
     map_conflict_points: Float32NDArray2D | None
     agent_distances_to_conflict_points: Float32NDArray3D | None

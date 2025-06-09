@@ -50,15 +50,6 @@ class BaseDataset(Dataset):
         self.data.conflict_points = []
         self.data.metas = []
 
-        self.load = config.get("load", True)
-        if self.load:
-            try:
-                logger.info("Loading scenario infos...")
-                self.load_data()
-            except AssertionError as e:
-                logger.error("Error loading scenario infos: %s", e)
-                raise e
-
     @property
     def name(self) -> str:
         """Identifies the dataset.
@@ -132,6 +123,5 @@ class BaseDataset(Dataset):
             Dict: The data for the given index.
         """
         logger.error(
-            "Method __getitem__ is not implemented yet. "
-            "This method should return the data for the given index."
+            "Method __getitem__ is not implemented yet. " "This method should return the data for the given index."
         )

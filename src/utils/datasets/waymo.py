@@ -16,35 +16,10 @@ from utils.schemas import Scenario
 
 logger = get_logger(__name__)
 
+
 class WaymoData(BaseDataset):
     def __init__(self, config: DictConfig) -> None:
         super(WaymoData, self).__init__(config=config)
-
-    def load_data(self) -> None:
-        """Loads the dataset.
-
-        Raises:
-            AssertionError: If the number of scenarios and conflict points do not match.
-        """
-        start = time.time()
-        logger.info(f"Loading WOMD scenario base data from {self.scenario_base_path}")
-        with open(self.scenario_meta_path, "rb") as f:
-            self.data.metas = pickle.load(f)[:: self.step]
-        self.data.scenarios_ids = natsorted(
-            [f'sample_{x["scenario_id"]}.pkl' for x in self.data.metas]
-        )
-        self.data.scenarios = natsorted(
-            [
-                f'{self.scenario_base_path}/sample_{x["scenario_id"]}.pkl'
-                for x in self.data.metas
-            ]
-        )
-        logger.info(f"Loading data took {time.time() - start} seconds.")
-
-        # TODO: remove this
-        self.shard()
-
-        num_scenarios = len(self.data.scenarios_ids)
 
         # Waymo dataset masks
         # center_x, center_y, center_z, length, width, height, heading, velocity_x, velocity_y, valid
@@ -52,12 +27,12 @@ class WaymoData(BaseDataset):
         # length, width, height -> dimensions of the object's BBox in meters
         # heading -> yaw angle in radians of the forward direction of the the BBox
         # velocity_x, velocity_y -> x and y components of the object's velocity in m/s
-        self.AGENT_DIMS = [False,False,False,True,True,True,False,False,False,False,]
-        self.HEADING_IDX = [False,False,False,False,False,False,True,False,False,False,]
-        self.POS_XY_IDX = [True,True,False,False,False,False,False,False,False,False,]
-        self.POS_XYZ_IDX = [True,True,True,False,False,False,False,False,False,False,]
-        self.VEL_XY_IDX = [False,False,False,False,False,False,False,True,True,False,]
-        self.AGENT_VALID = [False,False,False,False,False,False,False,False,False,True,]
+        self.AGENT_DIMS = [False,False,False,True,True,True,False,False,False,False]
+        self.HEADING_IDX = [False,False,False,False,False,False,True,False,False,False]
+        self.POS_XY_IDX = [True,True,False,False,False,False,False,False,False,False]
+        self.POS_XYZ_IDX = [True,True,True,False,False,False,False,False,False,False]
+        self.VEL_XY_IDX = [False,False,False,False,False,False,False,True,True,False]
+        self.AGENT_VALID = [False,False,False,False,False,False,False,False,False,True]
 
         # Interpolated stuff
         self.IPOS_XY_IDX = [True, True, False, False, False, False, False]
@@ -83,11 +58,42 @@ class WaymoData(BaseDataset):
         self.HIST_TIMESTEP = 11
 
         self.STATIONARY_SPEED = 0.25  # m/s
-        self.AGENT_TO_AGENT_MAX_DISTANCE = 50.0 # meters
-        self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE = 2.0 # meters
+        self.AGENT_TO_AGENT_MAX_DISTANCE = 50.0  # meters
+        self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE = 2.0  # meters
+        self.AGENT_TO_AGENT_DISTANCE_BREACH = 1.0  # meters
 
-        self.AGENT_TO_AGENT_MAX_HEADING = 45.0 # degrees
-        self.AGENT_TO_AGENT_MAX_CONFLICT_DISTANCE = 2.0 # meters
+        self.AGENT_TO_AGENT_MAX_HEADING = 45.0  # degrees
+
+        self.load = config.get("load", True)
+        if self.load:
+            try:
+                logger.info("Loading scenario infos...")
+                self.load_data()
+            except AssertionError as e:
+                logger.error("Error loading scenario infos: %s", e)
+                raise e
+
+
+    def load_data(self) -> None:
+        """Loads the dataset.
+
+        Raises:
+            AssertionError: If the number of scenarios and conflict points do not match.
+        """
+        start = time.time()
+        logger.info(f"Loading WOMD scenario base data from {self.scenario_base_path}")
+        with open(self.scenario_meta_path, "rb") as f:
+            self.data.metas = pickle.load(f)[:: self.step]
+        self.data.scenarios_ids = natsorted([f'sample_{x["scenario_id"]}.pkl' for x in self.data.metas])
+        self.data.scenarios = natsorted(
+            [f'{self.scenario_base_path}/sample_{x["scenario_id"]}.pkl' for x in self.data.metas]
+        )
+        logger.info(f"Loading data took {time.time() - start} seconds.")
+
+        # TODO: remove this
+        self.shard()
+
+        num_scenarios = len(self.data.scenarios_ids)
 
         # Pre-checks: conflict points
         self.check_conflict_points()
@@ -96,9 +102,7 @@ class WaymoData(BaseDataset):
             num_scenarios == num_conflict_points
         ), f"Mismatch in number of scenarios and conflict points: {num_scenarios} vs {num_conflict_points}"
 
-    def transform_scenario_data(
-        self, scenario_data: dict, conflict_points: dict | None = None
-    ) -> dict:
+    def transform_scenario_data(self, scenario_data: dict, conflict_points: dict | None = None) -> dict:
         """Transforms the scene data into a format suitable for processing.
 
         Args:
@@ -112,25 +116,19 @@ class WaymoData(BaseDataset):
         trajs = scenario_data["track_infos"]["trajs"]
         num_agents = trajs.shape[0]
 
-        agent_distances_to_conflict_points = None \
-            if conflict_points is None else conflict_points['agent_distances_to_conflict_points']
-        conflict_points = None \
-            if conflict_points is None else conflict_points['all_conflict_points']
+        agent_distances_to_conflict_points = (
+            None if conflict_points is None else conflict_points["agent_distances_to_conflict_points"]
+        )
+        conflict_points = None if conflict_points is None else conflict_points["all_conflict_points"]
 
         # TODO: improve this relevance criteria
         agent_relevance = np.zeros(num_agents, dtype=np.float32)
         tracks_to_predict = scenario_data["tracks_to_predict"]
-        tracks_to_predict_index = np.asarray(
-            tracks_to_predict["track_index"] + [sdc_index]
-        )
-        tracks_to_predict_difficulty = np.asarray(
-            tracks_to_predict["difficulty"] + [2.0]
-        )
+        tracks_to_predict_index = np.asarray(tracks_to_predict["track_index"] + [sdc_index])
+        tracks_to_predict_difficulty = np.asarray(tracks_to_predict["difficulty"] + [2.0])
 
         # Set agent_relevance for tracks_to_predict_index based on tracks_to_predict_difficulty
-        for idx, difficulty in zip(
-            tracks_to_predict_index, tracks_to_predict_difficulty
-        ):
+        for idx, difficulty in zip(tracks_to_predict_index, tracks_to_predict_difficulty):
             agent_relevance[idx] = self.DIFFICULTY_WEIGHTS.get(difficulty, 0.0)
 
         return {
@@ -151,11 +149,10 @@ class WaymoData(BaseDataset):
             "stationary_speed": self.STATIONARY_SPEED,
             "agent_to_agent_max_distance": self.AGENT_TO_AGENT_MAX_DISTANCE,
             "agent_to_conflict_point_max_distance": self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE,
-            "timestamps": np.asarray(
-                scenario_data["timestamps_seconds"], dtype=np.float32
-            ),
+            "agent_to_agent_distance_breach": self.AGENT_TO_AGENT_DISTANCE_BREACH,
+            "timestamps": np.asarray(scenario_data["timestamps_seconds"], dtype=np.float32),
             "map_conflict_points": conflict_points,
-            "agent_distances_to_conflict_points": agent_distances_to_conflict_points
+            "agent_distances_to_conflict_points": agent_distances_to_conflict_points,
         }
 
     def check_conflict_points(self):
@@ -168,9 +165,7 @@ class WaymoData(BaseDataset):
         zipped = zip(self.data.scenarios_ids, self.data.scenarios)
 
         def process_file(scenario_id, scenario_path):
-            conflict_points_filepath = os.path.join(
-                self.conflict_points_path, scenario_id
-            )
+            conflict_points_filepath = os.path.join(self.conflict_points_path, scenario_id)
             if os.path.exists(conflict_points_filepath):
                 return conflict_points_filepath
 
@@ -181,9 +176,7 @@ class WaymoData(BaseDataset):
             static_map_infos = scenario["map_infos"]
             dynamic_map_infos = scenario["dynamic_map_infos"]
             agent_positions = scenario["track_infos"]["trajs"][:, :, self.POS_XYZ_IDX]
-            conflict_points = self.find_conflict_points(
-                static_map_infos, dynamic_map_infos, agent_positions
-            )
+            conflict_points = self.find_conflict_points(static_map_infos, dynamic_map_infos, agent_positions)
 
             with open(conflict_points_filepath, "wb") as f:
                 pickle.dump(conflict_points, f, protocol=pickle.HIGHEST_PROTOCOL)
@@ -194,30 +187,20 @@ class WaymoData(BaseDataset):
             from joblib import Parallel, delayed
 
             outs = Parallel(n_jobs=self.num_workers, batch_size=self.batch_size)(
-                delayed(process_file)(
-                    scenario_id=scenario_id, scenario_path=scenario_path
-                )
-                for scenario_id, scenario_path in tqdm(
-                    zipped, total=len(self.data.scenarios_ids)
-                )
+                delayed(process_file)(scenario_id=scenario_id, scenario_path=scenario_path)
+                for scenario_id, scenario_path in tqdm(zipped, total=len(self.data.scenarios_ids))
             )
             self.data.conflict_points = natsorted(outs)
         else:
-            for scenario_id, scenario_path in tqdm(
-                zipped, total=len(self.data.scenarios_ids)
-            ):
+            for scenario_id, scenario_path in tqdm(zipped, total=len(self.data.scenarios_ids)):
                 out = process_file(scenario_id=scenario_id, scenario_path=scenario_path)
                 self.data.conflict_points.append(out)
 
         self.data.conflict_points = natsorted(self.data.conflict_points)
 
-        logger.info(
-            f"Conflict points check completed in {time.time() - start:.2f} seconds."
-        )
+        logger.info(f"Conflict points check completed in {time.time() - start:.2f} seconds.")
 
-    def find_conflict_points(
-        self, static_map_info: dict, dynamic_map_info: dict, agent_positions: np.ndarray
-    ) -> dict:
+    def find_conflict_points(self, static_map_info: dict, dynamic_map_info: dict, agent_positions: np.ndarray) -> dict:
         """Finds the conflict points in the map.
 
         Args:
@@ -235,14 +218,10 @@ class WaymoData(BaseDataset):
 
         # Static Conflict Points: Crosswalks, Speed Bumps and Stop Signs
         static_conflict_points = []
-        for conflict_point in (
-            static_map_info["crosswalk"] + static_map_info["speed_bump"]
-        ):
+        for conflict_point in static_map_info["crosswalk"] + static_map_info["speed_bump"]:
             start, end = conflict_point["polyline_index"]
             points = polylines[start:end][:, :3]
-            points = resample(
-                points, points.shape[0] * self.conflict_points_cfg.resample_factor
-            )
+            points = resample(points, points.shape[0] * self.conflict_points_cfg.resample_factor)
             static_conflict_points.append(points)
 
         for conflict_point in static_map_info["stop_sign"]:
@@ -251,17 +230,12 @@ class WaymoData(BaseDataset):
             static_conflict_points.append(points)
 
         static_conflict_points = (
-            np.concatenate(static_conflict_points)
-            if len(static_conflict_points) > 0
-            else np.empty((0, 3))
+            np.concatenate(static_conflict_points) if len(static_conflict_points) > 0 else np.empty((0, 3))
         )
 
         # Lane Intersections
         lane_infos = static_map_info["lane"]
-        lanes = [
-            polylines[li["polyline_index"][0] : li["polyline_index"][1]][:, :3]
-            for li in lane_infos
-        ]
+        lanes = [polylines[li["polyline_index"][0] : li["polyline_index"][1]][:, :3] for li in lane_infos]
         # lanes = []
         # for lane_info in static_map_info['lane']:
         #     start, end = lane_info['polyline_index']
@@ -296,11 +270,7 @@ class WaymoData(BaseDataset):
             if j_idx.shape[0] > 0:
                 lane_intersections.append(lane_j[j_idx])
 
-        lane_intersections = (
-            np.concatenate(lane_intersections)
-            if len(lane_intersections) > 0
-            else np.empty((0, 3))
-        )
+        lane_intersections = np.concatenate(lane_intersections) if len(lane_intersections) > 0 else np.empty((0, 3))
 
         # Dynamic Conflict Points: Traffic Lights
         stops = dynamic_map_info["stop_point"]
@@ -318,22 +288,18 @@ class WaymoData(BaseDataset):
         if lane_intersections.shape[0] > 0:
             conflict_point_list.append(lane_intersections)
 
-        conflict_points = (
-            np.concatenate(conflict_point_list, dtype=np.float32)
-            if len(conflict_point_list)
-            else None
-        )
+        conflict_points = np.concatenate(conflict_point_list, dtype=np.float32) if len(conflict_point_list) else None
 
-        dists_to_conflict_points = compute_dists_to_conflict_points(
-            conflict_points, agent_positions
-        ) if conflict_points is not None else None
+        dists_to_conflict_points = (
+            compute_dists_to_conflict_points(conflict_points, agent_positions) if conflict_points is not None else None
+        )
 
         return {
             "static": static_conflict_points,
             "dynamic": dynamic_conflict_points,
             "lane_intersections": lane_intersections,
             "all_conflict_points": conflict_points,
-            "agent_distances_to_conflict_points": dists_to_conflict_points
+            "agent_distances_to_conflict_points": dists_to_conflict_points,
         }
 
     def __getitem__(self, index: int) -> dict:

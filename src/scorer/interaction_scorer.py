@@ -1,6 +1,7 @@
 import numpy as np
 from omegaconf import DictConfig
 
+from features.interaction_features import InteractionStatus
 from scorer.base_scorer import BaseScorer
 from utils.common import EPS, get_logger
 
@@ -18,86 +19,70 @@ class InteractionScorer(BaseScorer):
 
     def aggregate_simple_score(self, **kwargs) -> np.ndarray:
         # Detection values are roughly obtained from: https://arxiv.org/abs/2202.07438
-        return 0.0
-        # return (
-        #     min(
-        #         self.detections.speed, 
-        #         self.weights.speed * kwargs.get("speed", 0.0)
-        #     )
-        #     + min(
-        #         self.detections.acceleration,
-        #         self.weights.acceleration * kwargs.get("acceleration", 0.0),
-        #     )
-        #     + min(
-        #         self.detections.deceleration,
-        #         self.weights.deceleration * kwargs.get("deceleration", 0.0),
-        #     )
-        #     + min(
-        #         self.detections.jerk, 
-        #         self.weights.jerk * kwargs.get("jerk", 0.0)
-        #     )
-        #     + min(
-        #         self.detections.waiting_period,
-        #         self.weights.waiting_period * np.sqrt(kwargs.get("waiting_period", 0.0)),
-        #     )
-        # )
+        collision = kwargs.get("collision", 0.0)
+        mttcp = kwargs.get("mttcp", 0.0)
+        return self.weights.collision * collision + min(self.detections.mttcp, self.weights.mttcp * mttcp)
+
+    def compute_agent_weights(self, scenario: dict, scenario_features: dict) -> np.ndarray:
+        """
+        Computes the weights for each agent based on their relevance and distances to other agents.
+        Args:
+            scenario (dict): The scenario containing agent information.
+            scenario_features (dict): The features of the scenario.
+        Returns:
+            np.ndarray: An array of weights for each agent.
+        """
+        agent_to_agent_dists = scenario_features["agent_to_agent_closest_dists"]
+        relevant_agents = np.where(scenario["agent_relevance"] > 0.0)[0]
+        relevant_agents_values = scenario["agent_relevance"][relevant_agents]
+        relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]
+
+        min_dist = relevant_agents_dists.min(axis=1) + EPS  # Avoid division by zero
+        argmin_dist = relevant_agents_dists.argmin(axis=1)
+
+        weights = relevant_agents_values[argmin_dist] * np.minimum(1.0 / min_dist, 1.0)
+        return weights
 
     def compute(self, scenario: dict, scenario_features: dict) -> dict:
-        """Produces a dummy output for the feature computation.
-
-        This method should be overridden by subclasses to compute actual features.
+        """
+        Computes the interaction scores for agents in a scenario based on their features.
 
         Args:
+            scenario (Dict): A dictionary containing scenario information, including agent relevance and number of agents.
             scenario_features (Dict): A dictionary containing scenario feature data.
 
         Returns:
             Dict: A dictionary with computed scores.
         """
         # NOTE: should we avoid this overhead?
-        missing_features = [
-            feature for feature in self.features if feature not in scenario_features
-        ]
+        missing_features = [feature for feature in self.features if feature not in scenario_features]
         if missing_features:
-            raise ValueError(
-                f"Missing features in scenario_features: {missing_features}"
+            raise ValueError(f"Missing features in scenario_features: {missing_features}")
+
+        # TODO: make this configurable/controllable
+        weights = self.compute_agent_weights(scenario, scenario_features)
+
+        N = scenario["num_agents"]
+        scores = np.zeros(shape=(N,), dtype=np.float32)
+        for n, (i, j) in enumerate(scenario_features["agent_pair_indeces"]):
+            status = scenario_features["interaction_status"][n]
+            if status != InteractionStatus.COMPUTED_OK:
+                continue
+
+            # Compute the agent-pair scores
+            agent_pair_score = self.aggregate_simple_score(
+                collision=scenario_features["collision"][n],
+                mttcp=scenario_features["mttcp"][n],
             )
+            scores[i] += weights[i] * agent_pair_score
+            scores[j] += weights[j] * agent_pair_score
 
-        # agent_to_agent_dists = scenario_features["agent_to_agent_closest_dists"]
-        # relevant_agents = np.where(scenario["agent_relevance"] > 0.0)[0]
-        # relevant_agents_values = scenario["agent_relevance"][relevant_agents]
-        # relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]
-
-        # # TODO: make this configurable/controllable
-        # # TODO: paralellize this
-        # N = len(scenario_features["valid_agents"])
-        # scores = np.zeros(shape=(N,), dtype=np.float32)
-        # for n, idx in enumerate(scenario_features["valid_agents"]):
-
-        #     # scenario includes all valid and non-valid agents, which is why we index using `idx`
-        #     min_dist, argmin_dist = (
-        #         relevant_agents_dists[idx].min(),
-        #         relevant_agents_dists[idx].argmin(),
-        #     )
-        #     # An agent's contribution to the score is inversely proportional to the closest distance
-        #     # between the agent and the relevant agents
-        #     weight = relevant_agents_values[argmin_dist] * min(
-        #         1.0 / (min_dist + EPS), 1.0
-        #     )
-
-        #     scores[n] = weight * self.aggregate_simple_score(
-        #         speed=scenario_features["speed"][n],
-        #         acceleration=scenario_features["acceleration"][n],
-        #         deceleration=scenario_features["deceleration"][n],
-        #         jerk=scenario_features["jerk"][n],
-        #         waiting_period=scenario_features["waiting_period"][n],
-        #         waiting_intervals=scenario_features["waiting_intervals"][n],
-        #         waiting_distances=scenario_features["waiting_distances"][n],
-        #         # agent_type = scenario_features['agent_types'][n]
-        #     )
-
+        # Normalize the scores
+        denom = np.where(scores > 0.0)[0].shape[0]
+        scene_score = np.clip(scores.sum() / denom, a_min=self.score_clip.min, a_max=self.score_clip.max)
         return {
             self.name: {
                 "agent_scores": scores,
-                "scene_score": scores.mean(),
+                "scene_score": scene_score,
             }
         }
