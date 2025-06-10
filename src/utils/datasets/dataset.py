@@ -1,5 +1,5 @@
 import math
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 from easydict import EasyDict
 from omegaconf import DictConfig
@@ -10,7 +10,7 @@ from utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
 logger = get_logger(__name__)
 
 
-class BaseDataset(Dataset):
+class BaseDataset(Dataset, ABC):
     """Base class for datasets that handle scenarios."""
 
     def __init__(self, config: DictConfig):
