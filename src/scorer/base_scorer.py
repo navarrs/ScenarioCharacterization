@@ -1,5 +1,5 @@
 import re
-from abc import ABC
+from abc import ABC, abstractmethod
 from itertools import combinations
 
 import numpy as np
@@ -31,6 +31,7 @@ class BaseScorer(ABC):
         # Get the class name and add a space before each capital letter (except the first)
         return re.sub(r"(?<!^)([A-Z])", r"_\1", self.__class__.__name__).lower()
 
+    @abstractmethod
     def compute(self, scenario: dict, scenario_features: dict) -> dict:
         """Produces a dummy output for the feature computation.
 

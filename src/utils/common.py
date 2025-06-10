@@ -1,6 +1,7 @@
 import numpy as np
 import logging
 import os
+import pickle
 
 import colorlog
 from omegaconf import DictConfig
@@ -63,3 +64,42 @@ def get_logger(name=__name__):
         logger.propagate = False
 
     return logger
+
+def from_pickle(data_file: str) -> dict:
+    """Loads data from a pickle file.
+
+    Args:
+        data_file (AnyStr): The path to the pickle file.
+
+    Returns:
+        Dict: The loaded data.
+
+    Raises:
+        FileNotFoundError: If the data file does not exist.
+    """
+    if not os.path.exists(data_file):
+        raise FileNotFoundError(f"Data file {data_file} does not exist.")
+
+    with open(data_file, "rb") as f:
+        data = pickle.load(f)
+
+    return data
+
+def to_pickle(output_path: str, input_data: dict, tag: str) -> None:
+    """Saves data to a pickle file.
+
+    Args:
+        input_data (Dict): The data to save.
+        tag (AnyStr): The tag to use for the output file name.
+    """
+    data = {}
+    data_file = os.path.join(output_path, f"{tag}.pkl")
+    if os.path.exists(data_file):
+        with open(data_file, "rb") as f:
+            data = pickle.load(f)
+
+    for key, value in input_data.items():
+        data[key] = value
+
+    with open(data_file, "wb") as f:
+        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
