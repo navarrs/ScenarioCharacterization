@@ -180,7 +180,7 @@ We added a few examples under the `samples` folder and a `test.yaml` file under 
 
 To assess functionality of the pipeline follow these steps:
 
-### 1. Compute the Individual Features:
+### 1. Compute the Individual and Interaction Features:
 ```bash
 uv run src/run_processor.py processor=features characterizer=individual_features paths=test
 uv run src/run_processor.py processor=features characterizer=interaction_features paths=test
@@ -189,10 +189,10 @@ This will create an `output/cache` folder containing the following temporary fea
 * `output/cache/conflict_points`, one file per sample scenario containing conflict regions in a given scenario. 
 * `output/cache/features/gt_critical`, one file per sample scenario containing per-agent individual features.
 
-### 2. Compute the Individual Scores:
+### 2. Compute the Individual and Interaction Scores:
 ```bash
 uv run src/run_processor.py processor=scores characterizer=individual_scores paths=test
-uv run src/run_processor.py processor=scores characterizer=interactoion_scores paths=test
+uv run src/run_processor.py processor=scores characterizer=interaction_scores paths=test
 ```
 This will utilize the pre-computed features and generate per-agent, per-scenario scores to `output/cache/scores/gt_critical`. 
 
