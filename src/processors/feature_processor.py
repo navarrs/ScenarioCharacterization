@@ -5,7 +5,7 @@ from tqdm import tqdm
 from features.base_feature import BaseFeature
 from processors.base_processor import BaseProcessor
 from scorer.base_scorer import BaseScorer
-from utils.common import get_logger
+from utils.common import get_logger, to_pickle
 
 logger = get_logger(__name__)
 
@@ -54,6 +54,6 @@ class FeatureProcessor(BaseProcessor):
                 feature = self.characterizer.compute(scenario)
 
                 if self.save:
-                    self.to_pickle(feature, scenario["scenario_id"])
+                    to_pickle(self.output_path, feature, scenario["scenario_id"])
 
         logger.info(f"Finished processing {self.characterizer.name} features for {self.dataset.name}.")

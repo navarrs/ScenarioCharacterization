@@ -1,5 +1,5 @@
 import re
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import numpy as np
 from omegaconf import DictConfig
@@ -27,6 +27,7 @@ class BaseFeature(ABC):
         # Get the class name and add a space before each capital letter (except the first)
         return re.sub(r"(?<!^)([A-Z])", r" \1", self.__class__.__name__).lower()
 
+    @abstractmethod
     def compute(self, scenario: dict) -> dict:
         """Produces a dummy output for the feature computation.
 

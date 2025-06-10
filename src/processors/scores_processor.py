@@ -8,7 +8,7 @@ from features import SUPPORTED_FEATURES
 from features.base_feature import BaseFeature
 from processors.base_processor import BaseProcessor
 from scorer.base_scorer import BaseScorer
-from utils.common import get_logger
+from utils.common import get_logger, from_pickle, to_pickle
 
 logger = get_logger(__name__)
 
@@ -71,7 +71,7 @@ class ScoresProcessor(BaseProcessor):
 
                 scenario_id = scenario["scenario_id"]
                 scenario_feature_file = os.path.join(self.feature_path, f"{scenario_id}.pkl")
-                scenario_features = self.from_pickle(scenario_feature_file)
+                scenario_features = from_pickle(scenario_feature_file)
 
                 # TODO: pre-check that features have been computed
                 missing_features = [f for f in self.features if f not in scenario_features]
@@ -82,4 +82,4 @@ class ScoresProcessor(BaseProcessor):
                 scores = self.characterizer.compute(scenario=scenario, scenario_features=scenario_features)
 
                 if self.save:
-                    self.to_pickle(scores, scenario["scenario_id"])
+                    to_pickle(self.output_path, scores, scenario["scenario_id"])
