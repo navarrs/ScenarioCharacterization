@@ -3,7 +3,7 @@ default_stages:
   - manual
 
 default_language_version:
-  python: python3.12
+  python: python3.10
 
 repos:
   # Autoformats Python code to Black’s style

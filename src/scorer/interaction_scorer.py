@@ -78,7 +78,8 @@ class InteractionScorer(BaseScorer):
             scores[j] += weights[j] * agent_pair_score
 
         # Normalize the scores
-        denom = np.where(scores > 0.0)[0].shape[0]
+        # TODO: address the case where all scores are zero
+        denom = max(np.where(scores > 0.0)[0].shape[0], 1)
         scene_score = np.clip(scores.sum() / denom, a_min=self.score_clip.min, a_max=self.score_clip.max)
         return {
             self.name: {

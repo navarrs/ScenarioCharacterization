@@ -174,30 +174,51 @@ uv run src/viz_scores_pdf.py
 </div>
 
 
-## An Example
-
-We added a few examples under the `samples` folder and a `test.yaml` file under `config/paths` with local paths pointing to the sample data. This test will use ground truth data (`scenario_type: gt`) and compute critical features (`return_criteria: critical`).
+## An Example using WOMD
 
 To assess functionality of the pipeline follow these steps:
 
-### 1. Compute the Individual and Interaction Features:
+### Get sample data
+We will add few examples under the `samples` to run the basic functionality of the pipeline. Follow:
+
+1. Install [gcloud CLI](https://cloud.google.com/sdk/docs/install).
+
+2. Download a sample
+```bash
+mkdir samples/raw
+cd samples/raw
+gcloud init
+gsutil -m cp -r "gs://waymo_open_dataset_motion_v_1_3_0/uncompressed/scenario/testing/testing.tfrecord-00000-of-00150" .
+```
+
+3. Pre-process the data. Script adapted from [here](https://github.com/cmubig/SafeShift?tab=readme-ov-file#waymo-dataset-preparation).
+```bash
+uv run src/scripts/waymo_preprocess.py ./samples/raw ./samples/scenarios
+```
+
+This will create temporary scenario files under `samples/scenarios` needed by the pipeline. We also added a `test.yaml` file under `config/paths` with local paths pointing to the sample data.
+
+This test will use ground truth data (`scenario_type: gt`) and compute critical features (`return_criteria: critical`).
+
+### Compute the Features
+
 ```bash
 uv run src/run_processor.py processor=features characterizer=individual_features paths=test
 uv run src/run_processor.py processor=features characterizer=interaction_features paths=test
 ```
-This will create an `output/cache` folder containing the following temporary feature information:
-* `output/cache/conflict_points`, one file per sample scenario containing conflict regions in a given scenario.
-* `output/cache/features/gt_critical`, one file per sample scenario containing per-agent individual features.
+This will create an `./cache` folder containing the following temporary feature information:
+* `./cache/conflict_points`, one file per sample scenario containing conflict regions in a given scenario.
+* `./cache/features/gt_critical`, one file per sample scenario containing per-agent individual features.
 
-### 2. Compute the Individual and Interaction Scores:
+### Compute the Scores
 ```bash
 uv run src/run_processor.py processor=scores characterizer=individual_scores paths=test
 uv run src/run_processor.py processor=scores characterizer=interaction_scores paths=test
 ```
-This will utilize the pre-computed features and generate per-agent, per-scenario scores to `output/cache/scores/gt_critical`.
+This will utilize the pre-computed features and generate per-agent, per-scenario scores to `./cache/scores/gt_critical`.
 
-### 3. Visualize Scores and Scenarios
+### Visualize Scores and Scenarios
 ```bash
-uv run src/viz_scores_pdf.py paths=test output_dir=./output_test
+uv run src/viz_scores_pdf.py paths=test
 ```
 This will generate and save a density plot over the scored scenarios to `output/cache/visualization/gt_critical/individual_scorer`.
