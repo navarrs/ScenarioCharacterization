@@ -100,7 +100,8 @@ class InteractionFeatures(BaseFeature):
             self.agent_i.heading, self.agent_j.heading = agent_headings[i][mask], agent_headings[j][mask]
             self.agent_i.agent_type, self.agent_j.agent_type = agent_types[i], agent_types[j]
 
-            if conflict_points is not None:
+            # type: ignore
+            if conflict_points is not None and dists_to_conflict_points is not None:
                 self.agent_j.dists_to_conflict = dists_to_conflict_points[i][mask]
                 self.agent_j.dists_to_conflict = dists_to_conflict_points[j][mask]
 
@@ -116,9 +117,6 @@ class InteractionFeatures(BaseFeature):
             if self.agent_i.is_stationary and self.agent_i.is_stationary:
                 state["interaction_status"][n] = InteractionStatus.AGENTS_STATIONARY
                 continue
-
-            # Check if agents are close to conflict points
-            # self.agent_i.in_conflict_point, self.agent_j.in_conflict_point = 0, 0
 
             # Compute interaction features
             separation = interaction.compute_separation(self.agent_i, self.agent_j)

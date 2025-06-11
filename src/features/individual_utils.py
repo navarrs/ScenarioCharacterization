@@ -5,7 +5,7 @@ from utils.common import EPS, get_logger
 logger = get_logger(__name__)
 
 
-def compute_speed(velocities: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def compute_speed(velocities: np.ndarray) -> tuple[np.ndarray | None, ...]:
     """Computes the speed profile of an agent.
 
     Args:
@@ -40,7 +40,7 @@ def compute_speed(velocities: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return speeds, speeds_limit_diff
 
 
-def compute_acceleration_profile(velocity: np.ndarray, timestamps: np.ndarray) -> tuple[tuple, np.array]:
+def compute_acceleration_profile(velocity: np.ndarray, timestamps: np.ndarray) -> tuple[np.array | None, ...]:
     """Computes the acceleration profile from the speed (m/s) and time delta.
 
     Args:
@@ -119,7 +119,7 @@ def compute_waiting_period(
     timestamps: np.ndarray,
     conflict_points: np.ndarray | None,
     stationary_speed: float = 0.0,
-) -> np.ndarray:
+) -> tuple[np.ndarray, ...]:
     """Computes the waiting period for an agent based on its position and speed.
 
     Args:

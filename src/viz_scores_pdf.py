@@ -95,7 +95,7 @@ def run(cfg: DictConfig) -> None:
         logger.error(f"Scorers {unsupported_scorers} not in supported list {SUPPORTED_SCORERS}")
         raise ValueError
     else:
-        scores = {}  # Initialize with an empty list for scenarios
+        scores: dict = {}  # Initialize with an empty list for scenarios
         for scorer in cfg.scorers:
             scores[scorer] = []
 
