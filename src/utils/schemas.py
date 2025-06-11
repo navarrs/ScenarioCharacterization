@@ -1,68 +1,31 @@
-from typing import Any, List
+from typing import Annotated, Any, Callable, List, TypeVar
 
 import numpy as np
-from pydantic import BaseModel, GetCoreSchemaHandler, NonNegativeInt, PositiveInt
-from pydantic_core import core_schema
+from numpy.typing import NDArray
+from pydantic import BaseModel, BeforeValidator, NonNegativeInt, PositiveInt
+
+DType = TypeVar("DType", bound=np.generic)
 
 
-class BooleanNDArray3D:
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source_type, handler: GetCoreSchemaHandler):
-        def validate(value: Any) -> np.ndarray:
-            if not isinstance(value, np.ndarray):
-                raise TypeError("Value must be a numpy ndarray")
-            if value.ndim != 3:
-                raise ValueError("Array must be 3D")
-            if value.dtype != np.bool_:
-                raise ValueError("Array must be of boolean type")
-            return value
+# Validator factory
+def validate_array(expected_dtype: Any, expected_ndim: int) -> Callable[[Any], NDArray]:
+    def _validator(v: Any) -> NDArray:
+        if not isinstance(v, np.ndarray):
+            raise TypeError("Expected a numpy.ndarray")
+        if v.dtype != expected_dtype:
+            raise TypeError(f"Expected dtype {expected_dtype}, got {v.dtype}")
+        if v.ndim != expected_ndim:
+            raise ValueError(f"Expected {expected_ndim}D array, got {v.ndim}D")
+        return v
 
-        return core_schema.no_info_plain_validator_function(validate)
-
-
-class Float32NDArray3D:
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source_type, handler: GetCoreSchemaHandler):
-        def validate(value: Any) -> np.ndarray:
-            if not isinstance(value, np.ndarray):
-                raise TypeError("Value must be a numpy ndarray")
-            if value.ndim != 3:
-                raise ValueError("Array must be 3D")
-            if value.dtype != np.float32:
-                raise ValueError("Array must be of float32 type")
-            return value
-
-        return core_schema.no_info_plain_validator_function(validate)
+    return _validator
 
 
-class Float32NDArray2D:
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source_type, handler: GetCoreSchemaHandler):
-        def validate(value: Any) -> np.ndarray:
-            if not isinstance(value, np.ndarray):
-                raise TypeError("Value must be a numpy ndarray")
-            if value.ndim != 2:
-                raise ValueError("Array must be 2D")
-            if value.dtype != np.float32:
-                raise ValueError("Array must be of float32 type")
-            return value
-
-        return core_schema.no_info_plain_validator_function(validate)
-
-
-class Float32NDArray1D:
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source_type, handler: GetCoreSchemaHandler):
-        def validate(value: Any) -> np.ndarray:
-            if not isinstance(value, np.ndarray):
-                raise TypeError("Value must be a numpy ndarray")
-            if value.ndim != 1:
-                raise ValueError("Array must be 1D")
-            if value.dtype != np.float32:
-                raise ValueError("Array must be of float32 type")
-            return value
-
-        return core_schema.no_info_plain_validator_function(validate)
+# Reusable types
+BooleanNDArray3D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 3))]
+Float32NDArray3D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 3))]
+Float32NDArray2D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 2))]
+Float32NDArray1D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 1))]
 
 
 class Scenario(BaseModel):
@@ -87,3 +50,5 @@ class Scenario(BaseModel):
     timestamps: Float32NDArray1D
     map_conflict_points: Float32NDArray2D | None
     agent_distances_to_conflict_points: Float32NDArray3D | None
+
+    model_config = {"arbitrary_types_allowed": True}

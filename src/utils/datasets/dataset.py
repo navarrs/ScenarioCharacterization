@@ -95,10 +95,7 @@ class BaseDataset(Dataset, ABC):
 
         This method should load the dataset and populate the data attribute.
         """
-        logger.error(
-            "Method load_data is not implemented yet."
-            "This method should load the dataset and populate the data attribute."
-        )
+        pass
 
     @abstractmethod
     def collate_batch(self, batch_data) -> dict:
@@ -110,13 +107,10 @@ class BaseDataset(Dataset, ABC):
         Returns:
             Dict: The collated batch.
         """
-        logger.error(
-            "Method collate_batch is not implemented yet. "
-            "This method should collate a batch of data into a single EasyDict."
-        )
+        pass
 
     @abstractmethod
-    def load_scenario_information(self, index: dict) -> dict:
+    def load_scenario_information(self, index: int) -> dict:
         """Loads a scenario from a dictionary.
 
         Args:
@@ -125,9 +119,7 @@ class BaseDataset(Dataset, ABC):
         Returns:
             dict: The loaded scenario data.
         """
-        logger.error(
-            "Method load_scenario is not implemented yet. " "This method should load a scenario from a dictionary."
-        )
+        pass
 
     @abstractmethod
     def transform_scenario_data(self, scenario: dict, conflict_points: dict) -> dict:
@@ -140,10 +132,7 @@ class BaseDataset(Dataset, ABC):
         Returns:
             dict: Transformed scenario data.
         """
-        logger.error(
-            "Method transform_scenario_data is not implemented yet. "
-            "This method should transform scenario data into a format suitable for the model."
-        )
+        pass
 
     def __getitem__(self, index: int) -> Scenario:
         """Gets a single scenario by index.

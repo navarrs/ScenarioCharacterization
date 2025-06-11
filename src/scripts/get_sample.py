@@ -22,8 +22,8 @@ if __name__ == "__main__":
     if not os.path.exists(input_meta_file):
         raise AssertionError(f"Metadata file '{input_meta_file}' does not exist.")
 
-    with open(input_meta_file, "rb") as f:
-        metas = pickle.load(f)  # nosec B301
+    with open(input_meta_file, "rb") as input_file:
+        metas = pickle.load(input_file)  # nosec B301
 
     sample_metas = []
     sample_files = random.sample(files, sample_size)
@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
         shutil.copy2(src, dst)
 
-    with open(os.path.join(output_folder, "sample_infos.pkl"), "wb") as f:
-        pickle.dump(sample_metas, f)
+    with open(os.path.join(output_folder, "sample_infos.pkl"), "wb") as output_file:
+        pickle.dump(sample_metas, output_file, protocol=pickle.HIGHEST_PROTOCOL)
 
     print(f"Copied {sample_size} files to '{output_folder}'.")

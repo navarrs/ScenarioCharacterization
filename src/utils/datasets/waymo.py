@@ -215,20 +215,20 @@ class WaymoData(BaseDataset):
         polylines = static_map_info["all_polylines"]
 
         # Static Conflict Points: Crosswalks, Speed Bumps and Stop Signs
-        static_conflict_points = []
+        static_conflict_points_list = []
         for conflict_point in static_map_info["crosswalk"] + static_map_info["speed_bump"]:
             start, end = conflict_point["polyline_index"]
             points = polylines[start:end][:, :3]
             points = resample(points, points.shape[0] * self.conflict_points_cfg.resample_factor)
-            static_conflict_points.append(points)
+            static_conflict_points_list.append(points)
 
         for conflict_point in static_map_info["stop_sign"]:
             start, end = conflict_point["polyline_index"]
             points = polylines[start:end][:, :3]
-            static_conflict_points.append(points)
+            static_conflict_points_list.append(points)
 
         static_conflict_points = (
-            np.concatenate(static_conflict_points) if len(static_conflict_points) > 0 else np.empty((0, 3))
+            np.concatenate(static_conflict_points_list) if len(static_conflict_points_list) > 0 else np.empty((0, 3))
         )
 
         # Lane Intersections
@@ -243,7 +243,7 @@ class WaymoData(BaseDataset):
         num_lanes = len(lanes)
 
         lane_combinations = list(itertools.combinations(range(num_lanes), 2))
-        lane_intersections = []
+        lane_intersections_list = []
         for i, j in lane_combinations:
             lane_i, lane_j = lanes[i], lanes[j]
 
@@ -263,12 +263,14 @@ class WaymoData(BaseDataset):
                     continue
 
             if i_idx.shape[0] > 0:
-                lane_intersections.append(lane_i[i_idx])
+                lane_intersections_list.append(lane_i[i_idx])
 
             if j_idx.shape[0] > 0:
-                lane_intersections.append(lane_j[j_idx])
+                lane_intersections_list.append(lane_j[j_idx])
 
-        lane_intersections = np.concatenate(lane_intersections) if len(lane_intersections) > 0 else np.empty((0, 3))
+        lane_intersections = (
+            np.concatenate(lane_intersections_list) if len(lane_intersections_list) > 0 else np.empty((0, 3))
+        )
 
         # Dynamic Conflict Points: Traffic Lights
         stops = dynamic_map_info["stop_point"]

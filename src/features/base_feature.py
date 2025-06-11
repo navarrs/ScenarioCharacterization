@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 from omegaconf import DictConfig
 
+from utils.schemas import Scenario
+
 
 class BaseFeature(ABC):
     def __init__(self, config: DictConfig) -> None:
@@ -28,7 +30,7 @@ class BaseFeature(ABC):
         return re.sub(r"(?<!^)([A-Z])", r" \1", self.__class__.__name__).lower()
 
     @abstractmethod
-    def compute(self, scenario: dict) -> dict:
+    def compute(self, scenario: Scenario) -> dict:
         """Produces a dummy output for the feature computation.
 
         This method should be overridden by subclasses to compute actual features.
