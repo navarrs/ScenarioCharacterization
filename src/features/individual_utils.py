@@ -40,7 +40,7 @@ def compute_speed(velocities: np.ndarray) -> tuple[np.ndarray | None, ...]:
     return speeds, speeds_limit_diff
 
 
-def compute_acceleration_profile(velocity: np.ndarray, timestamps: np.ndarray) -> tuple[np.array | None, ...]:
+def compute_acceleration_profile(velocity: np.ndarray, timestamps: np.ndarray) -> tuple[np.ndarray | None, ...]:
     """Computes the acceleration profile from the speed (m/s) and time delta.
 
     Args:
