@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - paths: base_paths  
+  - paths: base_paths
 
 num_shards: 10
 shard_index: 0

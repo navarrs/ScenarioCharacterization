@@ -9,7 +9,7 @@ from omegaconf import DictConfig
 from scipy.signal import resample
 from tqdm import tqdm
 
-from utils.common import get_logger, compute_dists_to_conflict_points
+from utils.common import compute_dists_to_conflict_points, get_logger
 from utils.datasets.dataset import BaseDataset
 
 logger = get_logger(__name__)
@@ -25,12 +25,12 @@ class WaymoData(BaseDataset):
         # length, width, height -> dimensions of the object's BBox in meters
         # heading -> yaw angle in radians of the forward direction of the the BBox
         # velocity_x, velocity_y -> x and y components of the object's velocity in m/s
-        self.AGENT_DIMS = [False,False,False,True,True,True,False,False,False,False]
-        self.HEADING_IDX = [False,False,False,False,False,False,True,False,False,False]
-        self.POS_XY_IDX = [True,True,False,False,False,False,False,False,False,False]
-        self.POS_XYZ_IDX = [True,True,True,False,False,False,False,False,False,False]
-        self.VEL_XY_IDX = [False,False,False,False,False,False,False,True,True,False]
-        self.AGENT_VALID = [False,False,False,False,False,False,False,False,False,True]
+        self.AGENT_DIMS = [False, False, False, True, True, True, False, False, False, False]
+        self.HEADING_IDX = [False, False, False, False, False, False, True, False, False, False]
+        self.POS_XY_IDX = [True, True, False, False, False, False, False, False, False, False]
+        self.POS_XYZ_IDX = [True, True, True, False, False, False, False, False, False, False]
+        self.VEL_XY_IDX = [False, False, False, False, False, False, False, True, True, False]
+        self.AGENT_VALID = [False, False, False, False, False, False, False, False, False, True]
 
         # Interpolated stuff
         self.IPOS_XY_IDX = [True, True, False, False, False, False, False]
@@ -298,7 +298,7 @@ class WaymoData(BaseDataset):
             "all_conflict_points": conflict_points,
             "agent_distances_to_conflict_points": dists_to_conflict_points,
         }
-    
+
     def load_scenario_information(self, index) -> dict:
         """Loads scenario information by index.
 
@@ -307,7 +307,7 @@ class WaymoData(BaseDataset):
 
         Returns:
             dict: A dictionary containing the scenario information.
-        
+
         Raises:
             ValidationError: If the scenario data does not pass schema validation.
         """

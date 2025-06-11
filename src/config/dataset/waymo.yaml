@@ -3,13 +3,13 @@ config:
   load: true
   seed: ${seed}
   step: ${step}
-  scenario_type: ${scenario_type}  
+  scenario_type: ${scenario_type}
   scenario_base_path: ${paths.scenario_base_path}
   scenario_meta_path: ${paths.scenario_meta_path}
 
   parallel: ${parallel}
   batch_size: ${batch_size}
-  
+
   num_scenarios: ${num_scenarios}
   num_workers: ${num_workers}
   num_shards: ${num_shards}

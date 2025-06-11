@@ -1,7 +1,7 @@
 _target_: utils.viz.waymo.WaymoVisualizer
-config: 
+config:
   scenario_type: ${scenario_type}
-  
+
   static_map_keys:
     - lane
     - crosswalk
@@ -12,7 +12,7 @@ config:
 
   dynamic_map_keys:
     - stop_point
-  
+
   map_colors:
     lane: "k"
     crosswalk: "cyan"
@@ -21,7 +21,7 @@ config:
     road_line: "k"
     stop_sign: "red"
     stop_point: "purple"
-  
+
   map_alphas:
     lane: 0.1
     crosswalk: 0.6

@@ -10,6 +10,7 @@ from torch.utils.data import Dataset
 
 from utils.viz.visualizer import BaseVisualizer
 
+
 class WaymoVisualizer(BaseVisualizer):
     def __init__(self, config, dataset: Dataset):
         super().__init__(config, dataset=dataset)

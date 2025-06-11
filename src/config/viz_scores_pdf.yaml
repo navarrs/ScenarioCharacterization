@@ -3,7 +3,7 @@ defaults:
   - run_processor.yaml
 
 scores_path: ${paths.output_paths.scores_cache_path}
-  
+
 scorers:
   - individual_scorer
   - interaction_scorer

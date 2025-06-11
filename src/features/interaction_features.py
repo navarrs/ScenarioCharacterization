@@ -1,11 +1,12 @@
 import itertools
-import numpy as np
 from enum import Enum
+
+import numpy as np
 from omegaconf import DictConfig
 
 import features.interaction_utils as interaction
 from features.base_feature import BaseFeature
-from utils.common import get_logger, EPS
+from utils.common import EPS, get_logger
 from utils.schemas import Scenario
 
 logger = get_logger(__name__)
@@ -65,7 +66,7 @@ class InteractionFeatures(BaseFeature):
             ValueError: If the 'scenario' dictionary does not contain the key 'num_agents'.
         """
         agent_combinations = list(itertools.combinations(range(scenario.num_agents), 2))
-        
+
         agent_types = scenario.agent_types
         agent_masks = scenario.agent_valid
         agent_positions = scenario.agent_positions
@@ -142,7 +143,7 @@ class InteractionFeatures(BaseFeature):
 
             self.agent_i.reset()
             self.agent_j.reset()
-            
+
             # Store computed features in the state dictionary
             state["separation"][n] = separation
             state["intersection"][n] = intersections

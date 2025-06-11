@@ -7,11 +7,10 @@ config:
   score_clip:
     min: 0.0
     max: 150.0
-    
+
   weights:
     collision: 2.0
     mttcp: 2.0
 
   detections:
     mttcp: 4
-    

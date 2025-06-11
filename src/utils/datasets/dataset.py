@@ -125,8 +125,7 @@ class BaseDataset(Dataset, ABC):
             dict: The loaded scenario data.
         """
         logger.error(
-            "Method load_scenario is not implemented yet. "
-            "This method should load a scenario from a dictionary."
+            "Method load_scenario is not implemented yet. " "This method should load a scenario from a dictionary."
         )
 
     @abstractmethod
@@ -144,7 +143,7 @@ class BaseDataset(Dataset, ABC):
             "Method transform_scenario_data is not implemented yet. "
             "This method should transform scenario data into a format suitable for the model."
         )
-    
+
     def __getitem__(self, index: int) -> Scenario:
         """Gets a single scenario by index.
 

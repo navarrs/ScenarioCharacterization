@@ -1,7 +1,7 @@
 import os
-import shutil
-import random
 import pickle
+import random
+import shutil
 
 if __name__ == "__main__":
     input_folder = "/data/driving/waymo/new_processed_scenarios_testing"

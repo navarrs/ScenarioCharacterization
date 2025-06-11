@@ -8,7 +8,7 @@ from features import SUPPORTED_FEATURES
 from features.base_feature import BaseFeature
 from processors.base_processor import BaseProcessor
 from scorer.base_scorer import BaseScorer
-from utils.common import get_logger, from_pickle, to_pickle
+from utils.common import from_pickle, get_logger, to_pickle
 
 logger = get_logger(__name__)
 

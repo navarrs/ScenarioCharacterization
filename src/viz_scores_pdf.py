@@ -30,6 +30,7 @@ def get_sample_to_plot(
     sample_size = min(sample_size, subset_size)
     return df_subset.sample(n=sample_size, random_state=seed)
 
+
 def plot_histograms_from_dataframe(df, output_filepath: str = "temp.png", dpi: int = 30, alpha=0.5):
     """
     Plots overlapping histograms for each numeric column in a DataFrame,
@@ -42,7 +43,7 @@ def plot_histograms_from_dataframe(df, output_filepath: str = "temp.png", dpi: i
     - alpha: transparency level for the histograms (0 = transparent, 1 = solid).
     """
     # Select numeric columns, excluding the specified one
-    columns_to_plot = df.select_dtypes(include='number').columns
+    columns_to_plot = df.select_dtypes(include="number").columns
     N = len(columns_to_plot)
 
     if N == 0:
@@ -55,25 +56,26 @@ def plot_histograms_from_dataframe(df, output_filepath: str = "temp.png", dpi: i
 
     for i, col in enumerate(columns_to_plot):
         sns.histplot(
-            df[col], 
-            color=palette[i], 
-            label=col, 
-            kde=True, 
-            stat='density', 
+            df[col],
+            color=palette[i],
+            label=col,
+            kde=True,
+            stat="density",
             alpha=alpha,
-            edgecolor='white',
+            edgecolor="white",
         )
 
     sns.despine(top=True, right=True)
 
     plt.legend()
-    plt.xlabel('Scores')
-    plt.ylabel('Density')
-    plt.title(f'Score Density Function over Scenarios')
-    plt.grid(True, linestyle='--', alpha=0.4)
+    plt.xlabel("Scores")
+    plt.ylabel("Density")
+    plt.title(f"Score Density Function over Scenarios")
+    plt.grid(True, linestyle="--", alpha=0.4)
     plt.tight_layout()
     plt.savefig(output_filepath, dpi=dpi)
     plt.close()
+
 
 @hydra.main(config_path="config", config_name="viz_scores_pdf", version_base="1.3")
 def run(cfg: DictConfig) -> None:

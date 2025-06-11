@@ -7,6 +7,7 @@ from omegaconf import DictConfig
 
 from utils.schemas import Scenario
 
+
 class BaseScorer(ABC):
     def __init__(self, config: DictConfig) -> None:
         """Initializes the BaseScorer with a configuration.

@@ -1,9 +1,9 @@
-import numpy as np
 import logging
 import os
 import pickle
 
 import colorlog
+import numpy as np
 from omegaconf import DictConfig
 
 EPS = 1e-6
@@ -65,6 +65,7 @@ def get_logger(name=__name__):
 
     return logger
 
+
 def from_pickle(data_file: str) -> dict:
     """Loads data from a pickle file.
 
@@ -84,6 +85,7 @@ def from_pickle(data_file: str) -> dict:
         data = pickle.load(f)
 
     return data
+
 
 def to_pickle(output_path: str, input_data: dict, tag: str) -> None:
     """Saves data to a pickle file.

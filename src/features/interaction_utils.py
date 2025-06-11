@@ -1,7 +1,6 @@
-import numpy as np
 from enum import Enum
 
-
+import numpy as np
 from shapely import LineString
 
 from utils.common import EPS, get_logger

@@ -1,0 +1,19 @@
+repos:
+  - repo: https://github.com/psf/black # Automatically format Python Code
+    rev: 24.4.2
+    hooks:
+      - id: black
+        args: ["--line-length=120"]
+
+  - repo: https://github.com/PyCQA/isort # Automatically sort imports
+    rev: 5.13.2
+    hooks:
+      - id: isort
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
