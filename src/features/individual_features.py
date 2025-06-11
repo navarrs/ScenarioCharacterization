@@ -130,7 +130,7 @@ class IndividualFeatures(BaseFeature):
                 waiting_period_feature_n = waiting_period_feature_n.mean()
                 waiting_intervals_feature_n = waiting_intervals_feature_n.mean()
                 waiting_distances_feature_n = waiting_distances_feature_n.mean()
-            
+
             else:
                 raise ValueError(f"Unknown return criteria: {self.return_criteria}")
 

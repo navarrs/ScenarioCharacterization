@@ -81,6 +81,6 @@ class IndividualScorer(BaseScorer):
         return {
             self.name: {
                 "agent_scores": scores,
-                "scene_score": np.clip(scores.mean(), a_min=self.score_clip.min, a_max=self.score_clip.max)
+                "scene_score": np.clip(scores.mean(), a_min=self.score_clip.min, a_max=self.score_clip.max),
             }
         }

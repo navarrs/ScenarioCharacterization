@@ -49,7 +49,7 @@ class InteractionScorer(BaseScorer):
         Computes the interaction scores for agents in a scenario based on their features.
 
         Args:
-            scenario (Dict): A dictionary containing scenario information, including agent relevance and number of agents.
+            scenario (Dict): A dictionary containing the scenario information defined in schemas.Scenario.
             scenario_features (Dict): A dictionary containing scenario feature data.
 
         Returns:

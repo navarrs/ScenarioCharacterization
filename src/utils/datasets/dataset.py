@@ -28,9 +28,10 @@ class BaseDataset(Dataset, ABC):
         super(BaseDataset, self).__init__()
 
         self.scenario_type = config.scenario_type
-        assert (
-            self.scenario_type in SUPPORTED_SCENARIO_TYPES
-        ), f"Scenario type {self.scenario_type} not supported: {SUPPORTED_SCENARIO_TYPES}"
+        if self.scenario_type not in SUPPORTED_SCENARIO_TYPES:
+            raise ValueError(
+                f"Scenario type {self.scenario_type} not supported. " f"Supported types are: {SUPPORTED_SCENARIO_TYPES}"
+            )
 
         self.scenario_base_path = config.scenario_base_path
         self.scenario_meta_path = config.scenario_meta_path
@@ -125,8 +126,7 @@ class BaseDataset(Dataset, ABC):
             dict: The loaded scenario data.
         """
         logger.error(
-            "Method load_scenario is not implemented yet. "
-            "This method should load a scenario from a dictionary."
+            "Method load_scenario is not implemented yet. " "This method should load a scenario from a dictionary."
         )
 
     @abstractmethod
@@ -144,7 +144,7 @@ class BaseDataset(Dataset, ABC):
             "Method transform_scenario_data is not implemented yet. "
             "This method should transform scenario data into a format suitable for the model."
         )
-    
+
     def __getitem__(self, index: int) -> Scenario:
         """Gets a single scenario by index.
 

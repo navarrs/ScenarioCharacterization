@@ -1,6 +1,6 @@
 _target_: features.base_feature.BaseFeature
 config:
   return_criteria: ${return_criteria}
-  
+
   features:
-    - random_feature 
+    - random_feature

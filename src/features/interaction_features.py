@@ -1,11 +1,12 @@
 import itertools
-import numpy as np
 from enum import Enum
+
+import numpy as np
 from omegaconf import DictConfig
 
 import features.interaction_utils as interaction
 from features.base_feature import BaseFeature
-from utils.common import get_logger, EPS
+from utils.common import EPS, get_logger
 from utils.schemas import Scenario
 
 logger = get_logger(__name__)
@@ -65,13 +66,12 @@ class InteractionFeatures(BaseFeature):
             ValueError: If the 'scenario' dictionary does not contain the key 'num_agents'.
         """
         agent_combinations = list(itertools.combinations(range(scenario.num_agents), 2))
-        
+
         agent_types = scenario.agent_types
         agent_masks = scenario.agent_valid
         agent_positions = scenario.agent_positions
         agent_velocities = np.linalg.norm(scenario.agent_velocities, axis=-1) + EPS
         agent_headings = scenario.agent_headings.squeeze(-1)
-        timestamps = scenario.timestamps
         conflict_points = scenario.map_conflict_points
         dists_to_conflict_points = scenario.agent_distances_to_conflict_points
 
@@ -100,7 +100,6 @@ class InteractionFeatures(BaseFeature):
             self.agent_i.heading, self.agent_j.heading = agent_headings[i][mask], agent_headings[j][mask]
             self.agent_i.agent_type, self.agent_j.agent_type = agent_types[i], agent_types[j]
 
-            timestamps_ij = timestamps[mask]
             if conflict_points is not None:
                 self.agent_j.dists_to_conflict = dists_to_conflict_points[i][mask]
                 self.agent_j.dists_to_conflict = dists_to_conflict_points[j][mask]
@@ -112,12 +111,14 @@ class InteractionFeatures(BaseFeature):
                 continue
 
             # Check if agents are stationary
-            if self.agent_i.is_stationary(stationary_speed) and self.agent_i.is_stationary(stationary_speed):
+            self.agent_i.stationary_speed = stationary_speed
+            self.agent_j.stationary_speed = stationary_speed
+            if self.agent_i.is_stationary and self.agent_i.is_stationary:
                 state["interaction_status"][n] = InteractionStatus.AGENTS_STATIONARY
                 continue
 
             # Check if agents are close to conflict points
-            self.agent_i.in_conflict_point, self.agent_j.in_conflict_point = 0, 0
+            # self.agent_i.in_conflict_point, self.agent_j.in_conflict_point = 0, 0
 
             # Compute interaction features
             separation = interaction.compute_separation(self.agent_i, self.agent_j)
@@ -142,7 +143,7 @@ class InteractionFeatures(BaseFeature):
 
             self.agent_i.reset()
             self.agent_j.reset()
-            
+
             # Store computed features in the state dictionary
             state["separation"][n] = separation
             state["intersection"][n] = intersections

@@ -1,14 +1,9 @@
-import itertools
-import uuid
-
-import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import cm
-from matplotlib import pyplot as plt
 from torch.utils.data import Dataset
 
 from utils.viz.visualizer import BaseVisualizer
+
 
 class WaymoVisualizer(BaseVisualizer):
     def __init__(self, config, dataset: Dataset):
@@ -25,8 +20,6 @@ class WaymoVisualizer(BaseVisualizer):
             None: This method should handle visualization and save the output.
         """
         num_windows = 2
-        point_size = 1
-        alpha = 0.5
         fig, axs = plt.subplots(1, num_windows, figsize=(5 * num_windows, 5 * 1))
 
         static_map_information = scenario["map_infos"]
@@ -235,470 +228,478 @@ class WaymoVisualizer(BaseVisualizer):
 
 # --------------------------------------------------------------------------------------------------
 # NOTE: Unused functions for now
+# import itertools
+# import uuid
+# import matplotlib.animation as animation
+# from matplotlib import cm
 # --------------------------------------------------------------------------------------------------
-def get_color_map(num_colors):
-    """Returns a color map dictionary with a specified number of unique colors.
-
-    Args:
-        num_colors (int): The number of colors to include in the color map.
-
-    Returns:
-        dict: A dictionary mapping indices to color names.
-
-    Raises:
-        AssertionError: If num_colors is not in the valid range.
-    """
-    import matplotlib.colors as mcolors
-
-    color_dict = mcolors.CSS4_COLORS
-    max_colors = len(color_dict.keys())
-    assert num_colors > 0 and num_colors <= len(
-        color_dict.keys()
-    ), f"Max. num, of colors is {max_colors}; requested {num_colors}"
-
-    color_map = {}
-    for i, (k, v) in enumerate(color_dict.items()):
-        if i > num_colors:
-            break
-        color_map[i] = k
-    return color_map
-
-
-def plot_cluster_overlap(num_clusters, num_components, labels, scores, shards, tag):
-    """Plots the overlap between clusters in a 2D PCA space.
-
-    Args:
-        num_clusters (int): Number of clusters.
-        num_components (int): Number of PCA components.
-        labels (np.ndarray): Cluster labels for each sample.
-        scores (np.ndarray): 2D PCA scores for each sample.
-        shards (list): List of shard indices.
-        tag (str): Tag for the output filename.
-
-    Returns:
-        None
-    """
-    fig, ax = plt.subplots(num_clusters, num_clusters, figsize=(15, 15))
-    plt.subplots_adjust(wspace=0.05, hspace=0.05)
-    for a in ax.reshape(-1):
-        a.set_xticks([])
-        a.set_yticks([])
-
-    for i, j in itertools.combinations(range(num_clusters), 2):
-        color_i, color_j = "blue", "orange"
-        idx_i = np.where(labels == i)
-        ax[i, j].scatter(scores[idx_i, 0], scores[idx_i, 1], color=color_i)
-        idx_j = np.where(labels == j)
-        ax[i, j].scatter(scores[idx_j, 0], scores[idx_j, 1], color=color_j)
-
-    filename = f"{tag}_kmeans-{num_clusters}_pca-{num_components}_overlap_shards{shards[0]}-{shards[-1]}.png"
-    plt.savefig(filename, dpi=300, bbox_inches="tight")
-    plt.close()
-
-
-def plot_lanes_by_distance(lanes, order, dists, ax, k=-1):
-    """Plots lanes colored by their distance.
-
-    Args:
-        lanes (list): List of lane arrays.
-        order (np.ndarray): Order of lane indices.
-        dists (np.ndarray): Distances for each lane.
-        ax (matplotlib.axes.Axes): Axes to plot on.
-        k (int, optional): Number of lanes to plot. If -1, plot all.
-
-    Returns:
-        None
-    """
-    if k == -1:
-        # ndists = 1 - np.clip((dists - dists.mean()) / dists.std(), 0.0, 0.1)
-        ndists = 1 - np.clip(dists / dists.max(), 0.0, 1.0)
-        for lane_idx in order:
-            lane = lanes[lane_idx].T
-            ax.plot(
-                lane[0],
-                lane[1],
-                c=cm.winter(ndists[lane_idx]),
-                alpha=ndists[lane_idx],
-                linewidth=0.5,
-            )
-    else:
-        order = order[:k]
-        dists = dists[order]
-        # ndists = 1 - np.clip((dists - dists.mean()) / dists.std(), 0.0, 0.1)
-        ndists = 1 - np.clip(dists / dists.max(), 0.0, 1.0)
-
-        for i, lane_idx in enumerate(order):
-            lane = lanes[lane_idx].T
-            ax.plot(lane[0], lane[1], c=cm.winter(ndists[i]), alpha=1.0, linewidth=0.5)
-
-
-def plot_interaction(
-    ax,
-    ax_idx,
-    pos_i,
-    agent_type_i,
-    i_idx,
-    traj_i,
-    pos_j,
-    agent_type_j,
-    j_idx,
-    traj_j,
-    title,
-):
-    """Plots the interaction between two agents.
-
-    Args:
-        ax (np.ndarray): Array of matplotlib axes.
-        ax_idx (int): Index of the subplot.
-        pos_i (np.ndarray): Positions of agent i.
-        agent_type_i (str): Type of agent i.
-        i_idx (int): Index of conflict point for agent i.
-        traj_i (np.ndarray): Trajectory of agent i.
-        pos_j (np.ndarray): Positions of agent j.
-        agent_type_j (str): Type of agent j.
-        j_idx (int): Index of conflict point for agent j.
-        traj_j (np.ndarray): Trajectory of agent j.
-        title (str): Title for the subplot.
-
-    Returns:
-        None
-    """
-    ax[ax_idx].scatter(
-        pos_i[0, 0],
-        pos_i[0, 1],
-        color=AGENT_COLOR[agent_type_i],
-        marker="*",
-        s=10,
-        label="Start",
-    )
-    ax[ax_idx].plot(
-        pos_i[:, 0],
-        pos_i[:, 1],
-        color=AGENT_COLOR[agent_type_i],
-        alpha=0.6,
-        linewidth=1,
-    )
-
-    ax[ax_idx].scatter(pos_j[0, 0], pos_j[0, 1], color=AGENT_COLOR[agent_type_j], marker="*", s=10)
-    ax[ax_idx].plot(
-        pos_j[:, 0],
-        pos_j[:, 1],
-        color=AGENT_COLOR[agent_type_j],
-        alpha=1,
-        linewidth=1,
-        linestyle="dashed",
-    )
-
-    if i_idx != -1:
-        ax[ax_idx].scatter(
-            traj_i[i_idx, 0],
-            traj_i[i_idx, 1],
-            color="red",
-            marker="+",
-            s=10,
-            label="Conflict Point",
-        )
-    if j_idx != -1:
-        ax[ax_idx].scatter(traj_j[j_idx, 0], traj_j[j_idx, 1], color="red", marker="+", s=10)
-
-    ax[ax_idx].legend()
-    ax[ax_idx].set_title(title)
-
-
-# --------------------------------------------------------------------------------------------------
-# Unused so far
-# --------------------------------------------------------------------------------------------------
-
-
-# Taken from: https://github.com/waymo-research/waymo-open-dataset/blob/master/tutorial/tutorial_motion.ipynb
-def create_figure_and_axes(size_pixels):
-    """Initializes a unique figure and axes for plotting.
-
-    Args:
-        size_pixels (int): Size of the figure in pixels.
-
-    Returns:
-        tuple: (fig, ax) Matplotlib figure and axes.
-    """
-    fig, ax = plt.subplots(1, 1, num=uuid.uuid4())
-
-    # Sets output image to pixel resolution.
-    dpi = 100
-    size_inches = size_pixels / dpi
-    fig.set_size_inches([size_inches, size_inches])
-    fig.set_dpi(dpi)
-    fig.set_facecolor("white")
-    ax.set_facecolor("white")
-    ax.xaxis.label.set_color("black")
-    ax.tick_params(axis="x", colors="black")
-    ax.yaxis.label.set_color("black")
-    ax.tick_params(axis="y", colors="black")
-    fig.set_tight_layout(True)
-    ax.grid(False)
-    return fig, ax
-
-
-def fig_canvas_image(fig):
-    """Returns a [H, W, 3] uint8 np.array image from fig.canvas.tostring_rgb().
-
-    Args:
-        fig (matplotlib.figure.Figure): The figure to convert.
-
-    Returns:
-        np.ndarray: Image array of the figure canvas.
-    """
-    # Just enough margin in the figure to display xticks and yticks.
-    fig.subplots_adjust(left=0.08, bottom=0.08, right=0.98, top=0.98, wspace=0.0, hspace=0.0)
-    fig.canvas.draw()
-    data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-    return data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-
-
-def get_colormap(num_agents):
-    """Compute a color map array of shape [num_agents, 4].
-
-    Args:
-        num_agents (int): Number of agents.
-
-    Returns:
-        np.ndarray: Array of RGBA colors.
-    """
-    colors = cm.get_cmap("jet", num_agents)
-    colors = colors(range(num_agents))
-    np.random.shuffle(colors)
-    return colors
-
-
-def get_viewport(all_states, all_states_mask):
-    """Gets the region containing the data.
-
-    Args:
-        all_states (np.ndarray): States of agents as an array of shape [num_agents, num_steps, 2].
-        all_states_mask (np.ndarray): Binary mask of shape [num_agents, num_steps] for all_states.
-
-    Returns:
-        tuple: (center_y, center_x, width) for the viewport.
-    """
-    valid_states = all_states[all_states_mask]
-    all_y = valid_states[..., 1]
-    all_x = valid_states[..., 0]
-
-    center_y = (np.max(all_y) + np.min(all_y)) / 2
-    center_x = (np.max(all_x) + np.min(all_x)) / 2
-
-    range_y = np.ptp(all_y)
-    range_x = np.ptp(all_x)
-
-    width = max(range_y, range_x)
-
-    return center_y, center_x, width
-
-
-def visualize_one_step(
-    states,
-    mask,
-    roadgraph,
-    title,
-    center_y,
-    center_x,
-    width,
-    color_map,
-    size_pixels=1000,
-):
-    """Generate visualization for a single step.
-
-    Args:
-        states (np.ndarray): Agent states for the current step.
-        mask (np.ndarray): Mask for valid agent states.
-        roadgraph (np.ndarray): Road graph points.
-        title (str): Title for the plot.
-        center_y (float): Center y-coordinate for the viewport.
-        center_x (float): Center x-coordinate for the viewport.
-        width (float): Width of the viewport.
-        color_map (np.ndarray): Color map for agents.
-        size_pixels (int, optional): Size of the output image in pixels.
-
-    Returns:
-        np.ndarray: Image array of the visualization.
-    """
-    # Create figure and axes.
-    fig, ax = create_figure_and_axes(size_pixels=size_pixels)
-
-    # Plot roadgraph.
-    rg_pts = roadgraph[:, :2].T
-    ax.plot(rg_pts[0, :], rg_pts[1, :], "k.", alpha=1, ms=2)
-
-    masked_x = states[:, 0][mask]
-    masked_y = states[:, 1][mask]
-    colors = color_map[mask]
-
-    # Plot agent current position.
-    ax.scatter(
-        masked_x,
-        masked_y,
-        marker="o",
-        linewidths=3,
-        color=colors,
-    )
-
-    # Title.
-    ax.set_title(title)
-
-    # Set axes.  Should be at least 10m on a side and cover 160% of agents.
-    size = max(10, width * 1.0)
-    ax.axis(
-        [
-            -size / 2 + center_x,
-            size / 2 + center_x,
-            -size / 2 + center_y,
-            size / 2 + center_y,
-        ]
-    )
-    ax.set_aspect("equal")
-
-    image = fig_canvas_image(fig)
-    plt.close(fig)
-    return image
-
-
-def create_animation(images):
-    """Creates a Matplotlib animation of the given images.
-
-    Args:
-        images (list): A list of numpy arrays representing the images.
-
-    Returns:
-        matplotlib.animation.Animation: The created animation.
-    """
-    plt.ioff()
-    fig, ax = plt.subplots()
-    dpi = 100
-    size_inches = 1000 / dpi
-    fig.set_size_inches([size_inches, size_inches])
-    plt.ion()
-
-    def animate_func(i):
-        ax.imshow(images[i])
-        ax.set_xticks([])
-        ax.set_yticks([])
-        ax.grid("off")
-
-    anim = animation.FuncAnimation(fig, animate_func, frames=len(images) // 2, interval=100)
-    plt.close(fig)
-    return anim
-
-
-def visualize_all_agents_smooth(
-    decoded_example,
-    size_pixels=1000,
-):
-    """Visualizes all agent predicted trajectories in a series of images.
-
-    Args:
-        decoded_example (dict): Dictionary containing scenario information.
-        size_pixels (int, optional): The size in pixels of the output image.
-
-    Returns:
-        list: List of [H, W, 3] uint8 np.arrays of the drawn matplotlib's figure canvas.
-    """
-    # [num_agents, num_past_steps, 2] float32.
-    # past_states = tf.stack(
-    #     [decoded_example['state/past/x'], decoded_example['state/past/y']],
-    #     -1).numpy()
-    # past_states_mask = decoded_example['state/past/valid'].numpy() > 0.0
-    past_states = decoded_example["track_infos"]["trajs"][:, :10, :2]
-    past_states_mask = decoded_example["track_infos"]["trajs"][:, :10, -1] > 0.0
-
-    # [num_agents, 1, 2] float32.
-    # current_states = tf.stack(
-    #     [decoded_example['state/current/x'], decoded_example['state/current/y']],
-    #     -1).numpy()
-    # current_states_mask = decoded_example['state/current/valid'].numpy() > 0.0
-    current_states = decoded_example["track_infos"]["trajs"][:, 10, :2][:, np.newaxis, :]
-    current_states_mask = decoded_example["track_infos"]["trajs"][:, 10, -1][:, np.newaxis] > 0.0
-
-    # [num_agents, num_future_steps, 2] float32.
-    # future_states = tf.stack(
-    #     [decoded_example['state/future/x'], decoded_example['state/future/y']],
-    #     -1).numpy()
-    # future_states_mask = decoded_example['state/future/valid'].numpy() > 0.0
-    future_states = decoded_example["track_infos"]["trajs"][:, 11:, :2]
-    future_states_mask = decoded_example["track_infos"]["trajs"][:, 11:, -1] > 0.0
-
-    # [num_points, 3] float32.
-    # roadgraph_xyz = decoded_example['roadgraph_samples/xyz'].numpy()
-    roadgraph_xyz = decoded_example["map_infos"]["all_polylines"][:, :3]
-
-    num_agents, num_past_steps, _ = past_states.shape
-    num_future_steps = future_states.shape[1]
-
-    color_map = get_colormap(num_agents)
-
-    # [num_agens, num_past_steps + 1 + num_future_steps, depth] float32.
-    all_states = np.concatenate([past_states, current_states, future_states], 1)
-
-    # [num_agens, num_past_steps + 1 + num_future_steps] float32.
-    all_states_mask = np.concatenate([past_states_mask, current_states_mask, future_states_mask], 1) > 0.0
-
-    center_y, center_x, width = get_viewport(all_states, all_states_mask)
-
-    images = []
-
-    # Generate images from past time steps.
-    for i, (s, m) in enumerate(
-        zip(
-            np.split(past_states, num_past_steps, 1),
-            np.split(past_states_mask, num_past_steps, 1),
-        )
-    ):
-        im = visualize_one_step(
-            s[:, 0],
-            m[:, 0],
-            roadgraph_xyz,
-            "past: %d" % (num_past_steps - i),
-            center_y,
-            center_x,
-            width,
-            color_map,
-            size_pixels,
-        )
-        images.append(im)
-
-    # Generate one image for the current time step.
-    s = current_states
-    m = current_states_mask
-
-    im = visualize_one_step(
-        s[:, 0],
-        m[:, 0],
-        roadgraph_xyz,
-        "current",
-        center_y,
-        center_x,
-        width,
-        color_map,
-        size_pixels,
-    )
-    images.append(im)
-
-    # Generate images from future time steps.
-    for i, (s, m) in enumerate(
-        zip(
-            np.split(future_states, num_future_steps, 1),
-            np.split(future_states_mask, num_future_steps, 1),
-        )
-    ):
-        im = visualize_one_step(
-            s[:, 0],
-            m[:, 0],
-            roadgraph_xyz,
-            "future: %d" % (i + 1),
-            center_y,
-            center_x,
-            width,
-            color_map,
-            size_pixels,
-        )
-        images.append(im)
-
-    return images
+# def get_color_map(num_colors):
+#     """Returns a color map dictionary with a specified number of unique colors.
+
+#     Args:
+#         num_colors (int): The number of colors to include in the color map.
+
+#     Returns:
+#         dict: A dictionary mapping indices to color names.
+
+#     Raises:
+#         AssertionError: If num_colors is not in the valid range.
+#     """
+#     import matplotlib.colors as mcolors
+
+#     color_dict = mcolors.CSS4_COLORS
+#     max_colors = len(color_dict.keys())
+#     if num_colors < 1 or num_colors > max_colors:
+#         raise AssertionError(
+#             f"num_colors must be between 1 and {max_colors}, but got {num_colors}."
+#         )
+#     assert num_colors > 0 and num_colors <= len(
+#         color_dict.keys()
+#     ), f"Max. num, of colors is {max_colors}; requested {num_colors}"
+
+#     color_map = {}
+#     for i, (k, v) in enumerate(color_dict.items()):
+#         if i > num_colors:
+#             break
+#         color_map[i] = k
+#     return color_map
+
+
+# def plot_cluster_overlap(num_clusters, num_components, labels, scores, shards, tag):
+#     """Plots the overlap between clusters in a 2D PCA space.
+
+#     Args:
+#         num_clusters (int): Number of clusters.
+#         num_components (int): Number of PCA components.
+#         labels (np.ndarray): Cluster labels for each sample.
+#         scores (np.ndarray): 2D PCA scores for each sample.
+#         shards (list): List of shard indices.
+#         tag (str): Tag for the output filename.
+
+#     Returns:
+#         None
+#     """
+#     fig, ax = plt.subplots(num_clusters, num_clusters, figsize=(15, 15))
+#     plt.subplots_adjust(wspace=0.05, hspace=0.05)
+#     for a in ax.reshape(-1):
+#         a.set_xticks([])
+#         a.set_yticks([])
+
+#     for i, j in itertools.combinations(range(num_clusters), 2):
+#         color_i, color_j = "blue", "orange"
+#         idx_i = np.where(labels == i)
+#         ax[i, j].scatter(scores[idx_i, 0], scores[idx_i, 1], color=color_i)
+#         idx_j = np.where(labels == j)
+#         ax[i, j].scatter(scores[idx_j, 0], scores[idx_j, 1], color=color_j)
+
+#     filename = f"{tag}_kmeans-{num_clusters}_pca-{num_components}_overlap_shards{shards[0]}-{shards[-1]}.png"
+#     plt.savefig(filename, dpi=300, bbox_inches="tight")
+#     plt.close()
+
+
+# def plot_lanes_by_distance(lanes, order, dists, ax, k=-1):
+#     """Plots lanes colored by their distance.
+
+#     Args:
+#         lanes (list): List of lane arrays.
+#         order (np.ndarray): Order of lane indices.
+#         dists (np.ndarray): Distances for each lane.
+#         ax (matplotlib.axes.Axes): Axes to plot on.
+#         k (int, optional): Number of lanes to plot. If -1, plot all.
+
+#     Returns:
+#         None
+#     """
+#     if k == -1:
+#         # ndists = 1 - np.clip((dists - dists.mean()) / dists.std(), 0.0, 0.1)
+#         ndists = 1 - np.clip(dists / dists.max(), 0.0, 1.0)
+#         for lane_idx in order:
+#             lane = lanes[lane_idx].T
+#             ax.plot(
+#                 lane[0],
+#                 lane[1],
+#                 c=cm.winter(ndists[lane_idx]),
+#                 alpha=ndists[lane_idx],
+#                 linewidth=0.5,
+#             )
+#     else:
+#         order = order[:k]
+#         dists = dists[order]
+#         # ndists = 1 - np.clip((dists - dists.mean()) / dists.std(), 0.0, 0.1)
+#         ndists = 1 - np.clip(dists / dists.max(), 0.0, 1.0)
+
+#         for i, lane_idx in enumerate(order):
+#             lane = lanes[lane_idx].T
+#             ax.plot(lane[0], lane[1], c=cm.winter(ndists[i]), alpha=1.0, linewidth=0.5)
+
+
+# def plot_interaction(
+#     ax,
+#     ax_idx,
+#     pos_i,
+#     agent_type_i,
+#     i_idx,
+#     traj_i,
+#     pos_j,
+#     agent_type_j,
+#     j_idx,
+#     traj_j,
+#     title,
+# ):
+#     """Plots the interaction between two agents.
+
+#     Args:
+#         ax (np.ndarray): Array of matplotlib axes.
+#         ax_idx (int): Index of the subplot.
+#         pos_i (np.ndarray): Positions of agent i.
+#         agent_type_i (str): Type of agent i.
+#         i_idx (int): Index of conflict point for agent i.
+#         traj_i (np.ndarray): Trajectory of agent i.
+#         pos_j (np.ndarray): Positions of agent j.
+#         agent_type_j (str): Type of agent j.
+#         j_idx (int): Index of conflict point for agent j.
+#         traj_j (np.ndarray): Trajectory of agent j.
+#         title (str): Title for the subplot.
+
+#     Returns:
+#         None
+#     """
+#     ax[ax_idx].scatter(
+#         pos_i[0, 0],
+#         pos_i[0, 1],
+#         color=AGENT_COLOR[agent_type_i],
+#         marker="*",
+#         s=10,
+#         label="Start",
+#     )
+#     ax[ax_idx].plot(
+#         pos_i[:, 0],
+#         pos_i[:, 1],
+#         color=AGENT_COLOR[agent_type_i],
+#         alpha=0.6,
+#         linewidth=1,
+#     )
+
+#     ax[ax_idx].scatter(pos_j[0, 0], pos_j[0, 1], color=AGENT_COLOR[agent_type_j], marker="*", s=10)
+#     ax[ax_idx].plot(
+#         pos_j[:, 0],
+#         pos_j[:, 1],
+#         color=AGENT_COLOR[agent_type_j],
+#         alpha=1,
+#         linewidth=1,
+#         linestyle="dashed",
+#     )
+
+#     if i_idx != -1:
+#         ax[ax_idx].scatter(
+#             traj_i[i_idx, 0],
+#             traj_i[i_idx, 1],
+#             color="red",
+#             marker="+",
+#             s=10,
+#             label="Conflict Point",
+#         )
+#     if j_idx != -1:
+#         ax[ax_idx].scatter(traj_j[j_idx, 0], traj_j[j_idx, 1], color="red", marker="+", s=10)
+
+#     ax[ax_idx].legend()
+#     ax[ax_idx].set_title(title)
+
+
+# # --------------------------------------------------------------------------------------------------
+# # Unused so far
+# # --------------------------------------------------------------------------------------------------
+
+
+# # Taken from: https://github.com/waymo-research/waymo-open-dataset/blob/master/tutorial/tutorial_motion.ipynb
+# def create_figure_and_axes(size_pixels):
+#     """Initializes a unique figure and axes for plotting.
+
+#     Args:
+#         size_pixels (int): Size of the figure in pixels.
+
+#     Returns:
+#         tuple: (fig, ax) Matplotlib figure and axes.
+#     """
+#     fig, ax = plt.subplots(1, 1, num=uuid.uuid4())
+
+#     # Sets output image to pixel resolution.
+#     dpi = 100
+#     size_inches = size_pixels / dpi
+#     fig.set_size_inches([size_inches, size_inches])
+#     fig.set_dpi(dpi)
+#     fig.set_facecolor("white")
+#     ax.set_facecolor("white")
+#     ax.xaxis.label.set_color("black")
+#     ax.tick_params(axis="x", colors="black")
+#     ax.yaxis.label.set_color("black")
+#     ax.tick_params(axis="y", colors="black")
+#     fig.set_tight_layout(True)
+#     ax.grid(False)
+#     return fig, ax
+
+
+# def fig_canvas_image(fig):
+#     """Returns a [H, W, 3] uint8 np.array image from fig.canvas.tostring_rgb().
+
+#     Args:
+#         fig (matplotlib.figure.Figure): The figure to convert.
+
+#     Returns:
+#         np.ndarray: Image array of the figure canvas.
+#     """
+#     # Just enough margin in the figure to display xticks and yticks.
+#     fig.subplots_adjust(left=0.08, bottom=0.08, right=0.98, top=0.98, wspace=0.0, hspace=0.0)
+#     fig.canvas.draw()
+#     data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+#     return data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
+
+# def get_colormap(num_agents):
+#     """Compute a color map array of shape [num_agents, 4].
+
+#     Args:
+#         num_agents (int): Number of agents.
+
+#     Returns:
+#         np.ndarray: Array of RGBA colors.
+#     """
+#     colors = cm.get_cmap("jet", num_agents)
+#     colors = colors(range(num_agents))
+#     np.random.shuffle(colors)
+#     return colors
+
+
+# def get_viewport(all_states, all_states_mask):
+#     """Gets the region containing the data.
+
+#     Args:
+#         all_states (np.ndarray): States of agents as an array of shape [num_agents, num_steps, 2].
+#         all_states_mask (np.ndarray): Binary mask of shape [num_agents, num_steps] for all_states.
+
+#     Returns:
+#         tuple: (center_y, center_x, width) for the viewport.
+#     """
+#     valid_states = all_states[all_states_mask]
+#     all_y = valid_states[..., 1]
+#     all_x = valid_states[..., 0]
+
+#     center_y = (np.max(all_y) + np.min(all_y)) / 2
+#     center_x = (np.max(all_x) + np.min(all_x)) / 2
+
+#     range_y = np.ptp(all_y)
+#     range_x = np.ptp(all_x)
+
+#     width = max(range_y, range_x)
+
+#     return center_y, center_x, width
+
+
+# def visualize_one_step(
+#     states,
+#     mask,
+#     roadgraph,
+#     title,
+#     center_y,
+#     center_x,
+#     width,
+#     color_map,
+#     size_pixels=1000,
+# ):
+#     """Generate visualization for a single step.
+
+#     Args:
+#         states (np.ndarray): Agent states for the current step.
+#         mask (np.ndarray): Mask for valid agent states.
+#         roadgraph (np.ndarray): Road graph points.
+#         title (str): Title for the plot.
+#         center_y (float): Center y-coordinate for the viewport.
+#         center_x (float): Center x-coordinate for the viewport.
+#         width (float): Width of the viewport.
+#         color_map (np.ndarray): Color map for agents.
+#         size_pixels (int, optional): Size of the output image in pixels.
+
+#     Returns:
+#         np.ndarray: Image array of the visualization.
+#     """
+#     # Create figure and axes.
+#     fig, ax = create_figure_and_axes(size_pixels=size_pixels)
+
+#     # Plot roadgraph.
+#     rg_pts = roadgraph[:, :2].T
+#     ax.plot(rg_pts[0, :], rg_pts[1, :], "k.", alpha=1, ms=2)
+
+#     masked_x = states[:, 0][mask]
+#     masked_y = states[:, 1][mask]
+#     colors = color_map[mask]
+
+#     # Plot agent current position.
+#     ax.scatter(
+#         masked_x,
+#         masked_y,
+#         marker="o",
+#         linewidths=3,
+#         color=colors,
+#     )
+
+#     # Title.
+#     ax.set_title(title)
+
+#     # Set axes.  Should be at least 10m on a side and cover 160% of agents.
+#     size = max(10, width * 1.0)
+#     ax.axis(
+#         [
+#             -size / 2 + center_x,
+#             size / 2 + center_x,
+#             -size / 2 + center_y,
+#             size / 2 + center_y,
+#         ]
+#     )
+#     ax.set_aspect("equal")
+
+#     image = fig_canvas_image(fig)
+#     plt.close(fig)
+#     return image
+
+
+# def create_animation(images):
+#     """Creates a Matplotlib animation of the given images.
+
+#     Args:
+#         images (list): A list of numpy arrays representing the images.
+
+#     Returns:
+#         matplotlib.animation.Animation: The created animation.
+#     """
+#     plt.ioff()
+#     fig, ax = plt.subplots()
+#     dpi = 100
+#     size_inches = 1000 / dpi
+#     fig.set_size_inches([size_inches, size_inches])
+#     plt.ion()
+
+#     def animate_func(i):
+#         ax.imshow(images[i])
+#         ax.set_xticks([])
+#         ax.set_yticks([])
+#         ax.grid("off")
+
+#     anim = animation.FuncAnimation(fig, animate_func, frames=len(images) // 2, interval=100)
+#     plt.close(fig)
+#     return anim
+
+
+# def visualize_all_agents_smooth(
+#     decoded_example,
+#     size_pixels=1000,
+# ):
+#     """Visualizes all agent predicted trajectories in a series of images.
+
+#     Args:
+#         decoded_example (dict): Dictionary containing scenario information.
+#         size_pixels (int, optional): The size in pixels of the output image.
+
+#     Returns:
+#         list: List of [H, W, 3] uint8 np.arrays of the drawn matplotlib's figure canvas.
+#     """
+#     # [num_agents, num_past_steps, 2] float32.
+#     # past_states = tf.stack(
+#     #     [decoded_example['state/past/x'], decoded_example['state/past/y']],
+#     #     -1).numpy()
+#     # past_states_mask = decoded_example['state/past/valid'].numpy() > 0.0
+#     past_states = decoded_example["track_infos"]["trajs"][:, :10, :2]
+#     past_states_mask = decoded_example["track_infos"]["trajs"][:, :10, -1] > 0.0
+
+#     # [num_agents, 1, 2] float32.
+#     # current_states = tf.stack(
+#     #     [decoded_example['state/current/x'], decoded_example['state/current/y']],
+#     #     -1).numpy()
+#     # current_states_mask = decoded_example['state/current/valid'].numpy() > 0.0
+#     current_states = decoded_example["track_infos"]["trajs"][:, 10, :2][:, np.newaxis, :]
+#     current_states_mask = decoded_example["track_infos"]["trajs"][:, 10, -1][:, np.newaxis] > 0.0
+
+#     # [num_agents, num_future_steps, 2] float32.
+#     # future_states = tf.stack(
+#     #     [decoded_example['state/future/x'], decoded_example['state/future/y']],
+#     #     -1).numpy()
+#     # future_states_mask = decoded_example['state/future/valid'].numpy() > 0.0
+#     future_states = decoded_example["track_infos"]["trajs"][:, 11:, :2]
+#     future_states_mask = decoded_example["track_infos"]["trajs"][:, 11:, -1] > 0.0
+
+#     # [num_points, 3] float32.
+#     # roadgraph_xyz = decoded_example['roadgraph_samples/xyz'].numpy()
+#     roadgraph_xyz = decoded_example["map_infos"]["all_polylines"][:, :3]
+
+#     num_agents, num_past_steps, _ = past_states.shape
+#     num_future_steps = future_states.shape[1]
+
+#     color_map = get_colormap(num_agents)
+
+#     # [num_agens, num_past_steps + 1 + num_future_steps, depth] float32.
+#     all_states = np.concatenate([past_states, current_states, future_states], 1)
+
+#     # [num_agens, num_past_steps + 1 + num_future_steps] float32.
+#     all_states_mask = np.concatenate([past_states_mask, current_states_mask, future_states_mask], 1) > 0.0
+
+#     center_y, center_x, width = get_viewport(all_states, all_states_mask)
+
+#     images = []
+
+#     # Generate images from past time steps.
+#     for i, (s, m) in enumerate(
+#         zip(
+#             np.split(past_states, num_past_steps, 1),
+#             np.split(past_states_mask, num_past_steps, 1),
+#         )
+#     ):
+#         im = visualize_one_step(
+#             s[:, 0],
+#             m[:, 0],
+#             roadgraph_xyz,
+#             "past: %d" % (num_past_steps - i),
+#             center_y,
+#             center_x,
+#             width,
+#             color_map,
+#             size_pixels,
+#         )
+#         images.append(im)
+
+#     # Generate one image for the current time step.
+#     s = current_states
+#     m = current_states_mask
+
+#     im = visualize_one_step(
+#         s[:, 0],
+#         m[:, 0],
+#         roadgraph_xyz,
+#         "current",
+#         center_y,
+#         center_x,
+#         width,
+#         color_map,
+#         size_pixels,
+#     )
+#     images.append(im)
+
+#     # Generate images from future time steps.
+#     for i, (s, m) in enumerate(
+#         zip(
+#             np.split(future_states, num_future_steps, 1),
+#             np.split(future_states_mask, num_future_steps, 1),
+#         )
+#     ):
+#         im = visualize_one_step(
+#             s[:, 0],
+#             m[:, 0],
+#             roadgraph_xyz,
+#             "future: %d" % (i + 1),
+#             center_y,
+#             center_x,
+#             width,
+#             color_map,
+#             size_pixels,
+#         )
+#         images.append(im)
+
+#     return images

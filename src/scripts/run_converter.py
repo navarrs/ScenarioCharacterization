@@ -1,7 +1,6 @@
 import math
 import os
-import pickle
-from typing import AnyStr, Dict
+import pickle  # nosec B403
 
 import hydra
 import pandas as pd
@@ -46,11 +45,14 @@ def run(cfg: DictConfig) -> None:
     scores_path = cfg.input_scores_path
     features_files = natsorted(os.listdir(features_path))
     scores_files = natsorted(os.listdir(scores_path))
-    try:
-        assert set(features_files) == set(scores_files), "Feature files and score files must match."
-    except AssertionError as e:
-        logger.error(f"Error: {e}")
-        return
+
+    if set(features_files) != set(scores_files):
+        error_message = (
+            "Feature files and score files must match. "
+            f"Found {len(features_files)} feature files and {len(scores_files)} score files."
+        )
+        logger.error(error_message)
+        raise AssertionError(error_message)
 
     logger.info(f"Loading input features from: {features_path}")
     features_files = [os.path.join(features_path, f) for f in features_files]
@@ -70,7 +72,7 @@ def run(cfg: DictConfig) -> None:
 
         infos["scenario_id"].append(feature_file.split("/")[-1].split(".")[0])
         with open(feature_file, "rb") as f:
-            features = pickle.load(f)
+            features = pickle.load(f)  # nosec B301
         for feature in cfg.features:
             if feature not in features:
                 logger.warning(f"Feature {feature} not found in dictionary.")
@@ -78,7 +80,7 @@ def run(cfg: DictConfig) -> None:
             infos[feature].append(features[feature])
 
         with open(score_file, "rb") as f:
-            scores = pickle.load(f)
+            scores = pickle.load(f)  # nosec B301
         for score in cfg.scores:
             if score not in scores:
                 logger.warning(f"Score {score} not found in dictionary.")

@@ -1,5 +1,5 @@
 import os
-import pickle
+import pickle  # nosec B403
 
 import hydra
 import matplotlib.pyplot as plt
@@ -30,6 +30,7 @@ def get_sample_to_plot(
     sample_size = min(sample_size, subset_size)
     return df_subset.sample(n=sample_size, random_state=seed)
 
+
 def plot_histograms_from_dataframe(df, output_filepath: str = "temp.png", dpi: int = 30, alpha=0.5):
     """
     Plots overlapping histograms for each numeric column in a DataFrame,
@@ -42,7 +43,7 @@ def plot_histograms_from_dataframe(df, output_filepath: str = "temp.png", dpi: i
     - alpha: transparency level for the histograms (0 = transparent, 1 = solid).
     """
     # Select numeric columns, excluding the specified one
-    columns_to_plot = df.select_dtypes(include='number').columns
+    columns_to_plot = df.select_dtypes(include="number").columns
     N = len(columns_to_plot)
 
     if N == 0:
@@ -55,25 +56,26 @@ def plot_histograms_from_dataframe(df, output_filepath: str = "temp.png", dpi: i
 
     for i, col in enumerate(columns_to_plot):
         sns.histplot(
-            df[col], 
-            color=palette[i], 
-            label=col, 
-            kde=True, 
-            stat='density', 
+            df[col],
+            color=palette[i],
+            label=col,
+            kde=True,
+            stat="density",
             alpha=alpha,
-            edgecolor='white',
+            edgecolor="white",
         )
 
     sns.despine(top=True, right=True)
 
     plt.legend()
-    plt.xlabel('Scores')
-    plt.ylabel('Density')
-    plt.title(f'Score Density Function over Scenarios')
-    plt.grid(True, linestyle='--', alpha=0.4)
+    plt.xlabel("Scores")
+    plt.ylabel("Density")
+    plt.title("Score Density Function over Scenarios")
+    plt.grid(True, linestyle="--", alpha=0.4)
     plt.tight_layout()
     plt.savefig(output_filepath, dpi=dpi)
     plt.close()
+
 
 @hydra.main(config_path="config", config_name="viz_scores_pdf", version_base="1.3")
 def run(cfg: DictConfig) -> None:
@@ -113,13 +115,13 @@ def run(cfg: DictConfig) -> None:
     logger.info(f"Visualizing density function for scorers: {cfg.scorers}")
     for scenario in scenario_scores:
         with open(scenario, "rb") as f:
-            scenario_scores = pickle.load(f)
+            scenario_scores = pickle.load(f)  # nosec B301
 
         for scorer in cfg.scorers:
             scores[scorer].append(scenario_scores[scorer]["scene_score"])
 
     scores_df = pd.DataFrame(scores)
-    output_filepath = os.path.join(cfg.output_dir, f"score_density_plot.png")
+    output_filepath = os.path.join(cfg.output_dir, "score_density_plot.png")
     plot_histograms_from_dataframe(scores_df, output_filepath, cfg.dpi)
 
     # Generate scenario visualizations
@@ -151,7 +153,7 @@ def run(cfg: DictConfig) -> None:
                 logger.info(f"Processing {scenario_id} for scorer {key}")
                 scenario_input_ilepath = os.path.join(cfg.paths.scenario_base_path, f"sample_{scenario_id}.pkl")
                 with open(scenario_input_ilepath, "rb") as f:
-                    scenario_data = pickle.load(f)
+                    scenario_data = pickle.load(f)  # nosec B301
 
                 scenario_title = f"Scenario Score: {score:.2f}"
                 scenario_output_filepath = os.path.join(

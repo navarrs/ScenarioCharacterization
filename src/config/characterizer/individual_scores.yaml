@@ -7,7 +7,7 @@ config:
   score_clip:
     min: 0.0
     max: 150.0
-    
+
   weights:
     speed: 0.1
     acceleration: 1.0
