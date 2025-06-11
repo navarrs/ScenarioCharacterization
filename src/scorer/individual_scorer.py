@@ -3,6 +3,7 @@ from omegaconf import DictConfig
 
 from scorer.base_scorer import BaseScorer
 from utils.common import EPS, get_logger
+from utils.schemas import Scenario
 
 logger = get_logger(__name__)
 
@@ -31,7 +32,7 @@ class IndividualScorer(BaseScorer):
             + min(self.detections.waiting_period, self.weights.waiting_period * waiting_period)
         )
 
-    def compute(self, scenario: dict, scenario_features: dict) -> dict:
+    def compute(self, scenario: Scenario, scenario_features: dict) -> dict:
         """Produces a dummy output for the feature computation.
 
         This method should be overridden by subclasses to compute actual features.
@@ -48,8 +49,8 @@ class IndividualScorer(BaseScorer):
             raise ValueError(f"Missing features in scenario_features: {missing_features}")
 
         agent_to_agent_dists = scenario_features["agent_to_agent_closest_dists"]
-        relevant_agents = np.where(scenario["agent_relevance"] > 0.0)[0]
-        relevant_agents_values = scenario["agent_relevance"][relevant_agents]
+        relevant_agents = np.where(scenario.agent_relevance > 0.0)[0]
+        relevant_agents_values = scenario.agent_relevance[relevant_agents]
         relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]
 
         # TODO: make this configurable/controllable

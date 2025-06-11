@@ -179,3 +179,4 @@ output/
 output_test/
 cache/
 tmp/
+samples/*

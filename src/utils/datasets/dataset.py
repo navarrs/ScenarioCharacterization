@@ -3,9 +3,11 @@ from abc import ABC, abstractmethod
 
 from easydict import EasyDict
 from omegaconf import DictConfig
+from pydantic import ValidationError
 from torch.utils.data import Dataset
 
 from utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
+from utils.schemas import Scenario
 
 logger = get_logger(__name__)
 
@@ -113,15 +115,56 @@ class BaseDataset(Dataset, ABC):
         )
 
     @abstractmethod
-    def __getitem__(self, index: int) -> dict:
-        """Returns the data for the given index.
+    def load_scenario_information(self, index: dict) -> dict:
+        """Loads a scenario from a dictionary.
 
         Args:
-            index (int): The index of the data to retrieve.
+            scenario (dict): The scenario data to load.
 
         Returns:
-            Dict: The data for the given index.
+            dict: The loaded scenario data.
         """
         logger.error(
-            "Method __getitem__ is not implemented yet. " "This method should return the data for the given index."
+            "Method load_scenario is not implemented yet. "
+            "This method should load a scenario from a dictionary."
         )
+
+    @abstractmethod
+    def transform_scenario_data(self, scenario: dict, conflict_points: dict) -> dict:
+        """Transforms scenario data into a format suitable for the model.
+
+        Args:
+            scenario (dict): The scenario data to transform.
+            conflict_points (dict): Conflict points associated with the scenario.
+
+        Returns:
+            dict: Transformed scenario data.
+        """
+        logger.error(
+            "Method transform_scenario_data is not implemented yet. "
+            "This method should transform scenario data into a format suitable for the model."
+        )
+    
+    def __getitem__(self, index: int) -> Scenario:
+        """Gets a single scenario by index.
+
+        Args:
+            index (int): Index of the scenario to retrieve.
+
+        Returns:
+            dict: A dictionary containing the scenario ID, metadata, and scenario data.
+
+        Raises:
+            ValidationError: If the scenario data does not pass schema validation.
+        """
+        scenario_information = self.load_scenario_information(index)
+        scenario = scenario_information.get("scenario", None)
+        conflict_points = scenario_information.get("conflict_points", None)
+
+        scenario_data = self.transform_scenario_data(scenario, conflict_points)
+        try:
+            scenario = Scenario(**scenario_data)  # Validate scenario data
+        except ValidationError as e:
+            logger.error(f"Validation error for scenario {index}: {e}")
+            raise e
+        return scenario

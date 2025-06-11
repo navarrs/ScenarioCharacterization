@@ -6,6 +6,7 @@ from omegaconf import DictConfig
 import features.interaction_utils as interaction
 from features.base_feature import BaseFeature
 from utils.common import get_logger, EPS
+from utils.schemas import Scenario
 
 logger = get_logger(__name__)
 
@@ -51,7 +52,7 @@ class InteractionFeatures(BaseFeature):
             "agents_pair_types": [(agent_types[i], agent_types[j]) for i, j in agent_combinations],
         }
 
-    def compute(self, scenario: dict) -> dict:
+    def compute(self, scenario: Scenario) -> dict:
         """Computes features for each agent in the scenario.
 
         Args:
@@ -63,25 +64,22 @@ class InteractionFeatures(BaseFeature):
         Raises:
             ValueError: If the 'scenario' dictionary does not contain the key 'num_agents'.
         """
-        if not scenario.get("num_agents", None):
-            raise ValueError("The 'scenario' dictionary must contain the key 'num_agents'.")
-
-        N = scenario["num_agents"]
-        agent_combinations = list(itertools.combinations(range(N), 2))
-        agent_types = scenario["agent_types"]
-        agent_masks = scenario["agent_valid"]
-        agent_positions = scenario["agent_positions"]
-        agent_velocities = np.linalg.norm(scenario["agent_velocities"], axis=-1) + EPS
-        agent_headings = scenario["agent_headings"].squeeze(-1)
-        timestamps = scenario["timestamps"]
-        conflict_points = scenario["map_conflict_points"]
-        dists_to_conflict_points = scenario["agent_distances_to_conflict_points"]
+        agent_combinations = list(itertools.combinations(range(scenario.num_agents), 2))
+        
+        agent_types = scenario.agent_types
+        agent_masks = scenario.agent_valid
+        agent_positions = scenario.agent_positions
+        agent_velocities = np.linalg.norm(scenario.agent_velocities, axis=-1) + EPS
+        agent_headings = scenario.agent_headings.squeeze(-1)
+        timestamps = scenario.timestamps
+        conflict_points = scenario.map_conflict_points
+        dists_to_conflict_points = scenario.agent_distances_to_conflict_points
 
         # TODO: Figure out where's best place to get these from
-        stationary_speed = scenario["stationary_speed"]
-        agent_to_agent_max_distance = scenario["agent_to_agent_max_distance"]
-        agent_to_conflict_point_max_distance = scenario["agent_to_conflict_point_max_distance"]
-        agent_to_agent_distance_breach = scenario["agent_to_agent_distance_breach"]
+        stationary_speed = scenario.stationary_speed
+        agent_to_agent_max_distance = scenario.agent_to_agent_max_distance
+        agent_to_conflict_point_max_distance = scenario.agent_to_conflict_point_max_distance
+        agent_to_agent_distance_breach = scenario.agent_to_agent_distance_breach
 
         state = self.reset_state(agent_combinations, agent_types)
 

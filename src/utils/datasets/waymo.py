@@ -6,13 +6,11 @@ import time
 import numpy as np
 from natsort import natsorted
 from omegaconf import DictConfig
-from pydantic import ValidationError
 from scipy.signal import resample
 from tqdm import tqdm
 
 from utils.common import get_logger, compute_dists_to_conflict_points
 from utils.datasets.dataset import BaseDataset
-from utils.schemas import Scenario
 
 logger = get_logger(__name__)
 
@@ -72,7 +70,6 @@ class WaymoData(BaseDataset):
             except AssertionError as e:
                 logger.error("Error loading scenario infos: %s", e)
                 raise e
-
 
     def load_data(self) -> None:
         """Loads the dataset.
@@ -301,16 +298,16 @@ class WaymoData(BaseDataset):
             "all_conflict_points": conflict_points,
             "agent_distances_to_conflict_points": dists_to_conflict_points,
         }
-
-    def __getitem__(self, index: int) -> dict:
-        """Gets a single scenario by index.
+    
+    def load_scenario_information(self, index) -> dict:
+        """Loads scenario information by index.
 
         Args:
-            index (int): Index of the scenario to retrieve.
+            index (int): Index of the scenario to load.
 
         Returns:
-            dict: A dictionary containing the scenario ID, metadata, and scenario data.
-
+            dict: A dictionary containing the scenario information.
+        
         Raises:
             ValidationError: If the scenario data does not pass schema validation.
         """
@@ -320,17 +317,10 @@ class WaymoData(BaseDataset):
         with open(self.data.conflict_points[index], "rb") as f:
             conflict_points = pickle.load(f)
 
-        # ------------------------------------
-        # TODO: Figure out if needed
-        scenario_meta = self.data.metas[index]
-        # ------------------------------------
-        scenario_data = self.transform_scenario_data(scenario, conflict_points)
-        try:
-            Scenario(**scenario_data)  # Validate scenario data
-        except ValidationError as e:
-            logger.error(f"Validation error for scenario {index}: {e}")
-            raise e
-        return scenario_data
+        return {
+            "scenario": scenario,
+            "conflict_points": conflict_points,
+        }
 
     def collate_batch(self, batch_data) -> dict:
         """Collates a batch of scenario data.

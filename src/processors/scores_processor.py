@@ -69,7 +69,7 @@ class ScoresProcessor(BaseProcessor):
         for scenario_batch in tqdm(self.dataloader, desc="Processing scenarios"):
             for scenario in scenario_batch["scenario"]:
 
-                scenario_id = scenario["scenario_id"]
+                scenario_id = scenario.scenario_id
                 scenario_feature_file = os.path.join(self.feature_path, f"{scenario_id}.pkl")
                 scenario_features = from_pickle(scenario_feature_file)
 
@@ -82,4 +82,4 @@ class ScoresProcessor(BaseProcessor):
                 scores = self.characterizer.compute(scenario=scenario, scenario_features=scenario_features)
 
                 if self.save:
-                    to_pickle(self.output_path, scores, scenario["scenario_id"])
+                    to_pickle(self.output_path, scores, scenario_id)

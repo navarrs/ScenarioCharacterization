@@ -4,6 +4,7 @@ from omegaconf import DictConfig
 from features.interaction_features import InteractionStatus
 from scorer.base_scorer import BaseScorer
 from utils.common import EPS, get_logger
+from utils.schemas import Scenario
 
 logger = get_logger(__name__)
 
@@ -23,7 +24,7 @@ class InteractionScorer(BaseScorer):
         mttcp = kwargs.get("mttcp", 0.0)
         return self.weights.collision * collision + min(self.detections.mttcp, self.weights.mttcp * mttcp)
 
-    def compute_agent_weights(self, scenario: dict, scenario_features: dict) -> np.ndarray:
+    def compute_agent_weights(self, scenario: Scenario, scenario_features: dict) -> np.ndarray:
         """
         Computes the weights for each agent based on their relevance and distances to other agents.
         Args:
@@ -33,8 +34,8 @@ class InteractionScorer(BaseScorer):
             np.ndarray: An array of weights for each agent.
         """
         agent_to_agent_dists = scenario_features["agent_to_agent_closest_dists"]
-        relevant_agents = np.where(scenario["agent_relevance"] > 0.0)[0]
-        relevant_agents_values = scenario["agent_relevance"][relevant_agents]
+        relevant_agents = np.where(scenario.agent_relevance > 0.0)[0]
+        relevant_agents_values = scenario.agent_relevance[relevant_agents]
         relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]
 
         min_dist = relevant_agents_dists.min(axis=1) + EPS  # Avoid division by zero
@@ -43,7 +44,7 @@ class InteractionScorer(BaseScorer):
         weights = relevant_agents_values[argmin_dist] * np.minimum(1.0 / min_dist, 1.0)
         return weights
 
-    def compute(self, scenario: dict, scenario_features: dict) -> dict:
+    def compute(self, scenario: Scenario, scenario_features: dict) -> dict:
         """
         Computes the interaction scores for agents in a scenario based on their features.
 
@@ -62,8 +63,7 @@ class InteractionScorer(BaseScorer):
         # TODO: make this configurable/controllable
         weights = self.compute_agent_weights(scenario, scenario_features)
 
-        N = scenario["num_agents"]
-        scores = np.zeros(shape=(N,), dtype=np.float32)
+        scores = np.zeros(shape=(scenario.num_agents,), dtype=np.float32)
         for n, (i, j) in enumerate(scenario_features["agent_pair_indeces"]):
             status = scenario_features["interaction_status"][n]
             if status != InteractionStatus.COMPUTED_OK:

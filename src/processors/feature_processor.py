@@ -52,8 +52,8 @@ class FeatureProcessor(BaseProcessor):
                 # At this point, the scenario dictionary should be standarized regardless of the
                 # dataset type. See docstring for the expected keys.
                 feature = self.characterizer.compute(scenario)
-
+                
                 if self.save:
-                    to_pickle(self.output_path, feature, scenario["scenario_id"])
+                    to_pickle(self.output_path, feature, scenario.scenario_id)
 
         logger.info(f"Finished processing {self.characterizer.name} features for {self.dataset.name}.")

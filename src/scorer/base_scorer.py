@@ -5,6 +5,7 @@ from itertools import combinations
 import numpy as np
 from omegaconf import DictConfig
 
+from utils.schemas import Scenario
 
 class BaseScorer(ABC):
     def __init__(self, config: DictConfig) -> None:
@@ -32,7 +33,7 @@ class BaseScorer(ABC):
         return re.sub(r"(?<!^)([A-Z])", r"_\1", self.__class__.__name__).lower()
 
     @abstractmethod
-    def compute(self, scenario: dict, scenario_features: dict) -> dict:
+    def compute(self, scenario: Scenario, scenario_features: dict) -> dict:
         """Produces a dummy output for the feature computation.
 
         This method should be overridden by subclasses to compute actual features.
