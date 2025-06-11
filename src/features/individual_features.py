@@ -88,7 +88,7 @@ class IndividualFeatures(BaseFeature):
 
             # Speed Profile
             speed_feature_n, speed_limit_diff_feature_n = individual.compute_speed(vel_n)
-            if speed_feature_n is None:
+            if speed_feature_n is None or speed_limit_diff_feature_n is None:
                 continue
 
             # Acceleration/Deceleration Profile
@@ -96,6 +96,8 @@ class IndividualFeatures(BaseFeature):
             acceleration, acc_feature_n, dec_feature_n = individual.compute_acceleration_profile(
                 speed_feature_n, timestamps_n
             )
+            if acc_feature_n is None or dec_feature_n is None:
+                continue
 
             # Jerk Profile
             jerk_feature_n = individual.compute_jerk(speed_feature_n, timestamps_n)

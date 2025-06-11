@@ -17,6 +17,7 @@ dependencies = [
     "matplotlib>=3.9.4",
     "natsort>=8.4.0",
     "numpy>=2.0.2",
+    "numpydantic>=1.6.9",
     "pandas>=2.2.3",
     "pre-commit>=4.2.0",
     "pyarrow>=20.0.0",

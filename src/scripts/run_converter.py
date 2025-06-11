@@ -9,13 +9,13 @@ import pyarrow.parquet as pq
 from natsort import natsorted
 from omegaconf import DictConfig
 
-from src.utils.common import get_logger, make_output_paths
+from utils.common import get_logger, make_output_paths
 
 logger = get_logger(__name__)
 
 
 def reset_infos(cfg: DictConfig) -> dict:
-    infos = {"scenario_id": []}
+    infos: dict = {"scenario_id": []}
     for feature in cfg.features:
         infos[feature] = []
 

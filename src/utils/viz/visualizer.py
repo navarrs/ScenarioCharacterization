@@ -48,7 +48,7 @@ class BaseVisualizer(ABC):
         self.dataset = dataset
 
     @abstractmethod
-    def visualize_scenario(self, scenario: dict) -> None:
+    def visualize_scenario(self, scenario: dict, title: str = "Scenario", output_filepath: str = "temp.png") -> None:
         """Visualizes a single scenario.
 
         Args:

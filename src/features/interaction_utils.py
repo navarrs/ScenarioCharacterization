@@ -63,7 +63,7 @@ class InteractionAgent:
             self._agent_type = None
 
     @property
-    def is_stationary(self) -> bool:
+    def is_stationary(self) -> bool | None:
         """Returns whether the agent is stationary."""
         if self._velocity is None:
             self._is_stationary = None
@@ -123,9 +123,6 @@ class InteractionAgent:
         self._position = None
         self._velocity = None
         self._heading = None
-        self._agent_type = None
-        self._is_stationary = None
-        self._in_conflict_point = None
         self._dists_to_conflict = None
         self._stationary_speed = 0.1  # Default stationary speed threshold
         self._agent_to_conflict_point_max_distance = 0.5  # Default max distance to conflict point
@@ -177,7 +174,7 @@ def compute_mttcp(
     agent_i: InteractionAgent,
     agent_j: InteractionAgent,
     agent_to_agent_max_distance: float = 0.5,
-) -> tuple:
+) -> np.ndarray:
     """Computes the minimum time to conflict point (mTTCP):
 
                                    | 𝚫xi(t)     𝚫xj(t)  |
