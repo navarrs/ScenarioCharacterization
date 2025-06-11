@@ -1,5 +1,3 @@
-import os
-import pickle
 from abc import ABC, abstractmethod
 
 from omegaconf import DictConfig
@@ -22,7 +20,8 @@ class BaseProcessor(ABC):
         """Initializes the BaseProcessor with configuration, dataset, and characterizer.
 
         Args:
-            config (DictConfig): Configuration for the processor, including parameters like batch size, number of workers, and output path.
+            config (DictConfig): Configuration for the processor, including parameters like batch size, number of
+                workers, and output path.
             dataset (Dataset): The dataset to process, which should be a subclass of torch.utils.data.Dataset.
             characterizer (BaseFeature | BaseScorer): An instance that defines the feature or score to compute.
 

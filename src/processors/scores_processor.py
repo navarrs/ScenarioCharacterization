@@ -26,16 +26,17 @@ class ScoresProcessor(BaseProcessor):
             config (DictConfig): Configuration for the scores processor, including parameters like
                 batch size, number of workers, and whether to save the output.
             dataset (Dataset): The dataset to process, which should be a subclass of torch.utils.data.Dataset.
-            characterizer (BaseFeature | BaseScorer): An instance of BaseScorer or its subclass that defines the scoring method.
+            characterizer (BaseFeature | BaseScorer): An defines the characterization method.
 
         Raises:
             ValueError: If features or feature paths are not specified, or if unsupported features are requested.
             AssertionError: If the characterizer is not of type 'score'.
         """
         super(ScoresProcessor, self).__init__(config, dataset, characterizer)
-        assert (
-            self.characterizer.characterizer_type == "score"
-        ), f"Expected characterizer of type 'feature', got {self.characterizer.characterizer_type}."
+        if not self.characterizer.characterizer_type == "score":
+            raise AssertionError(
+                f"Expected characterizer of type 'score', got {self.characterizer.characterizer_type}."
+            )
 
         self.features = config.get("features", None)
         if self.features is None:

@@ -31,9 +31,10 @@ class FeatureProcessor(BaseProcessor):
             AssertionError: If the characterizer is not of type 'feature'.
         """
         super(FeatureProcessor, self).__init__(config, dataset, characterizer)
-        assert (
-            self.characterizer.characterizer_type == "feature"
-        ), f"Expected characterizer of type 'feature', got {self.characterizer.characterizer_type}."
+        if not self.characterizer.characterizer_type == "feature":
+            raise AssertionError(
+                f"Expected characterizer of type 'feature', got {self.characterizer.characterizer_type}."
+            )
 
     def run(self):
         """Runs the feature processing on the dataset.

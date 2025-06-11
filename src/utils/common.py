@@ -1,6 +1,6 @@
 import logging
 import os
-import pickle
+import pickle  # nosec B403
 
 import colorlog
 import numpy as np
@@ -82,7 +82,7 @@ def from_pickle(data_file: str) -> dict:
         raise FileNotFoundError(f"Data file {data_file} does not exist.")
 
     with open(data_file, "rb") as f:
-        data = pickle.load(f)
+        data = pickle.load(f)  # nosec B301
 
     return data
 
@@ -98,7 +98,7 @@ def to_pickle(output_path: str, input_data: dict, tag: str) -> None:
     data_file = os.path.join(output_path, f"{tag}.pkl")
     if os.path.exists(data_file):
         with open(data_file, "rb") as f:
-            data = pickle.load(f)
+            data = pickle.load(f)  # nosec B301
 
     for key, value in input_data.items():
         data[key] = value

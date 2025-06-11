@@ -1,5 +1,5 @@
 import os
-import pickle
+import pickle  # nosec B403
 import random
 import shutil
 
@@ -11,15 +11,19 @@ if __name__ == "__main__":
     sample_size = 10
     os.makedirs(scenario_folder, exist_ok=True)
 
-    assert os.path.isdir(input_folder), f"Input folder '{input_folder}' does not exist."
+    if not os.path.isdir(input_folder):
+        raise AssertionError(f"Input folder '{input_folder}' does not exist.")
 
     files = [f for f in os.listdir(input_folder) if os.path.isfile(os.path.join(input_folder, f))]
     # print(files)
-    assert len(files) > sample_size, f"Not enough files in input folder. Found {len(files)}, need {sample_size}."
+    if not len(files) > sample_size:
+        raise AssertionError(f"Not enough files in input folder. Found {len(files)}, need {sample_size}.")
 
-    assert os.path.exists(input_meta_file), f"Metadata file '{input_meta_file}' does not exist."
+    if not os.path.exists(input_meta_file):
+        raise AssertionError(f"Metadata file '{input_meta_file}' does not exist.")
+
     with open(input_meta_file, "rb") as f:
-        metas = pickle.load(f)
+        metas = pickle.load(f)  # nosec B301
 
     sample_metas = []
     sample_files = random.sample(files, sample_size)

@@ -1,9 +1,7 @@
-from enum import Enum
-
 import numpy as np
 from shapely import LineString
 
-from utils.common import EPS, get_logger
+from utils.common import get_logger
 
 logger = get_logger(__name__)
 
@@ -67,28 +65,46 @@ class InteractionAgent:
     @property
     def is_stationary(self) -> bool:
         """Returns whether the agent is stationary."""
+        if self._velocity is None:
+            self._is_stationary = None
+        else:
+            self._is_stationary = self.velocity.mean() < self._stationary_speed
         return self._is_stationary
 
-    def is_stationary(self, stationary_speed: float) -> None:
-        """Sets whether the agent is stationary."""
-        if self._velocity is None:
-            self._is_stationary = False
+    @property
+    def stationary_speed(self) -> float:
+        """Returns the speed below which an agent is considered stationary."""
+        return self._stationary_speed
+
+    @stationary_speed.setter
+    def stationary_speed(self, value: float) -> None:
+        """Sets the speed below which an agent is considered stationary."""
+        if value is not None:
+            self._stationary_speed = float(value)
         else:
-            self._is_stationary = self.velocity.mean() < stationary_speed
-        return self._is_stationary
+            self._stationary_speed = 0.1
 
     @property
     def in_conflict_point(self) -> bool:
         """Returns whether the agent is in a conflict point."""
-        return self._in_conflict_point
-
-    def in_conflict_point(self, agent_to_conflict_point_max_distance: bool) -> None:
-        """Sets whether the agent is in a conflict point."""
         if self._dists_to_conflict is None:
             self._in_conflict_point = False
         else:
-            self._in_conflict_point = np.any(self._dists_to_conflict <= agent_to_conflict_point_max_distance)
+            self._in_conflict_point = np.any(self._dists_to_conflict <= self._agent_to_conflict_point_max_distance)
         return self._in_conflict_point
+
+    @property
+    def agent_to_conflict_point_max_distance(self) -> float:
+        """Returns the maximum distance to a conflict point."""
+        return self._agent_to_conflict_point_max_distance
+
+    @agent_to_conflict_point_max_distance.setter
+    def agent_to_conflict_point_max_distance(self, value: float) -> None:
+        """Sets the maximum distance to a conflict point."""
+        if value is not None:
+            self._agent_to_conflict_point_max_distance = float(value)
+        else:
+            self._agent_to_conflict_point_max_distance = 0.5  # Default value
 
     @property
     def dists_to_conflict(self) -> np.ndarray:
@@ -111,6 +127,8 @@ class InteractionAgent:
         self._is_stationary = None
         self._in_conflict_point = None
         self._dists_to_conflict = None
+        self._stationary_speed = 0.1  # Default stationary speed threshold
+        self._agent_to_conflict_point_max_distance = 0.5  # Default max distance to conflict point
 
 
 def compute_separation(agent_i: InteractionAgent, agent_j: InteractionAgent) -> np.ndarray:

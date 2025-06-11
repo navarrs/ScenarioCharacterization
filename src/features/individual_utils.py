@@ -24,8 +24,8 @@ def compute_speed(velocities: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     # -----------------------------------------------------------------------------------------
     # TODO: Add speed limit difference feature. Depends on the context and lane information.
     speeds_limit_diff = np.zeros_like(speeds, dtype=np.float32)
-    speed_limits = np.zeros(velocities.shape[0])
-    in_lane = np.zeros(velocities.shape[0]).astype(bool)
+    # speed_limits = np.zeros(velocities.shape[0])
+    # in_lane = np.zeros(velocities.shape[0]).astype(bool)
 
     #     for i in range(lane_idx.shape[0]):
     #         speed_limits[i] = speed_limits[-1]
@@ -61,7 +61,9 @@ def compute_acceleration_profile(velocity: np.ndarray, timestamps: np.ndarray) -
         sums = np.array([acc[s:e].sum() for s, e in se_idxs])
         return sums, se_idxs
 
-    assert velocity.shape == timestamps.shape, "Speed and dt must have the same shape."
+    if not velocity.shape == timestamps.shape:
+        raise ValueError("Velocity and timestamps must have the same shape.")
+
     acceleration_raw = np.gradient(velocity, timestamps)  # m/s^2
 
     if np.isnan(acceleration_raw).any():
@@ -98,7 +100,9 @@ def compute_jerk(velocity: np.ndarray, timestamps: np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray: The jerk time series (m/s^3), or None if NaN values are present.
     """
-    assert velocity.shape == timestamps.shape, "Speed and dt must have the same shape."
+    if not velocity.shape == timestamps.shape:
+        raise ValueError("Velocity and timestamps must have the same shape.")
+
     acceleration = np.gradient(velocity, timestamps)
     jerk = np.gradient(acceleration, timestamps)
 
@@ -123,7 +127,8 @@ def compute_waiting_period(
         speed (np.ndarray): The speeds of the agent over time (shape: [T,]).
         timestamps (np.ndarray): The timestamps corresponding to each position/speed (shape: [T,]).
         conflict_points (np.ndarray | None): The conflict points to check against (shape: [C, 2] or None).
-        stationary_speed (float, optional): The speed threshold below which the agent is considered stationary. Defaults to 0.0.
+        stationary_speed (float, optional): The speed threshold below which the agent is considered stationary.
+            Defaults to 0.0.
 
     Returns:
         tuple[np.ndarray, np.ndarray, np.ndarray]:

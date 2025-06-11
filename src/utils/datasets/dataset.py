@@ -28,9 +28,10 @@ class BaseDataset(Dataset, ABC):
         super(BaseDataset, self).__init__()
 
         self.scenario_type = config.scenario_type
-        assert (
-            self.scenario_type in SUPPORTED_SCENARIO_TYPES
-        ), f"Scenario type {self.scenario_type} not supported: {SUPPORTED_SCENARIO_TYPES}"
+        if self.scenario_type not in SUPPORTED_SCENARIO_TYPES:
+            raise ValueError(
+                f"Scenario type {self.scenario_type} not supported. " f"Supported types are: {SUPPORTED_SCENARIO_TYPES}"
+            )
 
         self.scenario_base_path = config.scenario_base_path
         self.scenario_meta_path = config.scenario_meta_path

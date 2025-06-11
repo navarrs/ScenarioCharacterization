@@ -20,24 +20,30 @@ class BaseVisualizer(ABC):
         """
         self.config = config
         self.scenario_type = config.scenario_type
-        assert (
-            self.scenario_type in SUPPORTED_SCENARIO_TYPES
-        ), f"Scenario type {self.scenario_type} not supported: {SUPPORTED_SCENARIO_TYPES}"
+        if self.scenario_type not in SUPPORTED_SCENARIO_TYPES:
+            raise AssertionError(
+                f"Scenario type {self.scenario_type} not supported. " f"Supported types are: {SUPPORTED_SCENARIO_TYPES}"
+            )
 
         self.static_map_keys = config.get("static_map_keys", None)
-        assert self.static_map_keys is not None, "static_map_keys must be provided in the configuration."
+        if self.static_map_keys is None:
+            raise AssertionError("static_map_keys must be provided in the configuration.")
 
         self.dynamic_map_keys = config.get("dynamic_map_keys", None)
-        assert self.dynamic_map_keys is not None, "dynamic_map_keys must be provided in the configuration."
+        if self.dynamic_map_keys is None:
+            raise AssertionError("dynamic_map_keys must be provided in the configuration.")
 
         self.map_colors = config.get("map_colors", None)
-        assert self.map_colors is not None, "map_colors must be provided in the configuration."
+        if self.map_colors is None:
+            raise AssertionError("map_colors must be provided in the configuration.")
 
         self.map_alphas = config.get("map_alphas", None)
-        assert self.map_alphas is not None, "map_alphas must be provided in the configuration."
+        if self.map_alphas is None:
+            raise AssertionError("map_alphas must be provided in the configuration.")
 
         self.agent_colors = config.get("agent_colors", None)
-        assert self.agent_colors is not None, "agent_colors must be provided in the configuration."
+        if self.agent_colors is None:
+            raise AssertionError("agent_colors must be provided in the configuration.")
 
         self.dataset = dataset
 

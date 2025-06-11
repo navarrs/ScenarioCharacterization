@@ -1,6 +1,6 @@
 import itertools
 import os
-import pickle
+import pickle  # nosec B403
 import time
 
 import numpy as np
@@ -80,7 +80,7 @@ class WaymoData(BaseDataset):
         start = time.time()
         logger.info(f"Loading WOMD scenario base data from {self.scenario_base_path}")
         with open(self.scenario_meta_path, "rb") as f:
-            self.data.metas = pickle.load(f)[:: self.step]
+            self.data.metas = pickle.load(f)[:: self.step]  # nosec B301
         self.data.scenarios_ids = natsorted([f'sample_{x["scenario_id"]}.pkl' for x in self.data.metas])
         self.data.scenarios = natsorted(
             [f'{self.scenario_base_path}/sample_{x["scenario_id"]}.pkl' for x in self.data.metas]
@@ -95,9 +95,10 @@ class WaymoData(BaseDataset):
         # Pre-checks: conflict points
         self.check_conflict_points()
         num_conflict_points = len(self.data.conflict_points)
-        assert (
-            num_scenarios == num_conflict_points
-        ), f"Mismatch in number of scenarios and conflict points: {num_scenarios} vs {num_conflict_points}"
+        if not num_scenarios == num_conflict_points:
+            raise AssertionError(
+                f"Number of scenarios ({num_scenarios}) != number of conflict points ({num_conflict_points})."
+            )
 
     def transform_scenario_data(self, scenario_data: dict, conflict_points: dict | None = None) -> dict:
         """Transforms the scene data into a format suitable for processing.
@@ -168,7 +169,7 @@ class WaymoData(BaseDataset):
 
             # Otherwise compute conflict points
             with open(scenario_path, "rb") as f:
-                scenario = pickle.load(f)
+                scenario = pickle.load(f)  # nosec B301
 
             static_map_infos = scenario["map_infos"]
             dynamic_map_infos = scenario["dynamic_map_infos"]
@@ -232,7 +233,7 @@ class WaymoData(BaseDataset):
 
         # Lane Intersections
         lane_infos = static_map_info["lane"]
-        lanes = [polylines[li["polyline_index"][0] : li["polyline_index"][1]][:, :3] for li in lane_infos]
+        lanes = [polylines[li["polyline_index"][0] : li["polyline_index"][1]][:, :3] for li in lane_infos]  # noqa: E203
         # lanes = []
         # for lane_info in static_map_info['lane']:
         #     start, end = lane_info['polyline_index']
@@ -312,10 +313,10 @@ class WaymoData(BaseDataset):
             ValidationError: If the scenario data does not pass schema validation.
         """
         with open(self.data.scenarios[index], "rb") as f:
-            scenario = pickle.load(f)
+            scenario = pickle.load(f)  # nosec B301
 
         with open(self.data.conflict_points[index], "rb") as f:
-            conflict_points = pickle.load(f)
+            conflict_points = pickle.load(f)  # nosec B301
 
         return {
             "scenario": scenario,
