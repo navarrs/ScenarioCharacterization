@@ -3,8 +3,8 @@ from omegaconf import DictConfig
 
 from scenchar.features.interaction_features import InteractionStatus
 from scenchar.scorer.base_scorer import BaseScorer
-from scenchar.utils.common import EPS, get_logger
-from scenchar.utils.schemas import Scenario, ScenarioFeatures
+from scenchar.utils.common import get_logger
+from scenchar.utils.schemas import Scenario, ScenarioFeatures, ScenarioScores
 
 logger = get_logger(__name__)
 
@@ -24,7 +24,7 @@ class InteractionScorer(BaseScorer):
         mttcp = kwargs.get("mttcp", 0.0)
         return self.weights.collision * collision + min(self.detections.mttcp, self.weights.mttcp * mttcp)
 
-    def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> dict:
+    def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> ScenarioScores:
         """
         Computes the interaction scores for agents in a scenario based on their features.
 
@@ -48,19 +48,10 @@ class InteractionScorer(BaseScorer):
         if scenario_features.mttcp is None:
             raise ValueError("mttcp must not be None")
 
-        # An agent's contribution (weight) to the score is inversely proportional to the closest distance
-        # between the agent and the relevant agents
-        agent_to_agent_dists = scenario_features.agent_to_agent_closest_dists  # Shape (num_agents, num_agents)
-        relevant_agents = np.where(scenario.agent_relevance > 0.0)[0]
-        relevant_agents_values = scenario.agent_relevance[relevant_agents]  # Shape (num_relevant_agents)
-        relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]  # Shape (num_agents, num_relevant_agents)
-
-        min_dist = relevant_agents_dists.min(axis=1) + EPS  # Avoid division by zero
-        argmin_dist = relevant_agents_dists.argmin(axis=1)
-
-        weights = relevant_agents_values[argmin_dist] * np.minimum(1.0 / min_dist, 1.0)  # Shape (num_agents, )
-
+        # Get the agent weights
+        weights = self.get_weights(scenario, scenario_features)
         scores = np.zeros(shape=(scenario.num_agents,), dtype=np.float32)
+
         interaction_agent_indices = scenario_features.interaction_agent_indices
         for n, (i, j) in enumerate(interaction_agent_indices):
             status = scenario_features.interaction_status[n]
@@ -78,9 +69,9 @@ class InteractionScorer(BaseScorer):
         # Normalize the scores
         denom = max(np.where(scores > 0.0)[0].shape[0], 1)
         scene_score = np.clip(scores.sum() / denom, a_min=self.score_clip.min, a_max=self.score_clip.max)
-        return {
-            self.name: {
-                "agent_scores": scores,
-                "scene_score": scene_score,
-            }
-        }
+        return ScenarioScores(
+            scenario_id=scenario.scenario_id,
+            num_agents=scenario.num_agents,
+            interaction_agent_scores=scores,
+            interaction_scene_score=scene_score,
+        )

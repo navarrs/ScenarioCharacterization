@@ -32,8 +32,15 @@ Int32NDArray1D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.
 
 
 class Scenario(BaseModel):
-    num_agents: PositiveInt
+    # Scenario Information
     scenario_id: str
+    last_observed_timestep: PositiveInt
+    total_timesteps: PositiveInt
+    timestamps: Float32NDArray1D
+
+    # Agent Information
+    num_agents: PositiveInt
+
     ego_index: NonNegativeInt
     ego_id: PositiveInt
     agent_ids: List[NonNegativeInt]
@@ -44,22 +51,23 @@ class Scenario(BaseModel):
     agent_velocities: Float32NDArray3D
     agent_headings: Float32NDArray3D
     agent_relevance: Float32NDArray1D
-    last_observed_timestep: PositiveInt
-    total_timesteps: PositiveInt
+
+    # Map Information
+    map_conflict_points: Float32NDArray2D | None
+    agent_distances_to_conflict_points: Float32NDArray3D | None
+
+    # Thresholds
     stationary_speed: float
     agent_to_agent_max_distance: float
     agent_to_conflict_point_max_distance: float
     agent_to_agent_distance_breach: float
-    timestamps: Float32NDArray1D
-    map_conflict_points: Float32NDArray2D | None
-    agent_distances_to_conflict_points: Float32NDArray3D | None
 
     model_config = {"arbitrary_types_allowed": True}
 
 
 class ScenarioFeatures(BaseModel):
-    num_agents: PositiveInt
     scenario_id: str
+    num_agents: PositiveInt
 
     # Individual Features
     valid_idxs: Int32NDArray1D | None = None
@@ -82,5 +90,24 @@ class ScenarioFeatures(BaseModel):
     interaction_status: List[InteractionStatus] | None = None
     interaction_agent_indices: List[tuple[int, int]] | None = None
     interaction_agent_types: List[tuple[str, str]] | None = None
+
+    model_config = {"arbitrary_types_allowed": True}
+
+
+class ScenarioScores(BaseModel):
+    scenario_id: str
+    num_agents: PositiveInt
+
+    # Individual Scores
+    individual_agent_scores: Float32NDArray1D | None = None
+    individual_scene_score: float | None = None
+
+    # Interaction Scores
+    interaction_agent_scores: Float32NDArray1D | None = None
+    interaction_scene_score: float | None = None
+
+    # Combined Scores
+    combined_agent_scores: Float32NDArray1D | None = None
+    combined_scene_score: float | None = None
 
     model_config = {"arbitrary_types_allowed": True}
