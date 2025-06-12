@@ -1,11 +1,9 @@
 import re
 from abc import ABC, abstractmethod
-from itertools import combinations
 
-import numpy as np
 from omegaconf import DictConfig
 
-from utils.schemas import Scenario
+from scenchar.utils.schemas import Scenario, ScenarioFeatures
 
 
 class BaseScorer(ABC):
@@ -34,7 +32,7 @@ class BaseScorer(ABC):
         return re.sub(r"(?<!^)([A-Z])", r"_\1", self.__class__.__name__).lower()
 
     @abstractmethod
-    def compute(self, scenario: Scenario, scenario_features: dict) -> dict:
+    def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> dict:
         """Produces a dummy output for the feature computation.
 
         This method should be overridden by subclasses to compute actual features.
@@ -45,19 +43,4 @@ class BaseScorer(ABC):
         Returns:
             Dict: A dictionary with computed scores.
         """
-        # NOTE: to avoid overhead, it assumes the feature is already on the dictionary.
-        feature_data = scenario_features["random_feature"]
-
-        N = feature_data.shape[0]
-        pair_indices = list(combinations(range(N), 2))
-        scores = np.zeros(N, dtype=np.float32)
-        for i, j in pair_indices:
-            scores[i] += max(feature_data[i], feature_data[j])
-            scores[j] += max(feature_data[i], feature_data[j])
-
-        return {
-            self.name: {
-                "agent_scores": scores,
-                "scene_score": np.mean(scores).astype(np.float32),
-            }
-        }
+        pass

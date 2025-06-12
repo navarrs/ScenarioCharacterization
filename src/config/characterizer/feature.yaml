@@ -1,4 +1,4 @@
-_target_: features.base_feature.BaseFeature
+_target_: scenchar.features.base_feature.BaseFeature
 config:
   return_criteria: ${return_criteria}
 

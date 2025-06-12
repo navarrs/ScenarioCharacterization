@@ -1,6 +1,6 @@
 import numpy as np
 
-from utils.common import EPS, get_logger
+from scenchar.utils.common import EPS, get_logger
 
 logger = get_logger(__name__)
 

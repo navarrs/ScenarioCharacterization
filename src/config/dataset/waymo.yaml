@@ -1,4 +1,4 @@
-_target_: utils.datasets.waymo.WaymoData
+_target_: scenchar.utils.datasets.waymo.WaymoData
 config:
   load: true
   seed: ${seed}

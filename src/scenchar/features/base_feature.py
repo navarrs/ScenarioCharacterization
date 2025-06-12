@@ -1,10 +1,9 @@
 import re
 from abc import ABC, abstractmethod
 
-import numpy as np
 from omegaconf import DictConfig
 
-from utils.schemas import Scenario
+from scenchar.utils.schemas import Scenario, ScenarioFeatures
 
 
 class BaseFeature(ABC):
@@ -30,7 +29,7 @@ class BaseFeature(ABC):
         return re.sub(r"(?<!^)([A-Z])", r" \1", self.__class__.__name__).lower()
 
     @abstractmethod
-    def compute(self, scenario: Scenario) -> dict:
+    def compute(self, scenario: Scenario) -> ScenarioFeatures:
         """Produces a dummy output for the feature computation.
 
         This method should be overridden by subclasses to compute actual features.
@@ -44,7 +43,4 @@ class BaseFeature(ABC):
         Raises:
             ValueError: If the 'scenario' dictionary does not contain the key 'num_agents'.
         """
-        if not scenario.get("num_agents", None):
-            raise ValueError("The 'scenario' dictionary must contain the key 'num_agents'.")
-        N = scenario["num_agents"]
-        return {"random_feature": 10.0 * np.random.rand(N).astype(np.float32)}
+        pass

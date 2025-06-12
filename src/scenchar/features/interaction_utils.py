@@ -1,7 +1,7 @@
 import numpy as np
 from shapely import LineString
 
-from utils.common import get_logger
+from scenchar.utils.common import get_logger
 
 logger = get_logger(__name__)
 

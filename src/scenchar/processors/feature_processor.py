@@ -2,10 +2,11 @@ from omegaconf import DictConfig
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from features.base_feature import BaseFeature
-from processors.base_processor import BaseProcessor
-from scorer.base_scorer import BaseScorer
-from utils.common import get_logger, to_pickle
+from scenchar.features.base_feature import BaseFeature
+from scenchar.processors.base_processor import BaseProcessor
+from scenchar.scorer.base_scorer import BaseScorer
+from scenchar.utils.common import get_logger, to_pickle
+from scenchar.utils.schemas import ScenarioFeatures
 
 logger = get_logger(__name__)
 
@@ -50,11 +51,13 @@ class FeatureProcessor(BaseProcessor):
         # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop.
         for scenario_batch in tqdm(self.dataloader, desc="Processing scenarios"):
             for scenario in scenario_batch["scenario"]:
-                # At this point, the scenario dictionary should be standarized regardless of the
-                # dataset type. See docstring for the expected keys.
-                feature = self.characterizer.compute(scenario)
+                # At this point, should conform to this:
+                #    scenario should be of type scenchar.utils.schemas.Scenario
+                #    features should be of type scenchar.utils.schemas.ScenarioFeatures
+                features: ScenarioFeatures = self.characterizer.compute(scenario)
 
                 if self.save:
-                    to_pickle(self.output_path, feature, scenario.scenario_id)
+                    to_pickle(self.output_path, features.model_dump(), scenario.scenario_id)
+                # TODO: what if not saving?
 
         logger.info(f"Finished processing {self.characterizer.name} features for {self.dataset.name}.")

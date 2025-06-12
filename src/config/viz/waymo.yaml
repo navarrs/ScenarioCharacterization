@@ -1,4 +1,4 @@
-_target_: utils.viz.waymo.WaymoVisualizer
+_target_: scenchar.utils.viz.waymo.WaymoVisualizer
 config:
   scenario_type: ${scenario_type}
 

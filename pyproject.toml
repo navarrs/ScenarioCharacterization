@@ -1,38 +1,60 @@
+[build-system]
+requires = ["setuptools==67.6.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "scenariocharacterization"
+name = "scenchar"
 version = "0.1.0"
+authors = [
+    {name="Ingrid Navarro", email="ingridn@cmu.edu"},
+]
 description = "Automated Scenario Characterization Toolkit."
 readme = "README.md"
-requires-python = ">=3.9, <4.0"
-dependencies = [
-    "black>=25.1.0",
-    "colorlog>=6.9.0",
-    "duckdb>=1.3.0",
-    "easydict>=1.13",
-    "hydra-core>=1.3.2",
-    "imageio>=2.37.0",
-    "intervaltree>=3.1.0",
-    "isort>=6.0.1",
-    "joblib>=1.5.1",
-    "matplotlib>=3.9.4",
-    "natsort>=8.4.0",
-    "numpy>=2.0.2",
-    "numpydantic>=1.6.9",
-    "pandas>=2.2.3",
-    "pre-commit>=4.2.0",
-    "pyarrow>=20.0.0",
-    "pydantic>=2.11.5",
-    "pyproj>=3.6.1",
-    "scikit-spatial>=9.0.1",
-    "scipy>=1.13.1",
-    "seaborn>=0.13.2",
-    "shapely>=2.0.7",
-    "torch>=2.7.1",
-    "tqdm>=4.67.1",
+requires-python = ">=3.10, <3.13"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: POSIX :: Linux",
 ]
+license = {file = "LICENSE"}
+dependencies = [
+   "black>=25.1.0",
+   "colorlog>=6.9.0",
+   "duckdb>=1.3.0",
+   "easydict>=1.13",
+   "hydra-core>=1.3.2",
+   "imageio>=2.37.0",
+   "intervaltree>=3.1.0",
+   "isort>=6.0.1",
+   "joblib>=1.5.1",
+   "matplotlib>=3.6.1",
+   "natsort>=8.4.0",
+   "numpy>=2.2.6",
+   "pandas>=2.3.0",
+   "pre-commit>=4.2.0",
+   "pyarrow>=10.0.0",
+   "pydantic>=2.11.5",
+   "pyproj>=3.6.1",
+   "scikit-spatial>=9.0.1",
+   "scipy>=1.9.1",
+   "seaborn>=0.12.0",
+   "shapely>=2.0.7",
+   "torch>=2.7.1",
+   "tqdm>=4.67.1",
+]
+keywords = ["Trajectory Datasets", "Safety Metrics", "Characterization"]
 
-[tool.setuptools]
-packages = ["src"]
+[projec.urls]
+Homepage = "https://navars.xyz/safeshift/"
+Repository = "https://github.com/navarrs/ScenarioCharacterization"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["tests", "docs", "examples", "scripts", "config"]
 
 [tool.black]
 line-length = 120

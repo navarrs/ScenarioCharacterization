@@ -1,7 +1,7 @@
 defaults:
  - individual_features.yaml
 
-_target_: scorer.individual_scorer.IndividualScorer
+_target_: scenchar.scorer.individual_scorer.IndividualScorer
 
 config:
   score_clip:

@@ -1,4 +1,4 @@
-_target_: features.individual_features.IndividualFeatures
+_target_: scenchar.features.individual_features.IndividualFeatures
 config:
   return_criteria: ${return_criteria} # Can be 'critical', 'average', or 'none'
 
@@ -8,5 +8,5 @@ config:
     - deceleration
     - jerk
     - waiting_period
-    - waiting_intervals
-    - waiting_distances
+    - waiting_interval
+    - waiting_distance
