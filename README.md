@@ -3,12 +3,25 @@
 Generalizable automated scenario characterization for trajectory datasets. Currently,
 it is a re-implementation of the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift).
 
-## Pre-requisites
-
 This repository is using:
 - [uv](https://docs.astral.sh/uv/) as package manager.
 - [Hydra](https://hydra.cc/docs/intro/) for hierarchical configurations.
 - [Pydantic](https://docs.pydantic.dev/latest/) for Input/Output data validation.
+
+## Installation
+
+#### ![WIP](https://img.shields.io/badge/status-WIP-orange) Install the package
+
+#### Or, clone the repository
+
+```bash
+uv run pip install -e .
+```
+
+To install with Waymo dependencies, required for running the example at the bottom.
+```bash
+uv run pip install -e ".[waymo]"
+```
 
 ## Repository Organization
 
@@ -173,6 +186,11 @@ uv run src/viz_scores_pdf.py
 
 </div>
 
+
+## Running pre-commit checks
+```bash
+uv run pre-commit run --all-files
+```
 
 ## An Example using WOMD
 
