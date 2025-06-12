@@ -6,8 +6,8 @@ from omegaconf import DictConfig
 from pydantic import ValidationError
 from torch.utils.data import Dataset
 
-from utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
-from utils.schemas import Scenario
+from scenchar.utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
+from scenchar.utils.schemas import Scenario
 
 logger = get_logger(__name__)
 

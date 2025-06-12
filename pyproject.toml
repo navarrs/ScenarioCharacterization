@@ -3,7 +3,7 @@ requires = ["setuptools==67.6.0", "wheel==0.45.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "scenario-characterization"
+name = "scenchar"
 version = "0.1.0"
 authors = [
     {name="Ingrid Navarro", email="ingridn@cmu.edu"},
@@ -58,8 +58,9 @@ waymo = [
     "waymo-open-dataset-tf-2-11-0>=1.6.1",
 ]
 
-[tool.setuptools]
-packages = ["src"]
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["tests", "docs", "examples", "scripts", "config"]
 
 [tool.black]
 line-length = 120

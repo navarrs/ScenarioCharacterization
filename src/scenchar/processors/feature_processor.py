@@ -2,10 +2,10 @@ from omegaconf import DictConfig
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from features.base_feature import BaseFeature
-from processors.base_processor import BaseProcessor
-from scorer.base_scorer import BaseScorer
-from utils.common import get_logger, to_pickle
+from scenchar.features.base_feature import BaseFeature
+from scenchar.processors.base_processor import BaseProcessor
+from scenchar.scorer.base_scorer import BaseScorer
+from scenchar.utils.common import get_logger, to_pickle
 
 logger = get_logger(__name__)
 

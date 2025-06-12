@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from omegaconf import DictConfig
 
-from utils.schemas import Scenario
+from scenchar.utils.schemas import Scenario
 
 
 class BaseFeature(ABC):

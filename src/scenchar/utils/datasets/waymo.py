@@ -9,8 +9,8 @@ from omegaconf import DictConfig
 from scipy.signal import resample
 from tqdm import tqdm
 
-from utils.common import compute_dists_to_conflict_points, get_logger
-from utils.datasets.dataset import BaseDataset
+from scenchar.utils.common import compute_dists_to_conflict_points, get_logger
+from scenchar.utils.datasets.dataset import BaseDataset
 
 logger = get_logger(__name__)
 

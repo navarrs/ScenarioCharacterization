@@ -211,7 +211,7 @@ gsutil -m cp -r "gs://waymo_open_dataset_motion_v_1_3_0/uncompressed/scenario/te
 
 3. Pre-process the data. Script adapted from [here](https://github.com/cmubig/SafeShift?tab=readme-ov-file#waymo-dataset-preparation).
 ```bash
-uv run src/scripts/waymo_preprocess.py ./samples/raw ./samples/scenarios
+uv run src/utils/datasets/waymo_preprocess.py ./samples/raw ./samples/scenarios
 ```
 
 This will create temporary scenario files under `samples/scenarios` needed by the pipeline. We also added a `test.yaml` file under `config/paths` with local paths pointing to the sample data.
@@ -239,4 +239,4 @@ This will utilize the pre-computed features and generate per-agent, per-scenario
 ```bash
 uv run src/viz_scores_pdf.py paths=test
 ```
-This will generate and save a density plot over the scored scenarios to `output/cache/visualization/gt_critical/individual_scorer`.
+This will generate and save a density plot over the scored scenarios to `./cache/visualization/gt_critical/individual_scorer`.

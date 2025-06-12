@@ -4,10 +4,10 @@ from enum import Enum
 import numpy as np
 from omegaconf import DictConfig
 
-import features.interaction_utils as interaction
-from features.base_feature import BaseFeature
-from utils.common import EPS, get_logger
-from utils.schemas import Scenario
+import scenchar.features.interaction_utils as interaction
+from scenchar.features.base_feature import BaseFeature
+from scenchar.utils.common import EPS, get_logger
+from scenchar.utils.schemas import Scenario
 
 logger = get_logger(__name__)
 

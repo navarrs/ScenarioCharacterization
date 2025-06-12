@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from torch.utils.data import Dataset
 
-from utils.viz.visualizer import BaseVisualizer
+from scenchar.utils.viz.visualizer import BaseVisualizer
 
 
 class WaymoVisualizer(BaseVisualizer):

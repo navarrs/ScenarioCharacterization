@@ -5,7 +5,7 @@ from itertools import combinations
 import numpy as np
 from omegaconf import DictConfig
 
-from utils.schemas import Scenario
+from scenchar.utils.schemas import Scenario
 
 
 class BaseScorer(ABC):

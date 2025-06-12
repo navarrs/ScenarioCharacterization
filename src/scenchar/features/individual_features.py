@@ -1,10 +1,10 @@
 import numpy as np
 from omegaconf import DictConfig
 
-import features.individual_utils as individual
-from features.base_feature import BaseFeature
-from utils.common import get_logger
-from utils.schemas import Scenario
+import scenchar.features.individual_utils as individual
+from scenchar.features.base_feature import BaseFeature
+from scenchar.utils.common import get_logger
+from scenchar.utils.schemas import Scenario
 
 logger = get_logger(__name__)
 

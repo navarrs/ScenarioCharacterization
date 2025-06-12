@@ -1,7 +1,7 @@
 defaults:
  - interaction_features.yaml
 
-_target_: scorer.interaction_scorer.InteractionScorer
+_target_: scenchar.scorer.interaction_scorer.InteractionScorer
 
 config:
   score_clip:
