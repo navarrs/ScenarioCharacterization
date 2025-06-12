@@ -1,9 +1,25 @@
+[build-system]
+requires = ["setuptools==67.6.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "scenariocharacterization"
+name = "scenario-characterization"
 version = "0.1.0"
+authors = [
+    {name="Ingrid Navarro", email="ingridn@cmu.edu"},
+]
 description = "Automated Scenario Characterization Toolkit."
 readme = "README.md"
 requires-python = ">=3.9, <3.11"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Operating System :: POSIX :: Linux",
+]
+license = {file = "LICENSE"}
 dependencies = [
    "black>=25.1.0",
    "colorlog>=6.9.0",
@@ -29,13 +45,18 @@ dependencies = [
    "torch>=2.7.1",
    "tqdm>=4.67.1",
 ]
+keywords = ["Trajectory Datasets", "Safety Metrics", "Characterization"]
+
+[projec.urls]
+Homepage = "https://navars.xyz/safeshift/"
+Repository = "https://github.com/navarrs/ScenarioCharacterization"
+
 
 [project.optional-dependencies]
 waymo = [
     "tensorflow==2.11",
     "waymo-open-dataset-tf-2-11-0>=1.6.1",
 ]
-
 
 [tool.setuptools]
 packages = ["src"]

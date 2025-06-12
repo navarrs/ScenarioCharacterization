@@ -1731,9 +1731,9 @@ wheels = [
 ]
 
 [[package]]
-name = "scenariocharacterization"
+name = "scenario-characterization"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "black" },
     { name = "colorlog" },
