@@ -8,5 +8,5 @@ config:
     - deceleration
     - jerk
     - waiting_period
-    - waiting_intervals
-    - waiting_distances
+    - waiting_interval
+    - waiting_distance

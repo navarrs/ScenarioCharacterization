@@ -3,7 +3,7 @@ from omegaconf import DictConfig
 
 from scenchar.scorer.base_scorer import BaseScorer
 from scenchar.utils.common import EPS, get_logger
-from scenchar.utils.schemas import Scenario
+from scenchar.utils.schemas import Scenario, ScenarioFeatures
 
 logger = get_logger(__name__)
 
@@ -32,7 +32,7 @@ class IndividualScorer(BaseScorer):
             + min(self.detections.waiting_period, self.weights.waiting_period * waiting_period)
         )
 
-    def compute(self, scenario: Scenario, scenario_features: dict) -> dict:
+    def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> dict:
         """Produces a dummy output for the feature computation.
 
         This method should be overridden by subclasses to compute actual features.
@@ -43,41 +43,53 @@ class IndividualScorer(BaseScorer):
         Returns:
             Dict: A dictionary with computed scores.
         """
-        # NOTE: should we avoid this overhead?
-        missing_features = [feature for feature in self.features if feature not in scenario_features]
-        if missing_features:
-            raise ValueError(f"Missing features in scenario_features: {missing_features}")
+        # TODO: avoid these checks.
+        if scenario_features.agent_to_agent_closest_dists is None:
+            raise ValueError("agent_to_agent_closest_dists must not be None")
+        if scenario_features.valid_idxs is None:
+            raise ValueError("valid_idxs must not be None")
+        if scenario_features.speed is None:
+            raise ValueError("speed must not be None")
+        if scenario_features.acceleration is None:
+            raise ValueError("acceleration must not be None")
+        if scenario_features.deceleration is None:
+            raise ValueError("deceleration must not be None")
+        if scenario_features.jerk is None:
+            raise ValueError("jerk must not be None")
+        if scenario_features.waiting_period is None:
+            raise ValueError("waiting_period must not be None")
 
-        agent_to_agent_dists = scenario_features["agent_to_agent_closest_dists"]
+        agent_to_agent_dists = scenario_features.agent_to_agent_closest_dists
+
+        valid_idxs = scenario_features.valid_idxs
         relevant_agents = np.where(scenario.agent_relevance > 0.0)[0]
-        relevant_agents_values = scenario.agent_relevance[relevant_agents]
-        relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]
+        relevant_agents_values = scenario.agent_relevance[relevant_agents]  # Shape (num_relevant_agents, )
+        relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]  # Shape (num_agents, num_relevant_agents)
 
-        # TODO: make this configurable/controllable
         # TODO: paralellize this
-        N = len(scenario_features["valid_agents"])
+        N = valid_idxs.shape[0]
         scores = np.zeros(shape=(N,), dtype=np.float32)
-        for n, idx in enumerate(scenario_features["valid_agents"]):
 
-            # scenario includes all valid and non-valid agents, which is why we index using `idx`
-            min_dist, argmin_dist = (
-                relevant_agents_dists[idx].min(),
-                relevant_agents_dists[idx].argmin(),
-            )
-            # An agent's contribution to the score is inversely proportional to the closest distance
-            # between the agent and the relevant agents
-            weight = relevant_agents_values[argmin_dist] * min(1.0 / (min_dist + EPS), 1.0)
+        # An agent's contribution (weight) to the score is inversely proportional to the closest distance
+        # between the agent and the relevant agents
+        valid_relevant_dists = relevant_agents_dists[valid_idxs]  # Shape (num_valid_agents, num_relevant_agents)
+        min_dist = valid_relevant_dists.min(axis=1)  # Shape (num_valid_agents, )
+        argmin_dist = valid_relevant_dists.argmin(axis=1)
 
-            scores[n] = weight * self.aggregate_simple_score(
-                speed=scenario_features["speed"][n],
-                acceleration=scenario_features["acceleration"][n],
-                deceleration=scenario_features["deceleration"][n],
-                jerk=scenario_features["jerk"][n],
-                waiting_period=scenario_features["waiting_period"][n],
-                waiting_intervals=scenario_features["waiting_intervals"][n],
-                waiting_distances=scenario_features["waiting_distances"][n],
-                # agent_type = scenario_features['agent_types'][n]
+        # Broadcast relevant_agents_values to shape (num_valid_agents, num_relevant_agents)
+        relevant_agents_values_broadcasted = np.broadcast_to(relevant_agents_values, valid_relevant_dists.shape)
+        selected_relevant_values = relevant_agents_values_broadcasted[np.arange(N), argmin_dist]
+        weights = selected_relevant_values * np.clip(1.0 / (min_dist + EPS), 0.0, 1.0)
+
+        for n in range(N):
+            scores[n] = weights[n] * self.aggregate_simple_score(
+                speed=scenario_features.speed[n],
+                acceleration=scenario_features.acceleration[n],
+                deceleration=scenario_features.deceleration[n],
+                jerk=scenario_features.jerk[n],
+                waiting_period=scenario_features.waiting_period[n],
             )
+
         return {
             self.name: {
                 "agent_scores": scores,

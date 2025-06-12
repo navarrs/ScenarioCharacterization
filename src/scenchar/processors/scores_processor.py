@@ -9,6 +9,7 @@ from scenchar.features.base_feature import BaseFeature
 from scenchar.processors.base_processor import BaseProcessor
 from scenchar.scorer.base_scorer import BaseScorer
 from scenchar.utils.common import from_pickle, get_logger, to_pickle
+from scenchar.utils.schemas import ScenarioFeatures
 
 logger = get_logger(__name__)
 
@@ -77,8 +78,8 @@ class ScoresProcessor(BaseProcessor):
                 # TODO: pre-check that features have been computed
                 missing_features = [f for f in self.features if f not in scenario_features]
                 if missing_features:
-                    logger.error(f"Scenario {scenario_id} is missing features: {missing_features}")
-                    raise ValueError
+                    raise ValueError(f"Scenario {scenario_id} is missing features: {missing_features}")
+                scenario_features = ScenarioFeatures.model_validate(scenario_features)
 
                 scores = self.characterizer.compute(scenario=scenario, scenario_features=scenario_features)
 

@@ -180,3 +180,4 @@ output_test/
 cache/
 tmp/
 samples/*
+pyproject.txt

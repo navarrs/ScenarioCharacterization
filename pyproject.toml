@@ -10,13 +10,14 @@ authors = [
 ]
 description = "Automated Scenario Characterization Toolkit."
 readme = "README.md"
-requires-python = ">=3.9, <3.11"
+requires-python = ">=3.10, <3.13"
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.12",
     "Operating System :: POSIX :: Linux",
 ]
 license = {file = "LICENSE"}
@@ -32,8 +33,8 @@ dependencies = [
    "joblib>=1.5.1",
    "matplotlib>=3.6.1",
    "natsort>=8.4.0",
-   "numpy==1.21.5",
-   "pandas==1.5.3",
+   "numpy>=2.2.6",
+   "pandas>=2.3.0",
    "pre-commit>=4.2.0",
    "pyarrow>=10.0.0",
    "pydantic>=2.11.5",
@@ -50,13 +51,6 @@ keywords = ["Trajectory Datasets", "Safety Metrics", "Characterization"]
 [projec.urls]
 Homepage = "https://navars.xyz/safeshift/"
 Repository = "https://github.com/navarrs/ScenarioCharacterization"
-
-
-[project.optional-dependencies]
-waymo = [
-    "tensorflow==2.11",
-    "waymo-open-dataset-tf-2-11-0>=1.6.1",
-]
 
 [tool.setuptools.packages.find]
 where = ["src"]

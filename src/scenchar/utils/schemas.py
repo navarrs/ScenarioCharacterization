@@ -4,6 +4,8 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import BaseModel, BeforeValidator, NonNegativeInt, PositiveInt
 
+from scenchar.utils.common import InteractionStatus
+
 DType = TypeVar("DType", bound=np.generic)
 
 
@@ -26,6 +28,7 @@ BooleanNDArray3D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(n
 Float32NDArray3D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 3))]
 Float32NDArray2D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 2))]
 Float32NDArray1D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 1))]
+Int32NDArray1D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.int32, 1))]
 
 
 class Scenario(BaseModel):
@@ -50,5 +53,34 @@ class Scenario(BaseModel):
     timestamps: Float32NDArray1D
     map_conflict_points: Float32NDArray2D | None
     agent_distances_to_conflict_points: Float32NDArray3D | None
+
+    model_config = {"arbitrary_types_allowed": True}
+
+
+class ScenarioFeatures(BaseModel):
+    num_agents: PositiveInt
+    scenario_id: str
+
+    # Individual Features
+    valid_idxs: Int32NDArray1D | None = None
+    agent_types: List[str] | None = None
+    speed: Float32NDArray1D | None = None
+    speed_limit_diff: Float32NDArray1D | None = None
+    acceleration: Float32NDArray1D | None = None
+    deceleration: Float32NDArray1D | None = None
+    jerk: Float32NDArray1D | None = None
+    waiting_period: Float32NDArray1D | None = None
+    waiting_interval: Float32NDArray1D | None = None
+    waiting_distance: Float32NDArray1D | None = None
+
+    # Interaction Features
+    agent_to_agent_closest_dists: Float32NDArray2D | None = None
+    separation: Float32NDArray1D | None = None
+    intersection: Float32NDArray1D | None = None
+    collision: Float32NDArray1D | None = None
+    mttcp: Float32NDArray1D | None = None
+    interaction_status: List[InteractionStatus] | None = None
+    interaction_agent_indices: List[tuple[int, int]] | None = None
+    interaction_agent_types: List[tuple[str, str]] | None = None
 
     model_config = {"arbitrary_types_allowed": True}

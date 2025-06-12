@@ -1,6 +1,7 @@
 import logging
 import os
 import pickle  # nosec B403
+from enum import Enum
 
 import colorlog
 import numpy as np
@@ -8,6 +9,14 @@ from omegaconf import DictConfig
 
 EPS = 1e-6
 SUPPORTED_SCENARIO_TYPES = ["gt"]
+
+
+class InteractionStatus(Enum):
+    UNKNOWN = -1
+    COMPUTED_OK = 0
+    MASK_NOT_VALID = 1
+    AGENT_DISTANCE_TOO_FAR = 2
+    AGENTS_STATIONARY = 3
 
 
 def compute_dists_to_conflict_points(conflict_points: np.ndarray, trajectories: np.ndarray) -> np.ndarray:
@@ -100,7 +109,11 @@ def to_pickle(output_path: str, input_data: dict, tag: str) -> None:
         with open(data_file, "rb") as f:
             data = pickle.load(f)  # nosec B301
 
+    # NOTE: with current ScenarioFeatures implementation, computing interaction and individual features will
+    # cause overrides. Need to address this better in the future.
     for key, value in input_data.items():
+        if key in data and data[key] is not None:
+            continue
         data[key] = value
 
     with open(data_file, "wb") as f:

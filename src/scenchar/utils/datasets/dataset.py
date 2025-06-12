@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 
 from easydict import EasyDict
 from omegaconf import DictConfig
-from pydantic import ValidationError
 from torch.utils.data import Dataset
 
 from scenchar.utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
@@ -151,9 +150,4 @@ class BaseDataset(Dataset, ABC):
         conflict_points = scenario_information.get("conflict_points", None)
 
         scenario_data = self.transform_scenario_data(scenario, conflict_points)
-        try:
-            scenario = Scenario(**scenario_data)  # Validate scenario data
-        except ValidationError as e:
-            logger.error(f"Validation error for scenario {index}: {e}")
-            raise e
-        return scenario
+        return Scenario(**scenario_data)
