@@ -13,7 +13,8 @@ class BaseScorer(ABC):
         """Initializes the BaseScorer with a configuration.
 
         Args:
-            config (DictConfig): Configuration for the scorer.
+            config (DictConfig): Configuration for the scorer, including features, detections,
+                weights, and score clipping parameters.
         """
         super(BaseScorer, self).__init__()
         self.config = config
@@ -25,7 +26,7 @@ class BaseScorer(ABC):
 
     @property
     def name(self) -> str:
-        """Gets the class name formatted as a lowercase string with spaces.
+        """Returns the class name formatted as a lowercase string with underscores.
 
         Returns:
             str: The formatted class name.
@@ -34,14 +35,20 @@ class BaseScorer(ABC):
         return re.sub(r"(?<!^)([A-Z])", r"_\1", self.__class__.__name__).lower()
 
     def get_weights(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> np.ndarray:
-        """Computes the weights for the scoring based on the scenario and features.
+        """Computes the weights for scoring based on the scenario and features.
+
+        The agent's contribution (weight) to the score is inversely proportional to the closest
+        distance between the agent and the relevant agents.
 
         Args:
-            scenario (Dict): A dictionary containing the scenario information defined in schemas.Scenario.
-            scenario_features (Dict): A dictionary containing scenario feature data.
+            scenario (Scenario): Scenario object containing agent relevance information.
+            scenario_features (ScenarioFeatures): ScenarioFeatures object containing agent-to-agent closest distances.
 
         Returns:
-            float: The computed weights.
+            np.ndarray: The computed weights for each agent.
+
+        Raises:
+            ValueError: If agent_to_agent_closest_dists is None in scenario_features.
         """
         if scenario_features.agent_to_agent_closest_dists is None:
             raise ValueError("agent_to_agent_closest_dists must not be None")
@@ -61,14 +68,15 @@ class BaseScorer(ABC):
 
     @abstractmethod
     def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> ScenarioScores:
-        """Produces a dummy output for the feature computation.
+        """Computes scenario-level scores from features.
 
-        This method should be overridden by subclasses to compute actual features.
+        This method should be overridden by subclasses to compute actual scores.
 
         Args:
-            scenario_features (Dict): A dictionary containing scenario feature data.
+            scenario (Scenario): Scenario object containing scenario information.
+            scenario_features (ScenarioFeatures): ScenarioFeatures object containing computed features.
 
         Returns:
-            Dict: A dictionary with computed scores.
+            ScenarioScores: An object containing computed scenario scores.
         """
         pass

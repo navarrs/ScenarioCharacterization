@@ -10,7 +10,7 @@ logger = get_logger(__name__)
 
 class IndividualScorer(BaseScorer):
     def __init__(self, config: DictConfig) -> None:
-        """Initializes the BaseScorer with a configuration.
+        """Initializes the IndividualScorer with a configuration.
 
         Args:
             config (DictConfig): Configuration for the scorer.
@@ -18,6 +18,15 @@ class IndividualScorer(BaseScorer):
         super(IndividualScorer, self).__init__(config)
 
     def aggregate_simple_score(self, **kwargs) -> np.ndarray:
+        """Aggregates a simple score for an agent using weighted feature values.
+
+        Args:
+            **kwargs: Feature values for the agent, including speed, acceleration, deceleration,
+                jerk, and waiting_period.
+
+        Returns:
+            np.ndarray: The aggregated score for the agent.
+        """
         # Detection values are roughly obtained from: https://arxiv.org/abs/2202.07438
         speed = kwargs.get("speed", 0.0)
         acceleration = kwargs.get("acceleration", 0.0)
@@ -33,15 +42,18 @@ class IndividualScorer(BaseScorer):
         )
 
     def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> ScenarioScores:
-        """Produces a dummy output for the feature computation.
-
-        This method should be overridden by subclasses to compute actual features.
+        """Computes individual agent scores and a scene-level score from scenario features.
 
         Args:
-            scenario_features (Dict): A dictionary containing scenario feature data.
+            scenario (Scenario): Scenario object containing scenario information.
+            scenario_features (ScenarioFeatures): ScenarioFeatures object containing computed features.
 
         Returns:
-            Dict: A dictionary with computed scores.
+            ScenarioScores: An object containing computed individual agent scores and the scene-level score.
+
+        Raises:
+            ValueError: If any required feature (valid_idxs, speed, acceleration, deceleration, jerk, waiting_period)
+                is missing in scenario_features.
         """
         # TODO: avoid these checks.
         if scenario_features.valid_idxs is None:

@@ -7,17 +7,24 @@ logger = get_logger(__name__)
 
 
 class InteractionAgent:
+    """Class representing an agent for interaction feature computation."""
+
     def __init__(self):
+        """Initializes an InteractionAgent and resets all attributes."""
         self.reset()
 
     @property
     def position(self) -> np.ndarray:
-        """Returns the position of the agent."""
+        """np.ndarray: The positions of the agent over time (shape: [T, 2])."""
         return self._position
 
     @position.setter
     def position(self, value: np.ndarray) -> None:
-        """Sets the position of the agent."""
+        """Sets the positions of the agent.
+
+        Args:
+            value (np.ndarray): The positions of the agent over time (shape: [T, 2]).
+        """
         if value is not None:
             self._position = np.asarray(value, dtype=np.float32)
         else:
@@ -25,12 +32,16 @@ class InteractionAgent:
 
     @property
     def velocity(self) -> np.ndarray:
-        """Returns the velocity of the agent."""
+        """np.ndarray: The velocities of the agent over time (shape: [T,])."""
         return self._velocity
 
     @velocity.setter
     def velocity(self, value: np.ndarray) -> None:
-        """Sets the velocity of the agent."""
+        """Sets the velocities of the agent.
+
+        Args:
+            value (np.ndarray): The velocities of the agent over time (shape: [T,]).
+        """
         if value is not None:
             self._velocity = np.asarray(value, dtype=np.float32)
         else:
@@ -38,12 +49,16 @@ class InteractionAgent:
 
     @property
     def heading(self) -> np.ndarray:
-        """Returns the heading of the agent."""
+        """np.ndarray: The headings of the agent over time (shape: [T,])."""
         return self._heading
 
     @heading.setter
     def heading(self, value: np.ndarray) -> None:
-        """Sets the heading of the agent."""
+        """Sets the headings of the agent.
+
+        Args:
+            value (np.ndarray): The headings of the agent over time (shape: [T,]).
+        """
         if value is not None:
             self._heading = np.asarray(value, dtype=np.float32)
         else:
@@ -51,12 +66,16 @@ class InteractionAgent:
 
     @property
     def agent_type(self) -> str:
-        """Returns the type of the agent."""
+        """str: The type of the agent."""
         return self._agent_type
 
     @agent_type.setter
     def agent_type(self, value: str) -> None:
-        """Sets the type of the agent."""
+        """Sets the type of the agent.
+
+        Args:
+            value (str): The type of the agent.
+        """
         if value is not None:
             self._agent_type = str(value)
         else:
@@ -64,7 +83,7 @@ class InteractionAgent:
 
     @property
     def is_stationary(self) -> bool | None:
-        """Returns whether the agent is stationary."""
+        """bool or None: Whether the agent is stationary (True/False), or None if unknown."""
         if self._velocity is None:
             self._is_stationary = None
         else:
@@ -73,12 +92,16 @@ class InteractionAgent:
 
     @property
     def stationary_speed(self) -> float:
-        """Returns the speed below which an agent is considered stationary."""
+        """float: The speed threshold below which the agent is considered stationary."""
         return self._stationary_speed
 
     @stationary_speed.setter
     def stationary_speed(self, value: float) -> None:
-        """Sets the speed below which an agent is considered stationary."""
+        """Sets the stationary speed threshold.
+
+        Args:
+            value (float): The speed threshold below which the agent is considered stationary.
+        """
         if value is not None:
             self._stationary_speed = float(value)
         else:
@@ -86,7 +109,7 @@ class InteractionAgent:
 
     @property
     def in_conflict_point(self) -> bool:
-        """Returns whether the agent is in a conflict point."""
+        """bool: Whether the agent is in a conflict point."""
         if self._dists_to_conflict is None:
             self._in_conflict_point = False
         else:
@@ -95,12 +118,16 @@ class InteractionAgent:
 
     @property
     def agent_to_conflict_point_max_distance(self) -> float:
-        """Returns the maximum distance to a conflict point."""
+        """float: The maximum distance to a conflict point."""
         return self._agent_to_conflict_point_max_distance
 
     @agent_to_conflict_point_max_distance.setter
     def agent_to_conflict_point_max_distance(self, value: float) -> None:
-        """Sets the maximum distance to a conflict point."""
+        """Sets the maximum distance to a conflict point.
+
+        Args:
+            value (float): The maximum distance to a conflict point.
+        """
         if value is not None:
             self._agent_to_conflict_point_max_distance = float(value)
         else:
@@ -108,18 +135,23 @@ class InteractionAgent:
 
     @property
     def dists_to_conflict(self) -> np.ndarray:
-        """Returns the distances to conflict points."""
+        """np.ndarray: The distances to conflict points (shape: [T,])."""
         return self._dists_to_conflict
 
     @dists_to_conflict.setter
     def dists_to_conflict(self, value: np.ndarray) -> None:
-        """Sets the distances to conflict points."""
+        """Sets the distances to conflict points.
+
+        Args:
+            value (np.ndarray): The distances to conflict points (shape: [T,]).
+        """
         if value is not None:
             self._dists_to_conflict = np.asarray(value, dtype=np.float32)
         else:
             self._dists_to_conflict = None
 
     def reset(self) -> None:
+        """Resets all agent attributes to their default values."""
         self._position = None
         self._velocity = None
         self._heading = None
@@ -129,32 +161,29 @@ class InteractionAgent:
 
 
 def compute_separation(agent_i: InteractionAgent, agent_j: InteractionAgent) -> np.ndarray:
-    """
-    Computes the separation distance between two agents.
+    """Computes the separation distance between two agents at each timestep.
 
     Args:
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
 
     Returns:
-        np.ndarray: A float array containing the separation distances between each segment of agent i
-                    and the corresponding segment of agent j.
+        np.ndarray: Array of separation distances between agent_i and agent_j at each timestep (shape: [T,]).
     """
     pos_i, pos_j = agent_i.position, agent_j.position
     return np.linalg.norm(pos_i - pos_j, axis=-1)
 
 
 def compute_intersections(agent_i: InteractionAgent, agent_j: InteractionAgent) -> np.ndarray:
-    """
-    Computes whether two agents' trajectory segments are intersecting.
+    """Computes whether two agents' trajectory segments intersect at each timestep.
 
     Args:
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
 
     Returns:
-        np.ndarray: A boolean array indicating whether each segment of agent i intersects with
-                    the corresponding segment of agent j.
+        np.ndarray: Boolean array indicating whether each segment of agent_i intersects with the corresponding segment
+            of agent_j (shape: [T,]).
     """
     pos_i, pos_j = agent_i.position, agent_j.position
     if pos_i.shape[0] < 2 or pos_j.shape[0] < 2:
@@ -175,21 +204,18 @@ def compute_mttcp(
     agent_j: InteractionAgent,
     agent_to_agent_max_distance: float = 0.5,
 ) -> np.ndarray:
-    """Computes the minimum time to conflict point (mTTCP):
+    """Computes the minimum time to conflict point (mTTCP) between two agents.
 
-                                   | 𝚫xi(t)     𝚫xj(t)  |
-        𝚫TTCP  =       min         |------  ‒‒  ------  |
-                  t in {0, tcp}    | 𝚫vi(t)     𝚫vj(t)  |
+    The mTTCP is defined as the minimum absolute difference in time for each agent to reach a conflict point,
+    for all timesteps where the agents are within a specified distance threshold.
 
-    between any two timesteps between two trajectories that are within a distance threshold from each
-    other. Here t=0 is the time the two agents appear in the scene, and t=tcp is the first time one
-    of the agents crosses the conflict point.
     Args:
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
         agent_to_agent_max_distance (float): The maximum distance between agents to consider for mTTCP.
+
     Returns:
-        np.ndarray: An array of mTTCP values for each timestep.
+        np.ndarray: An array of mTTCP values for each timestep (shape: [N,]), or [np.inf] if no valid pairs are found.
     """
     pos_i, pos_j = agent_i.position, agent_j.position
     vel_i, vel_j = agent_i.velocity, agent_j.velocity

@@ -20,13 +20,15 @@ class BaseProcessor(ABC):
         """Initializes the BaseProcessor with configuration, dataset, and characterizer.
 
         Args:
-            config (DictConfig): Configuration for the processor, including parameters like batch size, number of
-                workers, and output path.
-            dataset (Dataset): The dataset to process, which should be a subclass of torch.utils.data.Dataset.
-            characterizer (BaseFeature | BaseScorer): An instance that defines the feature or score to compute.
+            config (DictConfig): Configuration for the processor. Should include parameters such as batch size,
+                number of workers, shuffle, save, output path, and scenario type.
+            dataset (Dataset): The dataset to process. Must be a subclass of torch.utils.data.Dataset and implement
+                a collate_batch method.
+            characterizer (BaseFeature | BaseScorer): An instance of a feature extractor or scorer to apply across the
+                dataset scenarios.
 
         Raises:
-            ValueError: If saving is enabled but no output path is specified.
+            ValueError: If saving is enabled but no output path is specified in the configuration.
         """
         super(BaseProcessor, self).__init__()
 
@@ -58,7 +60,7 @@ class BaseProcessor(ABC):
 
     @property
     def name(self):
-        """Identifies the feature and dataset being processed.
+        """Returns the name of the processor class.
 
         Returns:
             str: The name of the processor class.
@@ -67,9 +69,11 @@ class BaseProcessor(ABC):
 
     @abstractmethod
     def run(self):
-        """Runs the processor.
+        """Runs the processor on the dataset.
+
+        This method must be implemented by subclasses to define the processing logic.
 
         Raises:
             NotImplementedError: If the method is not implemented in the subclass.
         """
-        raise NotImplementedError("The run method must be implemented in the subclass.")
+        pass

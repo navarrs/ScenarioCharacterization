@@ -13,11 +13,13 @@ logger = get_logger(__name__)
 
 class InteractionFeatures(BaseFeature):
     def __init__(self, config: DictConfig) -> None:
-        """Initializes the BaseFeature with a configuration.
+        """Initializes the InteractionFeatures class.
 
         Args:
             config (DictConfig): Configuration for the feature. Expected to contain key-value pairs
-                relevant to feature computation, such as thresholds or parameters.
+                relevant to feature computation, such as thresholds or parameters. Must include
+                'return_criteria' (str), which determines whether to return 'critical' or 'average'
+                statistics for each feature.
         """
         super(InteractionFeatures, self).__init__(config)
 
@@ -26,16 +28,20 @@ class InteractionFeatures(BaseFeature):
         self.agent_j = interaction.InteractionAgent()
 
     def compute(self, scenario: Scenario) -> ScenarioFeatures:
-        """Computes features for each agent in the scenario.
+        """Computes pairwise interaction features for each agent pair in the scenario.
 
         Args:
-            scenario (Dict): A dictionary containing scenario data.
+            scenario (Scenario): Scenario object containing agent positions, velocities, headings,
+                validity masks, timestamps, map conflict points, distances to conflict points,
+                and other scenario-level information.
 
         Returns:
-            Dict: A dictionary with computed features for each agent.
+            ScenarioFeatures: An object containing computed interaction features for each valid agent pair,
+                including separation, intersection, collision, minimum time to conflict point (mTTCP),
+                interaction status, agent pair indices, and agent pair types.
 
         Raises:
-            ValueError: If the 'scenario' dictionary does not contain the key 'num_agents'.
+            ValueError: If no agent combinations are found (i.e., less than two agents in the scenario).
         """
         agent_combinations = list(itertools.combinations(range(scenario.num_agents), 2))
         if agent_combinations is None:

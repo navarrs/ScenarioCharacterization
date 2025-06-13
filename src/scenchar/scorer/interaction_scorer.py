@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 
 class InteractionScorer(BaseScorer):
     def __init__(self, config: DictConfig) -> None:
-        """Initializes the BaseScorer with a configuration.
+        """Initializes the InteractionScorer with a configuration.
 
         Args:
             config (DictConfig): Configuration for the scorer.
@@ -19,21 +19,31 @@ class InteractionScorer(BaseScorer):
         super(InteractionScorer, self).__init__(config)
 
     def aggregate_simple_score(self, **kwargs) -> np.ndarray:
-        # Detection values are roughly obtained from: https://arxiv.org/abs/2202.07438
+        """Aggregates a simple interaction score for an agent pair using weighted feature values.
+
+        Args:
+            **kwargs: Feature values for the agent pair, including collision and mttcp.
+
+        Returns:
+            np.ndarray: The aggregated score for the agent pair.
+        """
         collision = kwargs.get("collision", 0.0)
         mttcp = kwargs.get("mttcp", 0.0)
         return self.weights.collision * collision + min(self.detections.mttcp, self.weights.mttcp * mttcp)
 
     def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> ScenarioScores:
-        """
-        Computes the interaction scores for agents in a scenario based on their features.
+        """Computes interaction scores for agent pairs and a scene-level score from scenario features.
 
         Args:
-            scenario (Dict): A dictionary containing the scenario information defined in schemas.Scenario.
-            scenario_features (Dict): A dictionary containing scenario feature data.
+            scenario (Scenario): Scenario object containing scenario information.
+            scenario_features (ScenarioFeatures): ScenarioFeatures object containing computed features.
 
         Returns:
-            Dict: A dictionary with computed scores.
+            ScenarioScores: An object containing computed interaction agent-pair scores and the scene-level score.
+
+        Raises:
+            ValueError: If any required feature (agent_to_agent_closest_dists, interaction_agent_indices,
+                interaction_status, collision, mttcp) is missing in scenario_features.
         """
         # TODO: need to avoid a lot of recomputations from the two types of features
         # TODO: avoid these checks.

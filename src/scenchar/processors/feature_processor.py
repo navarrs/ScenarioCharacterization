@@ -18,15 +18,14 @@ class FeatureProcessor(BaseProcessor):
         dataset: Dataset,
         characterizer: BaseFeature | BaseScorer,
     ) -> None:
-        """Initializes the FeatureProcessor with configuration, dataset, and feature.
+        """Initializes the FeatureProcessor with configuration, dataset, and feature characterizer.
 
         Args:
-            config (DictConfig): Configuration for the feature processor, including parameters like
-                batch size, number of workers, and whether to save the output.
-            dataset (Dataset): The dataset to process, which should be a subclass of
-                torch.utils.data.Dataset.
-            characterizer (BaseFeature | BaseScorer): An instance of BaseFeature or its subclass that
-                defines the feature to compute.
+            config (DictConfig): Configuration for the feature processor, including parameters such as
+                batch size, number of workers, shuffle, save, and output path.
+            dataset (Dataset): The dataset to process. Must be a subclass of torch.utils.data.Dataset.
+            characterizer (BaseFeature | BaseScorer): An instance of BaseFeature or BaseScorer that
+                defines the feature computation logic.
 
         Raises:
             AssertionError: If the characterizer is not of type 'feature'.
@@ -40,8 +39,8 @@ class FeatureProcessor(BaseProcessor):
     def run(self):
         """Runs the feature processing on the dataset.
 
-        Iterates over the dataset and computes features for each scenario. If saving is enabled,
-        features are saved to disk.
+        Iterates over the dataset and computes features for each scenario using the characterizer.
+        If saving is enabled, features are serialized and saved to disk.
 
         Returns:
             None
@@ -51,9 +50,8 @@ class FeatureProcessor(BaseProcessor):
         # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop.
         for scenario_batch in tqdm(self.dataloader, desc="Processing scenarios"):
             for scenario in scenario_batch["scenario"]:
-                # At this point, should conform to this:
-                #    scenario should be of type scenchar.utils.schemas.Scenario
-                #    features should be of type scenchar.utils.schemas.ScenarioFeatures
+                # scenario: scenchar.utils.schemas.Scenario
+                # features: scenchar.utils.schemas.ScenarioFeatures
                 features: ScenarioFeatures = self.characterizer.compute(scenario)
 
                 if self.save:

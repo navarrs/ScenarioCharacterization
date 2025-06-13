@@ -89,6 +89,15 @@ for key, val in signal_state.items():
 
 
 def decode_tracks_from_proto(tracks):
+    """Decodes agent tracks from Waymo scenario proto.
+
+    Args:
+        tracks: List of scenario_pb2.Track objects.
+
+    Returns:
+        dict: Dictionary with keys 'object_id', 'object_type', and 'trajs' containing
+            agent IDs, types, and trajectories as numpy arrays.
+    """
     track_infos = {
         "object_id": [],  # {0: unset, 1: vehicle, 2: pedestrian, 3: cyclist, 4: others}
         "object_type": [],
@@ -124,6 +133,14 @@ def decode_tracks_from_proto(tracks):
 
 
 def get_polyline_dir(polyline):
+    """Computes direction vectors for each segment of a polyline.
+
+    Args:
+        polyline (np.ndarray): Array of polyline points (shape: [N, 3]).
+
+    Returns:
+        np.ndarray: Array of direction vectors (shape: [N, 3]).
+    """
     polyline_pre = np.roll(polyline, shift=1, axis=0)
     polyline_pre[0] = polyline[0]
     diff = polyline - polyline_pre
@@ -132,6 +149,15 @@ def get_polyline_dir(polyline):
 
 
 def decode_map_features_from_proto(map_features):
+    """Decodes map features from Waymo scenario proto.
+
+    Args:
+        map_features: List of scenario_pb2.MapFeature objects.
+
+    Returns:
+        dict: Dictionary containing map features (lanes, road lines, road edges, stop signs,
+            crosswalks, speed bumps) and all polylines as numpy arrays.
+    """
     map_infos = {"lane": [], "road_line": [], "road_edge": [], "stop_sign": [], "crosswalk": [], "speed_bump": []}
     polylines_list = []
 
@@ -250,6 +276,14 @@ def decode_map_features_from_proto(map_features):
 
 
 def decode_dynamic_map_states_from_proto(dynamic_map_states):
+    """Decodes dynamic map states (e.g., traffic signals) from Waymo scenario proto.
+
+    Args:
+        dynamic_map_states: List of scenario_pb2.DynamicMapState objects.
+
+    Returns:
+        dict: Dictionary with lane IDs, signal states, and stop points for each timestep.
+    """
     dynamic_map_infos = {"lane_id": [], "state": [], "stop_point": []}
     for cur_data in dynamic_map_states:  # (num_timestamp)
         lane_id, state, stop_point = [], [], []
@@ -269,6 +303,15 @@ def decode_dynamic_map_states_from_proto(dynamic_map_states):
 
 
 def process_waymo_data_with_scenario_proto(data_file, output_path=None):
+    """Processes a single Waymo scenario proto file and saves parsed data.
+
+    Args:
+        data_file (str): Path to the .tfrecord scenario file.
+        output_path (str, optional): Directory to save parsed scenario .pkl files.
+
+    Returns:
+        list: List of dictionaries with scenario metadata for each scenario in the file.
+    """
     dataset = tf.data.TFRecordDataset(data_file, compression_type="")
     ret_infos = []
     for cnt, data in enumerate(dataset):
@@ -308,6 +351,16 @@ def process_waymo_data_with_scenario_proto(data_file, output_path=None):
 
 
 def get_infos_from_protos(data_path, output_path=None, num_workers=8):
+    """Processes all Waymo scenario proto files in a directory in parallel.
+
+    Args:
+        data_path (str): Directory containing .tfrecord scenario files.
+        output_path (str, optional): Directory to save parsed scenario .pkl files.
+        num_workers (int, optional): Number of parallel workers. Defaults to 8.
+
+    Returns:
+        list: List of dictionaries with scenario metadata for all scenarios.
+    """
     from functools import partial
 
     if output_path is not None:
@@ -328,6 +381,16 @@ def get_infos_from_protos(data_path, output_path=None, num_workers=8):
 
 
 def create_infos_from_protos(raw_data_path, output_path, num_workers=8):
+    """Creates processed scenario info files from raw Waymo scenario protos.
+
+    Args:
+        raw_data_path (str): Path to directory with raw .tfrecord scenario files.
+        output_path (str): Directory to save processed scenario info files.
+        num_workers (int, optional): Number of parallel workers. Defaults to 8.
+
+    Raises:
+        ValueError: If the raw data path does not exist.
+    """
     if not os.path.exists(raw_data_path):
         raise ValueError("The raw data path %s does not exist." % raw_data_path)
     os.makedirs(output_path, exist_ok=True)
@@ -341,4 +404,9 @@ def create_infos_from_protos(raw_data_path, output_path, num_workers=8):
 
 
 if __name__ == "__main__":
+    """Entry point for preprocessing Waymo scenario protos.
+
+    Usage:
+        python waymo_preprocess.py <raw_data_path> <output_path>
+    """
     create_infos_from_protos(raw_data_path=sys.argv[1], output_path=sys.argv[2], num_workers=8)
