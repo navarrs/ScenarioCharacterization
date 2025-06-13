@@ -72,7 +72,10 @@ class WaymoData(BaseDataset):
                 raise e
 
     def load_data(self) -> None:
-        """Loads the dataset.
+        """Loads the Waymo dataset and scenario metadata.
+
+        Loads scenario metadata and scenario file paths, applies sharding if enabled,
+        and checks that the number of scenarios matches the number of conflict points.
 
         Raises:
             AssertionError: If the number of scenarios and conflict points do not match.
@@ -105,10 +108,10 @@ class WaymoData(BaseDataset):
 
         Args:
             scenario_data (dict): The raw scenario data.
-            conflict_points (dict): The conflict points for the scenario.
+            conflict_points (dict or None): The conflict points for the scenario.
 
         Returns:
-            dict: The transformed scenario data.
+            dict: The transformed scenario data, including agent and map information.
         """
         sdc_index = scenario_data["sdc_track_index"]
         trajs = scenario_data["track_infos"]["trajs"]
@@ -156,7 +159,11 @@ class WaymoData(BaseDataset):
     def check_conflict_points(self):
         """Checks if conflict points are already computed for each scenario.
 
-        If not, computes them and saves to disk.
+        If not, computes conflict points for each scenario and saves them to disk.
+        Updates the dataset's conflict points list.
+
+        Returns:
+            None
         """
         logger.info("Checking if conflict points have been computed for each scenario.")
         start = time.time()
@@ -199,18 +206,20 @@ class WaymoData(BaseDataset):
         logger.info(f"Conflict points check completed in {time.time() - start:.2f} seconds.")
 
     def find_conflict_points(self, static_map_info: dict, dynamic_map_info: dict, agent_positions: np.ndarray) -> dict:
-        """Finds the conflict points in the map.
+        """Finds the conflict points in the map for a scenario.
 
         Args:
             static_map_info (dict): The static map information.
             dynamic_map_info (dict): The dynamic map information.
+            agent_positions (np.ndarray): Array of agent positions (shape: [N_agents, T, 3]).
 
         Returns:
-            dict: The conflict points in the map divided into:
-                - 'static': (Ns, 3) static points (e.g., crosswalks, speed bumps, stop signs)
-                - 'dynamic': (Nd, 3) dynamic points (e.g., traffic lights)
-                - 'lane_intersections': (Nl, 3) intersections between lanes
-                - 'all_conflict_points': (N, 3) all conflict points concatenated
+            dict: The conflict points in the map, including:
+                - 'static': Static conflict points (e.g., crosswalks, speed bumps, stop signs).
+                - 'dynamic': Dynamic conflict points (e.g., traffic lights).
+                - 'lane_intersections': Lane intersection points.
+                - 'all_conflict_points': All conflict points concatenated.
+                - 'agent_distances_to_conflict_points': Distances from each agent to each conflict point.
         """
         polylines = static_map_info["all_polylines"]
 
@@ -303,13 +312,13 @@ class WaymoData(BaseDataset):
         }
 
     def load_scenario_information(self, index) -> dict:
-        """Loads scenario information by index.
+        """Loads scenario and conflict point information by index.
 
         Args:
             index (int): Index of the scenario to load.
 
         Returns:
-            dict: A dictionary containing the scenario information.
+            dict: A dictionary containing the scenario and conflict points.
 
         Raises:
             ValidationError: If the scenario data does not pass schema validation.
@@ -326,7 +335,7 @@ class WaymoData(BaseDataset):
         }
 
     def collate_batch(self, batch_data) -> dict:
-        """Collates a batch of scenario data.
+        """Collates a batch of scenario data for processing.
 
         Args:
             batch_data (list): List of scenario data dictionaries.

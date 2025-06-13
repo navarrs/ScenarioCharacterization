@@ -21,13 +21,14 @@ class ScoresProcessor(BaseProcessor):
         dataset: Dataset,
         characterizer: BaseFeature | BaseScorer,
     ) -> None:
-        """Initializes the ScoresProcessor with a configuration, dataset, and scorer.
+        """Initializes the ScoresProcessor with configuration, dataset, and scorer.
 
         Args:
-            config (DictConfig): Configuration for the scores processor, including parameters like
-                batch size, number of workers, and whether to save the output.
-            dataset (Dataset): The dataset to process, which should be a subclass of torch.utils.data.Dataset.
-            characterizer (BaseFeature | BaseScorer): An defines the characterization method.
+            config (DictConfig): Configuration for the scores processor, including parameters such as
+                batch size, number of workers, features to use, feature paths, and whether to save the output.
+            dataset (Dataset): The dataset to process. Must be a subclass of torch.utils.data.Dataset.
+            characterizer (BaseFeature | BaseScorer): An instance of BaseFeature or BaseScorer that
+                defines the scoring logic.
 
         Raises:
             ValueError: If features or feature paths are not specified, or if unsupported features are requested.
@@ -60,7 +61,7 @@ class ScoresProcessor(BaseProcessor):
         """Runs the score processing on the dataset.
 
         Iterates over the dataset, loads features for each scenario, checks for missing features,
-        computes scores, and saves them if required.
+        computes scores using the characterizer, and saves them if required.
 
         Returns:
             None

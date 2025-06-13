@@ -12,11 +12,16 @@ logger = get_logger(__name__)
 
 @hydra.main(config_path="config", config_name="run_processor", version_base="1.3")
 def run(cfg: DictConfig) -> None:
-    """
-    Run the processor with the given configuration.
+    """Runs the scenario characterization processor with the provided configuration.
+
+    Instantiates the dataset, characterizer, and processor using Hydra, then executes the processor's run method.
+    Handles errors and logs progress throughout the process.
 
     Args:
-        cfg (DictConfig): Configuration dictionary.
+        cfg (DictConfig): Configuration dictionary containing dataset, characterizer, and processor parameters.
+
+    Raises:
+        AssertionError: If an error occurs during processing.
     """
     make_output_paths(cfg.copy())
 
@@ -39,4 +44,5 @@ def run(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
+    """Entry point for running the scenario characterization processor."""
     run()

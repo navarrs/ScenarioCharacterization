@@ -11,11 +11,13 @@ logger = get_logger(__name__)
 
 class IndividualFeatures(BaseFeature):
     def __init__(self, config: DictConfig) -> None:
-        """Initializes the BaseFeature with a configuration.
+        """Initializes the IndividualFeatures class.
 
         Args:
             config (DictConfig): Configuration for the feature. Expected to contain key-value pairs
-                relevant to feature computation, such as thresholds or parameters.
+                relevant to feature computation, such as thresholds or parameters. Must include
+                'return_criteria' (str), which determines whether to return 'critical' or 'average'
+                statistics for each feature.
         """
         super(IndividualFeatures, self).__init__(config)
 
@@ -25,13 +27,16 @@ class IndividualFeatures(BaseFeature):
         """Computes features for each agent in the scenario.
 
         Args:
-            scenario (Dict): A dictionary containing scenario data.
+            scenario (Scenario): Scenario object containing agent positions, velocities, validity masks,
+                timestamps, map conflict points, stationary speed, and other scenario-level information.
 
         Returns:
-            Dict: A dictionary with computed features for each agent.
+            ScenarioFeatures: An object containing computed features for each valid agent, including
+                speed, speed limit difference, acceleration, deceleration, jerk, waiting period,
+                waiting interval, waiting distance, and agent-to-agent closest distances.
 
         Raises:
-            ValueError: If the 'scenario' dictionary does not contain the key 'num_agents'.
+            ValueError: If an unknown return criteria is provided in the configuration.
         """
         agent_positions = scenario.agent_positions
         agent_velocities = scenario.agent_velocities

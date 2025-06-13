@@ -12,16 +12,17 @@ logger = get_logger(__name__)
 
 
 class BaseDataset(Dataset, ABC):
-    """Base class for datasets that handle scenarios."""
+    """Base class for datasets that handle scenario data."""
 
     def __init__(self, config: DictConfig):
         """Initializes the BaseDataset with configuration.
 
         Args:
-            config (DictConfig): Configuration for the dataset, including paths and parameters.
+            config (DictConfig): Configuration for the dataset, including paths, scenario type,
+                sharding, batching, and other parameters.
 
         Raises:
-            AssertionError: If the scenario type is not supported.
+            ValueError: If the scenario type is not supported.
             Exception: If loading scenario information fails.
         """
         super(BaseDataset, self).__init__()
@@ -54,7 +55,7 @@ class BaseDataset(Dataset, ABC):
 
     @property
     def name(self) -> str:
-        """Identifies the dataset.
+        """Returns the name and base path of the dataset.
 
         Returns:
             str: The name of the dataset class and its base path.
@@ -62,9 +63,10 @@ class BaseDataset(Dataset, ABC):
         return f"{self.__class__.__name__}\n\t(from: {self.scenario_base_path})"
 
     def shard(self) -> None:
-        """Shards the dataset into smaller parts.
+        """Shards the dataset into smaller parts for distributed or parallel processing.
 
-        This is useful for distributed processing or handling large datasets.
+        This method updates the internal data attributes to only include the shard assigned
+        to this instance, based on the number of shards and the shard index.
         """
         if self.num_shards > 1:
             n_per_shard = math.ceil(len(self.data.metas) / self.num_shards)
@@ -84,45 +86,45 @@ class BaseDataset(Dataset, ABC):
         """Returns the number of scenarios in the dataset.
 
         Returns:
-            int: Number of scenarios.
+            int: The number of scenarios in the dataset.
         """
         return len(self.data.scenarios)
 
     @abstractmethod
     def load_data(self):
-        """Loads the dataset.
+        """Loads the dataset and populates the data attribute.
 
-        This method should load the dataset and populate the data attribute.
+        This method should be implemented by subclasses to load all required data.
         """
         pass
 
     @abstractmethod
     def collate_batch(self, batch_data) -> dict:
-        """Collates a batch of data into a single EasyDict.
+        """Collates a batch of data into a single dictionary.
 
         Args:
             batch_data: The batch data to collate.
 
         Returns:
-            Dict: The collated batch.
+            dict: The collated batch.
         """
         pass
 
     @abstractmethod
     def load_scenario_information(self, index: int) -> dict:
-        """Loads a scenario from a dictionary.
+        """Loads scenario information for a given index.
 
         Args:
-            scenario (dict): The scenario data to load.
+            index (int): The index of the scenario to load.
 
         Returns:
-            dict: The loaded scenario data.
+            dict: The loaded scenario information.
         """
         pass
 
     @abstractmethod
     def transform_scenario_data(self, scenario: dict, conflict_points: dict) -> dict:
-        """Transforms scenario data into a format suitable for the model.
+        """Transforms scenario data and conflict points into a model-ready format.
 
         Args:
             scenario (dict): The scenario data to transform.
@@ -134,13 +136,13 @@ class BaseDataset(Dataset, ABC):
         pass
 
     def __getitem__(self, index: int) -> Scenario:
-        """Gets a single scenario by index.
+        """Retrieves a single scenario by index.
 
         Args:
             index (int): Index of the scenario to retrieve.
 
         Returns:
-            dict: A dictionary containing the scenario ID, metadata, and scenario data.
+            Scenario: A Scenario object constructed from the scenario data.
 
         Raises:
             ValidationError: If the scenario data does not pass schema validation.

@@ -11,8 +11,7 @@ class BaseFeature(ABC):
         """Initializes the BaseFeature with a configuration.
 
         Args:
-            config (DictConfig): Configuration for the feature. Expected to contain key-value pairs
-                relevant to feature computation, such as thresholds or parameters.
+            config (DictConfig): Configuration for the feature.
         """
         self.config = config
         self.features = config.features
@@ -23,24 +22,24 @@ class BaseFeature(ABC):
         """Gets the class name formatted as a lowercase string with spaces.
 
         Returns:
-            str: The formatted class name.
+            str: The formatted class name (e.g., 'base feature').
         """
         # Get the class name and add a space before each capital letter (except the first)
         return re.sub(r"(?<!^)([A-Z])", r" \1", self.__class__.__name__).lower()
 
     @abstractmethod
     def compute(self, scenario: Scenario) -> ScenarioFeatures:
-        """Produces a dummy output for the feature computation.
+        """Computes features for a given scenario.
 
         This method should be overridden by subclasses to compute actual features.
 
         Args:
-            scenario (Dict): A dictionary containing scenario data.
+            scenario (Scenario): Scenario data to compute features for.
 
         Returns:
-            Dict: A dictionary with computed features.
+            ScenarioFeatures: Computed features for the scenario.
 
         Raises:
-            ValueError: If the 'scenario' dictionary does not contain the key 'num_agents'.
+            ValueError: If the scenario does not contain the required information.
         """
         pass
