@@ -18,7 +18,7 @@ This repository is using:
 uv run pip install -e .
 ```
 
-To install with Waymo dependencies, required for running the example at the bottom.
+To install with Waymo dependencies required for running the [example](#an-example-using-womd), run:
 ```bash
 uv run pip install -e ".[waymo]"
 ```
