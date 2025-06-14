@@ -5,8 +5,8 @@ defaults:
 scores_path: ${paths.output_paths.scores_cache_path}
 
 scores:
-  - individual_scorer
-  - interaction_scorer
+  - individual
+  - interaction
 
 dpi: 300
 output_dir: ${paths.output_paths.vis_cache_path}
