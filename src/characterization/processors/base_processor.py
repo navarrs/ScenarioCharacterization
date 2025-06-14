@@ -45,8 +45,7 @@ class BaseProcessor(ABC):
         self.output_path = config.get("output_path", None)
         if self.save:
             if self.output_path is None:
-                logger.error("Output path must be specified in the configuration.")
-                raise ValueError
+                raise ValueError("Output path must be specified in the configuration.")
             else:
                 logger.info(f"Features {self.characterizer.name} will be saved to {self.output_path}")
 

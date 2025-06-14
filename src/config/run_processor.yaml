@@ -4,7 +4,7 @@ defaults:
   - dataset: waymo
   - viz: waymo
   - processor: features
-  - characterizer: feature
+  - characterizer: individual_features
 
 seed: 42
 num_scenarios: null

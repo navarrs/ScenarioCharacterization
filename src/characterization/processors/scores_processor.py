@@ -42,18 +42,15 @@ class ScoresProcessor(BaseProcessor):
 
         self.features = config.get("features", None)
         if self.features is None:
-            logger.error("Features must be specified in the configuration.")
-            raise ValueError
+            raise ValueError("Features must be specified in the configuration.")
 
         unsupported = [f for f in self.features if f not in SUPPORTED_FEATURES]
         if unsupported:
-            logger.error(f"Features {unsupported} not in supported list {SUPPORTED_FEATURES}")
-            raise ValueError
+            raise ValueError(f"Features {unsupported} not in supported list {SUPPORTED_FEATURES}")
 
         self.feature_path = config.get("feature_path", None)
         if not self.feature_path:
-            logger.error("Feature paths must be specified in the configuration.")
-            raise ValueError
+            raise ValueError("Feature paths must be specified in the configuration.")
         else:
             logger.info(f"Features will be loaded from {self.feature_path}")
 

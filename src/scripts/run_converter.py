@@ -46,12 +46,10 @@ def run(cfg: DictConfig) -> None:
     scores_files = natsorted(os.listdir(scores_path))
 
     if set(features_files) != set(scores_files):
-        error_message = (
+        raise AssertionError(
             "Feature files and score files must match. "
             f"Found {len(features_files)} feature files and {len(scores_files)} score files."
         )
-        logger.error(error_message)
-        raise AssertionError(error_message)
 
     logger.info(f"Loading input features from: {features_path}")
     features_files = [os.path.join(features_path, f) for f in features_files]

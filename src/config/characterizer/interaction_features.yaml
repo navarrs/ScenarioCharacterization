@@ -1,4 +1,4 @@
-_target_: scenchar.features.interaction_features.InteractionFeatures
+_target_: characterization.features.interaction_features.InteractionFeatures
 config:
   return_criteria: ${return_criteria} # Can be 'critical', 'average', or 'none'
 

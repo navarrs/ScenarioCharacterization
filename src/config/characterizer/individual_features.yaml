@@ -1,4 +1,4 @@
-_target_: scenchar.features.individual_features.IndividualFeatures
+_target_: characterization.features.individual_features.IndividualFeatures
 config:
   return_criteria: ${return_criteria} # Can be 'critical', 'average', or 'none'
 
