@@ -4,12 +4,12 @@ from omegaconf import DictConfig
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from scenchar.features import SUPPORTED_FEATURES
-from scenchar.features.base_feature import BaseFeature
-from scenchar.processors.base_processor import BaseProcessor
-from scenchar.scorer.base_scorer import BaseScorer
-from scenchar.utils.common import from_pickle, get_logger, to_pickle
-from scenchar.utils.schemas import ScenarioFeatures, ScenarioScores
+from characterization.features import SUPPORTED_FEATURES
+from characterization.features.base_feature import BaseFeature
+from characterization.processors.base_processor import BaseProcessor
+from characterization.scorer.base_scorer import BaseScorer
+from characterization.utils.common import from_pickle, get_logger, to_pickle
+from characterization.utils.schemas import ScenarioFeatures, ScenarioScores
 
 logger = get_logger(__name__)
 

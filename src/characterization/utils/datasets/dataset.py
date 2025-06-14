@@ -5,8 +5,8 @@ from easydict import EasyDict
 from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
-from scenchar.utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
-from scenchar.utils.schemas import Scenario
+from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
+from characterization.utils.schemas import Scenario
 
 logger = get_logger(__name__)
 

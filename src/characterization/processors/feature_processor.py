@@ -2,11 +2,11 @@ from omegaconf import DictConfig
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from scenchar.features.base_feature import BaseFeature
-from scenchar.processors.base_processor import BaseProcessor
-from scenchar.scorer.base_scorer import BaseScorer
-from scenchar.utils.common import get_logger, to_pickle
-from scenchar.utils.schemas import ScenarioFeatures
+from characterization.features.base_feature import BaseFeature
+from characterization.processors.base_processor import BaseProcessor
+from characterization.scorer.base_scorer import BaseScorer
+from characterization.utils.common import get_logger, to_pickle
+from characterization.utils.schemas import ScenarioFeatures
 
 logger = get_logger(__name__)
 
@@ -50,8 +50,8 @@ class FeatureProcessor(BaseProcessor):
         # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop.
         for scenario_batch in tqdm(self.dataloader, desc="Processing scenarios"):
             for scenario in scenario_batch["scenario"]:
-                # scenario: scenchar.utils.schemas.Scenario
-                # features: scenchar.utils.schemas.ScenarioFeatures
+                # scenario: characterization.utils.schemas.Scenario
+                # features: characterization.utils.schemas.ScenarioFeatures
                 features: ScenarioFeatures = self.characterizer.compute(scenario)
 
                 if self.save:

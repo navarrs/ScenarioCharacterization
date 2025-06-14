@@ -3,10 +3,10 @@ import itertools
 import numpy as np
 from omegaconf import DictConfig
 
-import scenchar.features.interaction_utils as interaction
-from scenchar.features.base_feature import BaseFeature
-from scenchar.utils.common import EPS, InteractionStatus, get_logger
-from scenchar.utils.schemas import Scenario, ScenarioFeatures
+import characterization.features.interaction_utils as interaction
+from characterization.features.base_feature import BaseFeature
+from characterization.utils.common import EPS, InteractionStatus, get_logger
+from characterization.utils.schemas import Scenario, ScenarioFeatures
 
 logger = get_logger(__name__)
 
