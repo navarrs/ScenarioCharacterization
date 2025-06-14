@@ -1,35 +1,40 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from torch.utils.data import Dataset
 
+from characterization.utils.schemas import Scenario
 from characterization.utils.viz.visualizer import BaseVisualizer
 
 
 class WaymoVisualizer(BaseVisualizer):
-    def __init__(self, config, dataset: Dataset):
-        super().__init__(config, dataset=dataset)
+    def __init__(self, config):
+        super().__init__(config)
 
-    def visualize_scenario(self, scenario: dict, title: str = "Scenario", output_filepath: str = "temp.png") -> None:
-        """Visualizes a single Waymo scenario.
+    def visualize_scenario(
+        self, scenario: Scenario, title: str = "Scenario", output_filepath: str = "temp.png"
+    ) -> None:
+        """
+        Visualizes a single Waymo scenario, including static and dynamic map elements, and agent trajectories.
+
+        This method creates a two-panel visualization: one showing all agent trajectories, and one highlighting relevant
+        and SDC (self-driving car) agents. It overlays static and dynamic map features and saves the visualization to a
+        file.
 
         Args:
-            scenario (dict): The scenario data to visualize.
-            output_filepath (str, optional): Path to save the visualization output. If None, will not save.
+            scenario (Scenario): The scenario data to visualize.
+            title (str, optional): Title for the visualization. Defaults to "Scenario".
+            output_filepath (str, optional): Path to save the visualization output. Defaults to "temp.png".
 
         Returns:
-            None: This method should handle visualization and save the output.
+            None
         """
         num_windows = 2
         fig, axs = plt.subplots(1, num_windows, figsize=(5 * num_windows, 5 * 1))
 
-        static_map_information = scenario["map_infos"]
-        dynamic_map_information = scenario["dynamic_map_infos"]
-        self.plot_static_map_infos(static_map_information, axs, num_windows=num_windows)
-        self.plot_dynamic_map_infos(dynamic_map_information, axs, num_windows=num_windows)
+        self.plot_static_map_infos(scenario.static_map_info, axs, num_windows=num_windows)
+        self.plot_dynamic_map_infos(scenario.dynamic_map_info, axs, num_windows=num_windows)
 
-        tf_scenario = self.dataset.transform_scenario_data(scenario)
-        self.plot_sequences(tf_scenario, axs[0])
-        self.plot_sequences(tf_scenario, axs[1], show_relevant=True)
+        self.plot_sequences(scenario, axs[0])
+        self.plot_sequences(scenario, axs[1], show_relevant=True)
 
         for ax in axs.reshape(-1):
             ax.set_xticks([])
@@ -42,21 +47,23 @@ class WaymoVisualizer(BaseVisualizer):
         plt.savefig(output_filepath, dpi=300, bbox_inches="tight")
         plt.close()
 
-    def plot_sequences(self, tf_scenario: dict, ax: plt.Axes, show_relevant: bool = False) -> None:
-        """Plots the agent trajectories in a simple manner.
+    def plot_sequences(self, scenario: Scenario, ax: plt.Axes, show_relevant: bool = False) -> None:
+        """
+        Plots agent trajectories for a scenario, with optional highlighting of relevant and SDC agents.
 
         Args:
-            tf_scenario (dict): Transformed scenario data containing agent positions and validity.
+            scenario (Scenario): Scenario data containing agent positions, types, and relevance.
             ax (matplotlib.axes.Axes): Axes to plot on.
+            show_relevant (bool, optional): If True, highlights relevant and SDC agents. Defaults to False.
 
         Returns:
-            None: This method modifies the axes directly.
+            None
         """
-        agent_positions = tf_scenario["agent_positions"]
-        agent_types = tf_scenario["agent_types"]
-        agent_valid = tf_scenario["agent_valid"]
-        agent_relevance = tf_scenario["agent_relevance"]
-        ego_index = tf_scenario["ego_index"]
+        agent_positions = scenario.agent_positions
+        agent_types = scenario.agent_types
+        agent_valid = scenario.agent_valid
+        agent_relevance = scenario.agent_relevance
+        ego_index = scenario.ego_index
         relevant_indeces = np.where(agent_relevance > 0.0)[0]
 
         if show_relevant:
@@ -75,13 +82,14 @@ class WaymoVisualizer(BaseVisualizer):
             ax.plot(pos[:, 0], pos[:, 1], color=color, linewidth=2)
 
     def plot_static_map_infos(self, map_information: dict, ax: plt.Axes, num_windows: int = 0, dim: int = 2) -> None:
-        """Plots static map information such as lanes, stop signs, and crosswalks.
+        """
+        Plots static map information such as lanes, stop signs, and crosswalks for a scenario.
 
         Args:
-            map_information (dict): Dictionary containing map information.
-            ax (matplotlib.axes.Axes, optional): Axes to plot on.
-            num_windows (int, optional): Number of subplot windows.
-            dim (int, optional): Number of dimensions to plot.
+            map_information (dict): Dictionary containing static map information.
+            ax (matplotlib.axes.Axes): Axes to plot on.
+            num_windows (int, optional): Number of subplot windows. Defaults to 0.
+            dim (int, optional): Number of dimensions to plot. Defaults to 2.
 
         Returns:
             dict: Dictionary of plotted map info positions.
@@ -109,14 +117,14 @@ class WaymoVisualizer(BaseVisualizer):
                 )
 
     def plot_dynamic_map_infos(self, map_information: dict, ax: plt.Axes, num_windows: int = 0, dim: int = 2):
-        """Plots dynamic map information such as stop points.
+        """
+        Plots dynamic map information such as stop points for a scenario.
 
         Args:
-            map_infos (dict): Dictionary containing dynamic map information.
-            ax (matplotlib.axes.Axes, optional): Axes to plot on.
-            num_windows (int, optional): Number of subplot windows.
-            keys (list, optional): List of dynamic map info keys to plot.
-            dim (int, optional): Number of dimensions to plot.
+            map_information (dict): Dictionary containing dynamic map information.
+            ax (matplotlib.axes.Axes): Axes to plot on.
+            num_windows (int, optional): Number of subplot windows. Defaults to 0.
+            dim (int, optional): Number of dimensions to plot. Defaults to 2.
 
         Returns:
             dict: Dictionary of plotted dynamic map info positions.
@@ -144,14 +152,15 @@ class WaymoVisualizer(BaseVisualizer):
     def plot_stop_signs(
         self, stop_signs, ax: plt.Axes = None, num_windows: int = 0, color: str = "red", dim: int = 2
     ) -> np.ndarray:
-        """Plots stop signs on the given axes.
+        """
+        Plots stop signs on the given axes for a scenario.
 
         Args:
             stop_signs (list): List of stop sign dictionaries with 'position'.
             ax (matplotlib.axes.Axes, optional): Axes to plot on.
-            num_windows (int, optional): Number of subplot windows.
-            color (str, optional): Color for the stop signs.
-            dim (int, optional): Number of dimensions to plot.
+            num_windows (int, optional): Number of subplot windows. Defaults to 0.
+            color (str, optional): Color for the stop signs. Defaults to "red".
+            dim (int, optional): Number of dimensions to plot. Defaults to 2.
 
         Returns:
             np.ndarray: Array of stop sign positions.
@@ -182,17 +191,18 @@ class WaymoVisualizer(BaseVisualizer):
         linewidth=0.5,
         dim=2,
     ):
-        """Plots polylines on the given axes.
+        """
+        Plots polylines (e.g., lanes, crosswalks) on the given axes for a scenario.
 
         Args:
             polylines (list): List of polyline dictionaries with 'polyline_index'.
             road_graph (np.ndarray): Array of road graph points.
             ax (matplotlib.axes.Axes, optional): Axes to plot on.
-            num_windows (int, optional): Number of subplot windows.
-            color (str, optional): Color for the polylines.
-            alpha (float, optional): Alpha transparency.
-            linewidth (float, optional): Line width.
-            dim (int, optional): Number of dimensions to plot.
+            num_windows (int, optional): Number of subplot windows. Defaults to 0.
+            color (str, optional): Color for the polylines. Defaults to "k".
+            alpha (float, optional): Alpha transparency. Defaults to 1.0.
+            linewidth (float, optional): Line width. Defaults to 0.5.
+            dim (int, optional): Number of dimensions to plot. Defaults to 2.
 
         Returns:
             list: List of polyline position arrays.

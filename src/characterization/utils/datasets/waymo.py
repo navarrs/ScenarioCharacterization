@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 from characterization.utils.common import compute_dists_to_conflict_points, get_logger
 from characterization.utils.datasets.dataset import BaseDataset
+from characterization.utils.schemas import Scenario
 
 logger = get_logger(__name__)
 
@@ -103,7 +104,7 @@ class WaymoData(BaseDataset):
                 f"Number of scenarios ({num_scenarios}) != number of conflict points ({num_conflict_points})."
             )
 
-    def transform_scenario_data(self, scenario_data: dict, conflict_points: dict | None = None) -> dict:
+    def transform_scenario_data(self, scenario_data: dict, conflict_points: dict | None = None) -> Scenario:
         """Transforms the scene data into a format suitable for processing.
 
         Args:
@@ -113,6 +114,12 @@ class WaymoData(BaseDataset):
         Returns:
             dict: The transformed scenario data, including agent and map information.
         """
+
+        def get_polyline_idxs(polyline: dict, key: str) -> np.ndarray:
+            return np.array(
+                [[value["polyline_index"][0], value["polyline_index"][1]] for value in polyline[key]], dtype=np.int32
+            )
+
         sdc_index = scenario_data["sdc_track_index"]
         trajs = scenario_data["track_infos"]["trajs"]
         num_agents = trajs.shape[0]
@@ -132,29 +139,43 @@ class WaymoData(BaseDataset):
         for idx, difficulty in zip(tracks_to_predict_index, tracks_to_predict_difficulty):
             agent_relevance[idx] = self.DIFFICULTY_WEIGHTS.get(difficulty, 0.0)
 
-        return {
-            "num_agents": num_agents,
-            "scenario_id": scenario_data["scenario_id"],
-            "ego_index": sdc_index,
-            "ego_id": scenario_data["track_infos"]["object_id"][sdc_index],
-            "agent_ids": scenario_data["track_infos"]["object_id"],
-            "agent_types": scenario_data["track_infos"]["object_type"],
-            "agent_valid": trajs[:, :, self.AGENT_VALID].astype(np.bool_),
-            "agent_positions": trajs[:, :, self.POS_XYZ_IDX],
-            "agent_dimensions": trajs[:, :, self.AGENT_DIMS],
-            "agent_velocities": trajs[:, :, self.VEL_XY_IDX],
-            "agent_headings": trajs[:, :, self.HEADING_IDX],
-            "agent_relevance": agent_relevance,
-            "last_observed_timestep": scenario_data["current_time_index"],
-            "total_timesteps": self.LAST_TIMESTEP,
-            "stationary_speed": self.STATIONARY_SPEED,
-            "agent_to_agent_max_distance": self.AGENT_TO_AGENT_MAX_DISTANCE,
-            "agent_to_conflict_point_max_distance": self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE,
-            "agent_to_agent_distance_breach": self.AGENT_TO_AGENT_DISTANCE_BREACH,
-            "timestamps": np.asarray(scenario_data["timestamps_seconds"], dtype=np.float32),
-            "map_conflict_points": conflict_points,
-            "agent_distances_to_conflict_points": agent_distances_to_conflict_points,
-        }
+        map_infos = scenario_data.get("map_infos", None)
+        dynamic_map_infos = scenario_data.get("dynamic_map_infos", None)
+
+        return Scenario(
+            num_agents=num_agents,
+            scenario_id=scenario_data["scenario_id"],
+            ego_index=sdc_index,
+            ego_id=scenario_data["track_infos"]["object_id"][sdc_index],
+            agent_ids=scenario_data["track_infos"]["object_id"],
+            agent_types=scenario_data["track_infos"]["object_type"],
+            agent_valid=trajs[:, :, self.AGENT_VALID].astype(np.bool_),
+            agent_positions=trajs[:, :, self.POS_XYZ_IDX],
+            agent_dimensions=trajs[:, :, self.AGENT_DIMS],
+            agent_velocities=trajs[:, :, self.VEL_XY_IDX],
+            agent_headings=trajs[:, :, self.HEADING_IDX],
+            agent_relevance=agent_relevance,
+            last_observed_timestep=scenario_data["current_time_index"],
+            total_timesteps=self.LAST_TIMESTEP,
+            stationary_speed=self.STATIONARY_SPEED,
+            agent_to_agent_max_distance=self.AGENT_TO_AGENT_MAX_DISTANCE,
+            agent_to_conflict_point_max_distance=self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE,
+            agent_to_agent_distance_breach=self.AGENT_TO_AGENT_DISTANCE_BREACH,
+            timestamps=np.asarray(scenario_data["timestamps_seconds"], dtype=np.float32),
+            map_conflict_points=conflict_points,
+            agent_distances_to_conflict_points=agent_distances_to_conflict_points,
+            # TODO: standardize map information
+            static_map_info=map_infos,
+            dynamic_map_info=dynamic_map_infos,
+            # map_polylines=map_infos["all_polylines"] if map_infos else None,
+            # polyline_idxs_lane=get_polyline_idxs(map_infos, "lane") if map_infos else None,
+            # polyline_idxs_road_line=get_polyline_idxs(map_infos, "road_line") if map_infos else None,
+            # polyline_idxs_road_edge=get_polyline_idxs(map_infos, "road_edge") if map_infos else None,
+            # polyline_idxs_crosswalk=get_polyline_idxs(map_infos, "crosswalk") if map_infos else None,
+            # polyline_idxs_speed_bump=get_polyline_idxs(map_infos, "speed_bump") if map_infos else None,
+            # polyline_idxs_stop_sign=get_polyline_idxs(map_infos, "stop_sign") if map_infos else None,
+            # map_stop_points=dynamic_map_infos["stop_point"] if dynamic_map_infos else None,
+        )
 
     def check_conflict_points(self):
         """Checks if conflict points are already computed for each scenario.

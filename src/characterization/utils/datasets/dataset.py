@@ -123,7 +123,7 @@ class BaseDataset(Dataset, ABC):
         pass
 
     @abstractmethod
-    def transform_scenario_data(self, scenario: dict, conflict_points: dict) -> dict:
+    def transform_scenario_data(self, scenario: dict, conflict_points: dict) -> Scenario:
         """Transforms scenario data and conflict points into a model-ready format.
 
         Args:
@@ -151,5 +151,5 @@ class BaseDataset(Dataset, ABC):
         scenario = scenario_information.get("scenario", None)
         conflict_points = scenario_information.get("conflict_points", None)
 
-        scenario_data = self.transform_scenario_data(scenario, conflict_points)
-        return Scenario(**scenario_data)
+        scenario = self.transform_scenario_data(scenario, conflict_points)
+        return scenario

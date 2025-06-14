@@ -29,6 +29,7 @@ Float32NDArray3D = Annotated[NDArray[np.float32], BeforeValidator(validate_array
 Float32NDArray2D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 2))]
 Float32NDArray1D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 1))]
 Int32NDArray1D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.int32, 1))]
+Int32NDArray2D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.int32, 2))]
 
 
 class Scenario(BaseModel):
@@ -53,6 +54,17 @@ class Scenario(BaseModel):
     agent_relevance: Float32NDArray1D
 
     # Map Information
+    static_map_info: dict[str, Any]
+    dynamic_map_info: dict[str, Any]
+    # map_polylines: Float32NDArray2D | None = None
+    # polyline_idxs_lane: Int32NDArray2D | None = None
+    # polyline_idxs_road_line: Int32NDArray2D | None = None
+    # polyline_idxs_road_edge: Int32NDArray2D | None = None
+    # polyline_idxs_crosswalk: Int32NDArray2D | None = None
+    # polyline_idxs_speed_bump: Int32NDArray2D | None = None
+    # polyline_idxs_stop_sign: Int32NDArray2D | None = None
+    # map_stop_points: Float32NDArray3D | None = None
+
     map_conflict_points: Float32NDArray2D | None
     agent_distances_to_conflict_points: Float32NDArray3D | None
 
@@ -111,3 +123,18 @@ class ScenarioScores(BaseModel):
     combined_scene_score: float | None = None
 
     model_config = {"arbitrary_types_allowed": True}
+
+    def __getitem__(self, key: str) -> Any:
+        """
+        Get the value of a key in the ScenarioScores object.
+
+        Args:
+            key (str): The key to retrieve.
+
+        Returns:
+            Any: The value associated with the key.
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"Key '{key}' not found in ScenarioScores.")

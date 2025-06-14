@@ -1,5 +1,4 @@
 import os
-import pickle  # nosec B403
 
 import hydra
 import matplotlib.pyplot as plt
@@ -10,7 +9,8 @@ from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
 from characterization.scorer import SUPPORTED_SCORERS
-from characterization.utils.common import get_logger
+from characterization.utils.common import from_pickle, get_logger
+from characterization.utils.schemas import ScenarioScores
 from characterization.utils.viz.visualizer import BaseVisualizer
 
 logger = get_logger(__name__)
@@ -24,6 +24,20 @@ def get_sample_to_plot(
     seed: int,
     sample_size: int,
 ) -> pd.DataFrame:
+    """
+    Selects a random sample of rows from a DataFrame within a specified value range for a given column.
+
+    Args:
+        df (pd.DataFrame): The DataFrame to sample from.
+        key (str): The column name to filter by value range.
+        min_value (float): The minimum value (inclusive) for filtering.
+        max_value (float): The maximum value (exclusive) for filtering.
+        seed (int): Random seed for reproducibility.
+        sample_size (int): Number of samples to return.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the sampled rows within the specified range.
+    """
     df_subset = df[(df[key] >= min_value) & (df[key] < max_value)]
     subset_size = len(df_subset)
     logger.info(f"Found {subset_size} rows between [{round(min_value, 2)} to {round(max_value, 2)}] for {key}")
@@ -33,14 +47,16 @@ def get_sample_to_plot(
 
 def plot_histograms_from_dataframe(df, output_filepath: str = "temp.png", dpi: int = 30, alpha=0.5):
     """
-    Plots overlapping histograms for each numeric column in a DataFrame,
-    excluding a specified column.
+    Plots overlapping histograms and density curves for each numeric column in a DataFrame.
 
-    Parameters:
-    - df: pandas DataFrame containing numeric data.
-    - exclude_column: column name to exclude from plotting.
-    - bins: number of histogram bins.
-    - alpha: transparency level for the histograms (0 = transparent, 1 = solid).
+    Args:
+        df (pd.DataFrame): DataFrame containing numeric data to plot.
+        output_filepath (str): Path to save the output plot image.
+        dpi (int): Dots per inch for the saved figure.
+        alpha (float): Transparency level for the histograms (0 = transparent, 1 = solid).
+
+    Raises:
+        ValueError: If no numeric columns are found in the DataFrame.
     """
     # Select numeric columns, excluding the specified one
     columns_to_plot = df.select_dtypes(include="number").columns
@@ -79,10 +95,18 @@ def plot_histograms_from_dataframe(df, output_filepath: str = "temp.png", dpi: i
 @hydra.main(config_path="config", config_name="viz_scores_pdf", version_base="1.3")
 def run(cfg: DictConfig) -> None:
     """
-    Run the processor with the given configuration.
+    Runs the scenario score visualization pipeline using the provided configuration.
+
+    This function loads scenario scores, generates density plots for each scoring method, and visualizes example
+    scenarios across score percentiles. It supports multiple scoring criteria and flexible dataset/visualizer
+    instantiation via Hydra.
 
     Args:
-        cfg (DictConfig): Configuration dictionary.
+        cfg (DictConfig): Configuration dictionary specifying dataset, visualizer, scoring methods, paths, and output
+            options.
+
+    Raises:
+        ValueError: If unsupported scorers are specified in the configuration.
     """
     # TODO: Adapt to different scoring criteria types (e.g, GT, Critical-vs-Average, etc.)
     seed = cfg.get("seed", 42)
@@ -103,20 +127,21 @@ def run(cfg: DictConfig) -> None:
     dataset: Dataset = hydra.utils.instantiate(cfg.dataset)
 
     logger.info("Instatiating visualizer: %s", cfg.viz._target_)
-    visualizer: BaseVisualizer = hydra.utils.instantiate(cfg.viz, dataset=dataset)
+    visualizer: BaseVisualizer = hydra.utils.instantiate(cfg.viz)
 
     # Load scores from score path
-    scenario_scores = [os.path.join(cfg.scores_path, f) for f in os.listdir(cfg.scores_path)]
+    scenario_scores_filepaths = [os.path.join(cfg.scores_path, f) for f in os.listdir(cfg.scores_path)]
     scores["scenario_ids"] = [f for f in os.listdir(cfg.scores_path) if f.endswith(".pkl")]
 
     # Generate score histogram and density plot
     logger.info(f"Visualizing density function for scores: {cfg.scores}")
-    for scenario in scenario_scores:
-        with open(scenario, "rb") as f:
-            scenario_scores = pickle.load(f)  # nosec B301
+    for scenario_filepath in scenario_scores_filepaths:
+        scenario_scores = from_pickle(scenario_filepath)  # nosec B301
+        scenario_scores = ScenarioScores.model_validate(scenario_scores)
 
         for scorer in cfg.scores:
-            scores[scorer].append(scenario_scores[scorer]["scene_score"])
+            key = f"{scorer}_scene_score"
+            scores[scorer].append(scenario_scores[key])
 
     scores_df = pd.DataFrame(scores)
     output_filepath = os.path.join(cfg.output_dir, "score_density_plot.png")
@@ -149,15 +174,16 @@ def run(cfg: DictConfig) -> None:
                 score = row[key]
                 scenario_id = row["scenario_ids"].split(".")[0]
                 logger.info(f"Processing {scenario_id} for scorer {key}")
-                scenario_input_ilepath = os.path.join(cfg.paths.scenario_base_path, f"sample_{scenario_id}.pkl")
-                with open(scenario_input_ilepath, "rb") as f:
-                    scenario_data = pickle.load(f)  # nosec B301
+                scenario_input_filepath = os.path.join(cfg.paths.scenario_base_path, f"sample_{scenario_id}.pkl")
+
+                scenario_data = from_pickle(scenario_input_filepath)  # nosec B301
+                scenario = dataset.transform_scenario_data(scenario_data)
 
                 scenario_title = f"Scenario Score: {score:.2f}"
                 scenario_output_filepath = os.path.join(
                     scenarios_path, f"scenario-id-{scenario_id}_score-{score:.2f}.png"
                 )
-                visualizer.visualize_scenario(scenario_data, scenario_title, scenario_output_filepath)
+                visualizer.visualize_scenario(scenario, scenario_title, scenario_output_filepath)
 
 
 if __name__ == "__main__":
