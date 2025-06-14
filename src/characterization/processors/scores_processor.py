@@ -4,12 +4,12 @@ from omegaconf import DictConfig
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from scenchar.features import SUPPORTED_FEATURES
-from scenchar.features.base_feature import BaseFeature
-from scenchar.processors.base_processor import BaseProcessor
-from scenchar.scorer.base_scorer import BaseScorer
-from scenchar.utils.common import from_pickle, get_logger, to_pickle
-from scenchar.utils.schemas import ScenarioFeatures, ScenarioScores
+from characterization.features import SUPPORTED_FEATURES
+from characterization.features.base_feature import BaseFeature
+from characterization.processors.base_processor import BaseProcessor
+from characterization.scorer.base_scorer import BaseScorer
+from characterization.utils.common import from_pickle, get_logger, to_pickle
+from characterization.utils.schemas import ScenarioFeatures, ScenarioScores
 
 logger = get_logger(__name__)
 
@@ -42,18 +42,15 @@ class ScoresProcessor(BaseProcessor):
 
         self.features = config.get("features", None)
         if self.features is None:
-            logger.error("Features must be specified in the configuration.")
-            raise ValueError
+            raise ValueError("Features must be specified in the configuration.")
 
         unsupported = [f for f in self.features if f not in SUPPORTED_FEATURES]
         if unsupported:
-            logger.error(f"Features {unsupported} not in supported list {SUPPORTED_FEATURES}")
-            raise ValueError
+            raise ValueError(f"Features {unsupported} not in supported list {SUPPORTED_FEATURES}")
 
         self.feature_path = config.get("feature_path", None)
         if not self.feature_path:
-            logger.error("Feature paths must be specified in the configuration.")
-            raise ValueError
+            raise ValueError("Feature paths must be specified in the configuration.")
         else:
             logger.info(f"Features will be loaded from {self.feature_path}")
 

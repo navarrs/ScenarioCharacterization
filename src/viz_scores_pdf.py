@@ -9,9 +9,9 @@ import seaborn as sns
 from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
-from scenchar.scorer import SUPPORTED_SCORERS
-from scenchar.utils.common import get_logger
-from scenchar.utils.viz.visualizer import BaseVisualizer
+from characterization.scorer import SUPPORTED_SCORERS
+from characterization.utils.common import get_logger
+from characterization.utils.viz.visualizer import BaseVisualizer
 
 logger = get_logger(__name__)
 
@@ -47,8 +47,7 @@ def plot_histograms_from_dataframe(df, output_filepath: str = "temp.png", dpi: i
     N = len(columns_to_plot)
 
     if N == 0:
-        logger.error("No numeric columns to plot after excluding the specified column.")
-        return
+        raise ValueError("No numeric columns to plot.")
 
     palette = sns.color_palette("husl", N)
 
@@ -90,13 +89,12 @@ def run(cfg: DictConfig) -> None:
     os.makedirs(cfg.output_dir, exist_ok=True)
 
     # Verify scorer type is supported
-    unsupported_scorers = [scorer for scorer in cfg.scorers if scorer not in SUPPORTED_SCORERS]
-    if unsupported_scorers:
-        logger.error(f"Scorers {unsupported_scorers} not in supported list {SUPPORTED_SCORERS}")
-        raise ValueError
+    unsupported_scores = [scorer for scorer in cfg.scores if scorer not in SUPPORTED_SCORERS]
+    if unsupported_scores:
+        raise ValueError(f"Scorers {unsupported_scores} not in supported list {SUPPORTED_SCORERS}")
     else:
         scores: dict = {}  # Initialize with an empty list for scenarios
-        for scorer in cfg.scorers:
+        for scorer in cfg.scores:
             scores[scorer] = []
 
     # Instantiate dataset and visualizer
@@ -112,12 +110,12 @@ def run(cfg: DictConfig) -> None:
     scores["scenario_ids"] = [f for f in os.listdir(cfg.scores_path) if f.endswith(".pkl")]
 
     # Generate score histogram and density plot
-    logger.info(f"Visualizing density function for scorers: {cfg.scorers}")
+    logger.info(f"Visualizing density function for scores: {cfg.scores}")
     for scenario in scenario_scores:
         with open(scenario, "rb") as f:
             scenario_scores = pickle.load(f)  # nosec B301
 
-        for scorer in cfg.scorers:
+        for scorer in cfg.scores:
             scores[scorer].append(scenario_scores[scorer]["scene_score"])
 
     scores_df = pd.DataFrame(scores)

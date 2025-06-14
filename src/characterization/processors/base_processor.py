@@ -3,9 +3,9 @@ from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader, Dataset
 
-from scenchar.features.base_feature import BaseFeature
-from scenchar.scorer.base_scorer import BaseScorer
-from scenchar.utils.common import get_logger
+from characterization.features.base_feature import BaseFeature
+from characterization.scorer.base_scorer import BaseScorer
+from characterization.utils.common import get_logger
 
 logger = get_logger(__name__)
 
@@ -45,8 +45,7 @@ class BaseProcessor(ABC):
         self.output_path = config.get("output_path", None)
         if self.save:
             if self.output_path is None:
-                logger.error("Output path must be specified in the configuration.")
-                raise ValueError
+                raise ValueError("Output path must be specified in the configuration.")
             else:
                 logger.info(f"Features {self.characterizer.name} will be saved to {self.output_path}")
 

@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
-from scenchar.utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
+from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
 
 logger = get_logger(__name__)
 

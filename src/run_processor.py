@@ -2,10 +2,10 @@ import hydra
 from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
-from scenchar.features.base_feature import BaseFeature
-from scenchar.processors.base_processor import BaseProcessor
-from scenchar.scorer.base_scorer import BaseScorer
-from scenchar.utils.common import get_logger, make_output_paths
+from characterization.features.base_feature import BaseFeature
+from characterization.processors.base_processor import BaseProcessor
+from characterization.scorer.base_scorer import BaseScorer
+from characterization.utils.common import get_logger, make_output_paths
 
 logger = get_logger(__name__)
 

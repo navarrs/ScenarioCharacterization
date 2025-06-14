@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 from omegaconf import DictConfig
 
-from scenchar.utils.common import EPS
-from scenchar.utils.schemas import Scenario, ScenarioFeatures, ScenarioScores
+from characterization.utils.common import EPS
+from characterization.utils.schemas import Scenario, ScenarioFeatures, ScenarioScores
 
 
 class BaseScorer(ABC):

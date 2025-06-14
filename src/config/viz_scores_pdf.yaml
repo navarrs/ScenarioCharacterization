@@ -4,7 +4,7 @@ defaults:
 
 scores_path: ${paths.output_paths.scores_cache_path}
 
-scorers:
+scores:
   - individual_scorer
   - interaction_scorer
 

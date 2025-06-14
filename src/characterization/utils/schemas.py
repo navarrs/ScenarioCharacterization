@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import BaseModel, BeforeValidator, NonNegativeInt, PositiveInt
 
-from scenchar.utils.common import InteractionStatus
+from characterization.utils.common import InteractionStatus
 
 DType = TypeVar("DType", bound=np.generic)
 

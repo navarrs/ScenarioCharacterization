@@ -1,4 +1,0 @@
-defaults:
- - feature.yaml
-
-_target_: scenchar.scorer.base_scorer.BaseScorer

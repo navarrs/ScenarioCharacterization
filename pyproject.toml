@@ -3,7 +3,7 @@ requires = ["setuptools==67.6.0", "wheel==0.45.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "scenchar"
+name = "scene-characterization"
 version = "0.1.0"
 authors = [
     {name="Ingrid Navarro", email="ingridn@cmu.edu"},

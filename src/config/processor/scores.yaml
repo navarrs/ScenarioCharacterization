@@ -1,4 +1,4 @@
-_target_: scenchar.processors.scores_processor.ScoresProcessor
+_target_: characterization.processors.scores_processor.ScoresProcessor
 config:
   scenario_type: ${scenario_type}
 
