@@ -4,13 +4,19 @@ import numpy as np
 from characterization.utils.schemas import Scenario
 from characterization.utils.viz.visualizer import BaseVisualizer
 
+# from matplotlib.patches import Rectangle
+
 
 class WaymoVisualizer(BaseVisualizer):
     def __init__(self, config):
         super().__init__(config)
 
     def visualize_scenario(
-        self, scenario: Scenario, title: str = "Scenario", output_filepath: str = "temp.png"
+        self,
+        scenario: Scenario,
+        scores: dict = {},  # Optional scores for the scenario
+        title: str = "Scenario",
+        output_filepath: str = "temp.png",
     ) -> None:
         """
         Visualizes a single Waymo scenario, including static and dynamic map elements, and agent trajectories.
@@ -30,11 +36,11 @@ class WaymoVisualizer(BaseVisualizer):
         num_windows = 2
         fig, axs = plt.subplots(1, num_windows, figsize=(5 * num_windows, 5 * 1))
 
-        self.plot_static_map_infos(scenario.static_map_info, axs, num_windows=num_windows)
-        self.plot_dynamic_map_infos(scenario.dynamic_map_info, axs, num_windows=num_windows)
+        self.plot_static_map_infos(axs, scenario.static_map_info, num_windows=num_windows)
+        self.plot_dynamic_map_infos(axs, scenario.dynamic_map_info, num_windows=num_windows)
 
-        self.plot_sequences(scenario, axs[0])
-        self.plot_sequences(scenario, axs[1], show_relevant=True)
+        self.plot_sequences(axs[0], scenario, scores)
+        self.plot_sequences(axs[1], scenario, scores, show_relevant=True)
 
         for ax in axs.reshape(-1):
             ax.set_xticks([])
@@ -45,9 +51,41 @@ class WaymoVisualizer(BaseVisualizer):
         axs[1].set_title("Highlighted Relevant and SDC Agent Trajectories")
         plt.subplots_adjust(wspace=0.05)
         plt.savefig(output_filepath, dpi=300, bbox_inches="tight")
+        ax.cla()
         plt.close()
 
-    def plot_sequences(self, scenario: Scenario, ax: plt.Axes, show_relevant: bool = False) -> None:
+    def plot_agent(
+        self, ax: plt.Axes, x: float, y: float, heading: float, width: float, height: float, alpha: float
+    ) -> None:
+        """
+        Plots a single agent on the given axes.
+
+        Args:
+            ax (matplotlib.axes.Axes): Axes to plot on.
+            pos (np.ndarray): Position of the agent.
+            heading (float): Heading angle of the agent.
+            width (float): Width of the agent.
+            height (float): Height of the agent.
+
+        Returns:
+            None
+        """
+        ax.scatter(x, y, s=8, zorder=1000, c="magenta", marker="o", alpha=alpha)
+        # angle_deg = np.rad2deg(heading)
+        # rect = Rectangle(
+        #     (x - width / 2, y - height / 2),
+        #     width,
+        #     height,
+        #     angle=angle_deg,
+        #     # linewidth=2,
+        #     # edgecolor='blue',
+        #     facecolor='magenta',
+        #     alpha=alpha,
+        #     zorder=100,
+        # )
+        # ax.add_patch(rect)
+
+    def plot_sequences(self, ax: plt.Axes, scenario: Scenario, scores, show_relevant: bool = False) -> None:
         """
         Plots agent trajectories for a scenario, with optional highlighting of relevant and SDC agents.
 
@@ -60,11 +98,20 @@ class WaymoVisualizer(BaseVisualizer):
             None
         """
         agent_positions = scenario.agent_positions
+        agent_dimensions = scenario.agent_dimensions  # length, width, height
+        agent_headings = scenario.agent_headings
         agent_types = scenario.agent_types
         agent_valid = scenario.agent_valid
         agent_relevance = scenario.agent_relevance
         ego_index = scenario.ego_index
         relevant_indeces = np.where(agent_relevance > 0.0)[0]
+
+        min_score = np.nanmin(scores)
+        max_score = np.nanmax(scores)
+        if max_score > min_score:
+            scores = np.clip((scores - min_score) / (max_score - min_score), a_min=0.05, a_max=1.0)
+        else:
+            scores = 0.05 * np.ones_like(scores)
 
         if show_relevant:
             # TODO: make agent_types a numpy array
@@ -72,16 +119,22 @@ class WaymoVisualizer(BaseVisualizer):
                 agent_types[idx] = "TYPE_RELEVANT"
             agent_types[ego_index] = "TYPE_SDC"  # Mark ego agent for visualization
 
-        zipped = zip(agent_positions, agent_valid, agent_types)
-        for agent_positions, agent_mask, agent_type in zipped:
-            if not agent_mask.any() or agent_mask.sum() < 2:
+        zipped = zip(agent_positions, agent_dimensions, agent_headings, agent_valid, agent_types, scores)
+        for apos, adim, ahead, amask, atype, score in zipped:
+            amask = amask.squeeze(-1)
+            if not amask.any() or amask.sum() < 2:
                 continue
 
-            pos = agent_positions[agent_mask.squeeze(-1), :]
-            color = self.agent_colors[agent_type]
-            ax.plot(pos[:, 0], pos[:, 1], color=color, linewidth=2)
+            pos = apos[amask, :]
+            heading = ahead[amask][0]
+            lenght = adim[0, 0]
+            width = adim[0, 1]
+            color = self.agent_colors[atype]
+            ax.plot(pos[:, 0], pos[:, 1], color=color, linewidth=2, alpha=score)
+            # Plot the agent
+            self.plot_agent(ax, pos[0, 0], pos[0, 1], heading, lenght, width, score)
 
-    def plot_static_map_infos(self, map_information: dict, ax: plt.Axes, num_windows: int = 0, dim: int = 2) -> None:
+    def plot_static_map_infos(self, ax: plt.Axes, map_information: dict, num_windows: int = 0, dim: int = 2) -> None:
         """
         Plots static map information such as lanes, stop signs, and crosswalks for a scenario.
 
@@ -116,7 +169,7 @@ class WaymoVisualizer(BaseVisualizer):
                     dim=dim,
                 )
 
-    def plot_dynamic_map_infos(self, map_information: dict, ax: plt.Axes, num_windows: int = 0, dim: int = 2):
+    def plot_dynamic_map_infos(self, ax: plt.Axes, map_information: dict, num_windows: int = 0, dim: int = 2):
         """
         Plots dynamic map information such as stop points for a scenario.
 
