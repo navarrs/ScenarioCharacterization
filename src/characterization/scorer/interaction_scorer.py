@@ -3,7 +3,7 @@ from omegaconf import DictConfig
 
 from characterization.features.interaction_features import InteractionStatus
 from characterization.scorer.base_scorer import BaseScorer
-from characterization.utils.common import get_logger
+from characterization.utils.common import EPS, get_logger
 from characterization.utils.schemas import Scenario, ScenarioFeatures, ScenarioScores
 
 logger = get_logger(__name__)
@@ -29,7 +29,8 @@ class InteractionScorer(BaseScorer):
         """
         collision = kwargs.get("collision", 0.0)
         mttcp = kwargs.get("mttcp", 0.0)
-        return self.weights.collision * collision + min(self.detections.mttcp, self.weights.mttcp * mttcp)
+        inv_mttcp = 1.0 / (mttcp + EPS)
+        return self.weights.collision * collision + self.weights.mttcp * min(self.detections.mttcp, inv_mttcp)
 
     def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> ScenarioScores:
         """Computes interaction scores for agent pairs and a scene-level score from scenario features.

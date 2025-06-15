@@ -118,8 +118,10 @@ def run(cfg: DictConfig) -> None:
         raise ValueError(f"Scorers {unsupported_scores} not in supported list {SUPPORTED_SCORERS}")
     else:
         scores: dict = {}  # Initialize with an empty list for scenarios
+        agent_scores: dict = {}  # Initialize with an empty list for agents
         for scorer in cfg.scores:
             scores[scorer] = []
+            agent_scores[scorer] = []
 
     # Instantiate dataset and visualizer
     cfg.dataset.config.load = False
@@ -132,6 +134,7 @@ def run(cfg: DictConfig) -> None:
     # Load scores from score path
     scenario_scores_filepaths = [os.path.join(cfg.scores_path, f) for f in os.listdir(cfg.scores_path)]
     scores["scenario_ids"] = [f for f in os.listdir(cfg.scores_path) if f.endswith(".pkl")]
+    agent_scores["scenario_ids"] = scores["scenario_ids"]
 
     # Generate score histogram and density plot
     logger.info(f"Visualizing density function for scores: {cfg.scores}")
@@ -142,11 +145,14 @@ def run(cfg: DictConfig) -> None:
         for scorer in cfg.scores:
             key = f"{scorer}_scene_score"
             scores[scorer].append(scenario_scores[key])
+            key = f"{scorer}_agent_scores"
+            agent_scores[scorer].append(scenario_scores[key])
 
     scores_df = pd.DataFrame(scores)
     output_filepath = os.path.join(cfg.output_dir, "score_density_plot.png")
     plot_histograms_from_dataframe(scores_df, output_filepath, cfg.dpi)
 
+    agent_scores_df = pd.DataFrame(agent_scores)
     # Generate scenario visualizations
     for key in scores_df.keys():
         if "scenario" in key:
@@ -172,7 +178,10 @@ def run(cfg: DictConfig) -> None:
 
             for index, row in rows.iterrows():
                 score = row[key]
+                scenario_id = row["scenario_ids"]
+                agent_scores = agent_scores_df[agent_scores_df["scenario_ids"] == scenario_id][key].values[0]
                 scenario_id = row["scenario_ids"].split(".")[0]
+
                 logger.info(f"Processing {scenario_id} for scorer {key}")
                 scenario_input_filepath = os.path.join(cfg.paths.scenario_base_path, f"sample_{scenario_id}.pkl")
 
@@ -183,7 +192,9 @@ def run(cfg: DictConfig) -> None:
                 scenario_output_filepath = os.path.join(
                     scenarios_path, f"scenario-id-{scenario_id}_score-{score:.2f}.png"
                 )
-                visualizer.visualize_scenario(scenario, scenario_title, scenario_output_filepath)
+                visualizer.visualize_scenario(
+                    scenario, scores=agent_scores, title=scenario_title, output_filepath=scenario_output_filepath
+                )
 
 
 if __name__ == "__main__":

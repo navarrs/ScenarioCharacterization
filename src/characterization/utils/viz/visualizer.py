@@ -53,7 +53,7 @@ class BaseVisualizer(ABC):
 
     @abstractmethod
     def visualize_scenario(
-        self, scenario: Scenario, title: str = "Scenario", output_filepath: str = "temp.png"
+        self, scenario: Scenario, scores: dict = {}, title: str = "Scenario", output_filepath: str = "temp.png"
     ) -> None:
         """
         Visualizes a single scenario and saves the output to a file.
