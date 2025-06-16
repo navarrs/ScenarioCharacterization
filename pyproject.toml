@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scenario-characterization"
-version = "0.1.0"
+version = "0.1.2"
 authors = [
     {name="Ingrid Navarro", email="ingridn@cmu.edu"},
 ]
@@ -64,6 +64,12 @@ Repository = "https://github.com/navarrs/ScenarioCharacterization"
 [tool.setuptools.packages.find]
 where = ["src"]
 exclude = ["tests", "docs", "examples", "scripts"]
+
+[tool.setuptools.package-data]
+"characterization" = ["**/*.yaml"]
+
+[tool.setuptools]
+include-package-data = true
 
 [tool.black]
 line-length = 120
