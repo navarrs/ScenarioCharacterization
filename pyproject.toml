@@ -63,7 +63,7 @@ Repository = "https://github.com/navarrs/ScenarioCharacterization"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-exclude = ["tests", "docs", "examples", "scripts", "config"]
+exclude = ["tests", "docs", "examples", "scripts"]
 
 [tool.black]
 line-length = 120
