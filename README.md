@@ -3,7 +3,9 @@
 A generalizable, automated scenario characterization framework for trajectory datasets.
 Currently, this is a re-implementation of the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift).
 
-This repository uses:
+Repository: [github.com/navarrs/ScenarioCharacterization](https://github.com/navarrs/ScenarioCharacterization)
+
+This repository currently uses:
 - [uv](https://docs.astral.sh/uv/) as the package manager.
 - [Hydra](https://hydra.cc/docs/intro/) for hierarchical configuration management.
 - [Pydantic](https://docs.pydantic.dev/latest/) for input/output data validation.
@@ -13,8 +15,9 @@ This repository uses:
 > **Note:** This project is a work in progress.
 
 ### Install the package
-
-TBD
+```
+uv pip install scenario-characterization
+```
 
 ### Install the package in editable mode
 
@@ -36,12 +39,3 @@ uv run pip install -e ".[waymo]"
 - [Schemas](./docs/SCHEMAS.md): Guidelines for creating dataset adapters and processors that comply with the required input/output schemas.
 - [Characterization](./docs/CHARACTERIZATION.md): Details on supported scenario characterization and visualization tools, and how to use them.
 - [Example](./docs/EXAMPLE.md): Step-by-step usage example using the [Waymo Open Motion Dataset](https://waymo.com/open).
-
-## Development
-
-### Pre-commit Checks
-
-To run all pre-commit hooks on your files:
-```bash
-uv run pre-commit run --all-files
-```

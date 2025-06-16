@@ -24,7 +24,7 @@ Sample files will be provided under the `samples` directory for basic pipeline t
 3. **Pre-process the data**
    (Script adapted from [SafeShift](https://github.com/cmubig/SafeShift?tab=readme-ov-file#waymo-dataset-preparation)):
    ```bash
-   uv run src/utils/datasets/waymo_preprocess.py ./samples/raw ./samples/scenarios
+   uv run -m characterization.datasets.waymo_preprocess.py ./samples/raw ./samples/scenarios
    ```
    This will create temporary scenario files under `samples/scenarios` for use by the pipeline.
    A `test.yaml` file is also provided under `config/paths` with local paths pointing to the sample data.
@@ -36,8 +36,8 @@ Sample files will be provided under the `samples` directory for basic pipeline t
 ### 2. Compute Features
 
 ```bash
-uv run src/run_processor.py processor=features characterizer=individual_features paths=test
-uv run src/run_processor.py processor=features characterizer=interaction_features paths=test
+uv run -m characterization.run_processor processor=features characterizer=individual_features paths=test
+uv run -m characterization.run_processor processor=features characterizer=interaction_features paths=test
 ```
 
 This will create a `./cache` directory containing temporary feature data:
@@ -49,8 +49,8 @@ This will create a `./cache` directory containing temporary feature data:
 ### 3. Compute Scores
 
 ```bash
-uv run src/run_processor.py processor=scores characterizer=individual_scores paths=test
-uv run src/run_processor.py processor=scores characterizer=interaction_scores paths=test
+uv run -m characterization.run_processor processor=scores characterizer=individual_scores paths=test
+uv run -m characterization.run_processor processor=scores characterizer=interaction_scores paths=test
 ```
 
 This step uses the pre-computed features to generate per-agent and per-scenario scores, saved to `./cache/scores/gt_critical`.
@@ -60,7 +60,7 @@ This step uses the pre-computed features to generate per-agent and per-scenario 
 ### 4. Visualize Scores and Scenarios
 
 ```bash
-uv run src/viz_scores_pdf.py paths=test
+uv run -m characterization.viz_scores_pdf paths=test
 ```
 
 This will generate and save a density plot of the scored scenarios to
