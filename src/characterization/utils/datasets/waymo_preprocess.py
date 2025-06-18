@@ -270,7 +270,7 @@ def decode_map_features_from_proto(map_features):
         print("No polylines found in the map features.")
         return map_infos
 
-    polylines = np.concatenate(polylines, axis=0).astype(np.float32)
+    polylines = np.concatenate(polylines_list, axis=0).astype(np.float32)
     map_infos["all_polylines"] = polylines
     return map_infos
 
