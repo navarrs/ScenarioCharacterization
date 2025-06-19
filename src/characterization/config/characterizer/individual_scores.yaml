@@ -4,6 +4,8 @@ defaults:
 _target_: characterization.scorer.individual_scorer.IndividualScorer
 
 config:
+  individual_score_function: simple
+
   score_clip:
     min: 0.0
     max: 150.0

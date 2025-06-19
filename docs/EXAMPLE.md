@@ -51,6 +51,7 @@ This will create a `./cache` directory containing temporary feature data:
 ```bash
 uv run -m characterization.run_processor processor=scores characterizer=individual_scores paths=test
 uv run -m characterization.run_processor processor=scores characterizer=interaction_scores paths=test
+uv run -m characterization.run_processor processor=scores characterizer=safeshift_scores paths=test
 ```
 
 This step uses the pre-computed features to generate per-agent and per-scenario scores, saved to `./cache/scores/gt_critical`.
