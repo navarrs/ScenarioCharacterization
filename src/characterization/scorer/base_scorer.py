@@ -19,7 +19,7 @@ class BaseScorer(ABC):
         super(BaseScorer, self).__init__()
         self.config = config
         self.characterizer_type = "score"
-        self.features = self.config.features
+        self.features = self.config.get("features", None)
         self.detections = self.config.detections
         self.weights = self.config.weights
         self.score_clip = self.config.score_clip

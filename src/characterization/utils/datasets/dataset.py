@@ -1,7 +1,6 @@
 import math
 from abc import ABC, abstractmethod
 
-from easydict import EasyDict
 from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
@@ -47,11 +46,14 @@ class BaseDataset(Dataset, ABC):
         self.num_shards = config.get("num_shards", 1)
         self.shard_index = config.get("shard_index", 0)
 
-        self.data = EasyDict()
-        self.data.scenarios = []
-        self.data.scenarios_ids = []
-        self.data.conflict_points = []
-        self.data.metas = []
+        self.data = DictConfig(
+            {
+                "scenarios": [],
+                "scenarios_ids": [],
+                "conflict_points": [],
+                "metas": [],
+            }
+        )
 
     @property
     def name(self) -> str:
