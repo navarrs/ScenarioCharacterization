@@ -149,6 +149,7 @@ def run(cfg: DictConfig) -> None:
             agent_scores[scorer].append(scenario_scores[key])
 
     scores_df = pd.DataFrame(scores)
+
     output_filepath = os.path.join(cfg.output_dir, "score_density_plot.png")
     plot_histograms_from_dataframe(scores_df, output_filepath, cfg.dpi)
 

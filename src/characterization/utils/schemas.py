@@ -119,8 +119,8 @@ class ScenarioScores(BaseModel):
     interaction_scene_score: float | None = None
 
     # Combined Scores
-    combined_agent_scores: Float32NDArray1D | None = None
-    combined_scene_score: float | None = None
+    safeshift_agent_scores: Float32NDArray1D | None = None
+    safeshift_scene_score: float | None = None
 
     model_config = {"arbitrary_types_allowed": True}
 
