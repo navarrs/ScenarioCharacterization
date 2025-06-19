@@ -14,7 +14,7 @@ class BaseFeature(ABC):
             config (DictConfig): Configuration for the feature.
         """
         self.config = config
-        self.features = config.features
+        self.features = config.get("features", None)
         self.characterizer_type = "feature"
 
     @property
