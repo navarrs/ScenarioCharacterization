@@ -6,6 +6,7 @@ import time
 import numpy as np
 from natsort import natsorted
 from omegaconf import DictConfig
+from pydantic import ValidationError
 from scipy.signal import resample
 from tqdm import tqdm
 
@@ -115,10 +116,24 @@ class WaymoData(BaseDataset):
             dict: The transformed scenario data, including agent and map information.
         """
 
+        def get_polyline_ids(polyline: dict, key: str) -> np.ndarray:
+            """Extracts polyline indices from the polyline dictionary."""
+            return np.array([value["id"] for value in polyline[key]], dtype=np.int32)
+
+        def get_speed_limit_mph(polyline: dict, key: str) -> np.ndarray:
+            """Extracts speed limit in mph from the polyline dictionary."""
+            speed_limit_mph = np.array([value["speed_limit_mph"] for value in polyline[key]], dtype=np.float32)
+            # if speed_limit_mph.shape[0] == 0:
+            #     return np.empty((0,), dtype=np.float32)
+            return speed_limit_mph
+
         def get_polyline_idxs(polyline: dict, key: str) -> np.ndarray:
-            return np.array(
+            polyline_idxs = np.array(
                 [[value["polyline_index"][0], value["polyline_index"][1]] for value in polyline[key]], dtype=np.int32
             )
+            if polyline_idxs.shape[0] == 0:
+                return None
+            return polyline_idxs
 
         sdc_index = scenario_data["sdc_track_index"]
         trajs = scenario_data["track_infos"]["trajs"]
@@ -128,6 +143,7 @@ class WaymoData(BaseDataset):
             None if conflict_points is None else conflict_points["agent_distances_to_conflict_points"]
         )
         conflict_points = None if conflict_points is None else conflict_points["all_conflict_points"]
+        num_conflict_points = 0 if conflict_points is None else conflict_points.shape[0]
 
         # TODO: improve this relevance criteria
         agent_relevance = np.zeros(num_agents, dtype=np.float32)
@@ -139,43 +155,89 @@ class WaymoData(BaseDataset):
         for idx, difficulty in zip(tracks_to_predict_index, tracks_to_predict_difficulty):
             agent_relevance[idx] = self.DIFFICULTY_WEIGHTS.get(difficulty, 0.0)
 
+        # Extract static map information
         map_infos = scenario_data.get("map_infos", None)
-        dynamic_map_infos = scenario_data.get("dynamic_map_infos", None)
+        num_polylines, map_polylines = 0, None
+        if map_infos is not None:
+            map_polylines = map_infos["all_polylines"].astype(np.float32)  # shape: [N, 3] or [N, 3, 2]
+            num_polylines = map_polylines.shape[0]
+            lane_ids = get_polyline_ids(map_infos, "lane") if "lane" in map_infos else None
+            lane_speed_limits_mph = get_speed_limit_mph(map_infos, "lane") if "lane" in map_infos else None
+            lane_polyline_idxs = get_polyline_idxs(map_infos, "lane") if "lane" in map_infos else None
+            road_line_ids = get_polyline_ids(map_infos, "road_line") if "road_line" in map_infos else None
+            road_line_polyline_idxs = get_polyline_idxs(map_infos, "road_line") if "road_line" in map_infos else None
+            road_edge_ids = get_polyline_ids(map_infos, "road_edge") if "road_edge" in map_infos else None
+            road_edge_polyline_idxs = get_polyline_idxs(map_infos, "road_edge") if "road_edge" in map_infos else None
+            crosswalk_ids = get_polyline_ids(map_infos, "crosswalk") if "crosswalk" in map_infos else None
+            crosswalk_polyline_idxs = get_polyline_idxs(map_infos, "crosswalk") if "crosswalk" in map_infos else None
+            speed_bump_ids = get_polyline_ids(map_infos, "speed_bump") if "speed_bump" in map_infos else None
+            speed_bump_polyline_idxs = get_polyline_idxs(map_infos, "speed_bump") if "speed_bump" in map_infos else None
+            stop_sign_ids = get_polyline_ids(map_infos, "stop_sign") if "stop_sign" in map_infos else None
+            stop_sign_polyline_idxs = get_polyline_idxs(map_infos, "stop_sign") if "stop_sign" in map_infos else None
+            stop_sign_lane_ids = [stop_sign["lane_ids"] for stop_sign in map_infos.get("stop_sign", {"lane_ids": []})]
 
-        return Scenario(
-            num_agents=num_agents,
-            scenario_id=scenario_data["scenario_id"],
-            ego_index=sdc_index,
-            ego_id=scenario_data["track_infos"]["object_id"][sdc_index],
-            agent_ids=scenario_data["track_infos"]["object_id"],
-            agent_types=scenario_data["track_infos"]["object_type"],
-            agent_valid=trajs[:, :, self.AGENT_VALID].astype(np.bool_),
-            agent_positions=trajs[:, :, self.POS_XYZ_IDX],
-            agent_dimensions=trajs[:, :, self.AGENT_DIMS],
-            agent_velocities=trajs[:, :, self.VEL_XY_IDX],
-            agent_headings=trajs[:, :, self.HEADING_IDX],
-            agent_relevance=agent_relevance,
-            last_observed_timestep=scenario_data["current_time_index"],
-            total_timesteps=self.LAST_TIMESTEP,
-            stationary_speed=self.STATIONARY_SPEED,
-            agent_to_agent_max_distance=self.AGENT_TO_AGENT_MAX_DISTANCE,
-            agent_to_conflict_point_max_distance=self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE,
-            agent_to_agent_distance_breach=self.AGENT_TO_AGENT_DISTANCE_BREACH,
-            timestamps=np.asarray(scenario_data["timestamps_seconds"], dtype=np.float32),
-            map_conflict_points=conflict_points,
-            agent_distances_to_conflict_points=agent_distances_to_conflict_points,
-            # TODO: standardize map information
-            static_map_info=map_infos,
-            dynamic_map_info=dynamic_map_infos,
-            # map_polylines=map_infos["all_polylines"] if map_infos else None,
-            # polyline_idxs_lane=get_polyline_idxs(map_infos, "lane") if map_infos else None,
-            # polyline_idxs_road_line=get_polyline_idxs(map_infos, "road_line") if map_infos else None,
-            # polyline_idxs_road_edge=get_polyline_idxs(map_infos, "road_edge") if map_infos else None,
-            # polyline_idxs_crosswalk=get_polyline_idxs(map_infos, "crosswalk") if map_infos else None,
-            # polyline_idxs_speed_bump=get_polyline_idxs(map_infos, "speed_bump") if map_infos else None,
-            # polyline_idxs_stop_sign=get_polyline_idxs(map_infos, "stop_sign") if map_infos else None,
-            # map_stop_points=dynamic_map_infos["stop_point"] if dynamic_map_infos else None,
-        )
+        # Extract static and dynamic map information
+        dynamic_map_infos = scenario_data.get("dynamic_map_infos", None)
+        num_dynamic_stop_points = 0
+        dynamic_stop_points = None
+        dynamic_stop_points_lane_ids = None
+        if dynamic_map_infos is not None:
+            # For dynamic map information, we only need stop points for conflict points
+            if "stop_point" in dynamic_map_infos and len(dynamic_map_infos["stop_point"]) > 0:
+                dynamic_stop_points = dynamic_map_infos["stop_point"]  # shape: [N, 3] or [N, 3, 2]
+                num_dynamic_stop_points = len(dynamic_stop_points)
+                if num_dynamic_stop_points > 0 and len(dynamic_stop_points[0]) > 0:
+                    dynamic_stop_points = dynamic_stop_points[0].astype(np.float32).squeeze(axis=0)  # shape: [N, 3]
+                    dynamic_stop_points_lane_ids = dynamic_map_infos["lane_id"][0].astype(np.int32).squeeze(axis=0)
+
+        # TODO: add type of lane, road, etc
+        try:
+            scenario = Scenario(
+                num_agents=num_agents,
+                scenario_id=scenario_data["scenario_id"],
+                ego_index=sdc_index,
+                ego_id=scenario_data["track_infos"]["object_id"][sdc_index],
+                agent_ids=scenario_data["track_infos"]["object_id"],
+                agent_types=scenario_data["track_infos"]["object_type"],
+                agent_valid=trajs[:, :, self.AGENT_VALID].astype(np.bool_),
+                agent_positions=trajs[:, :, self.POS_XYZ_IDX],
+                agent_dimensions=trajs[:, :, self.AGENT_DIMS],
+                agent_velocities=trajs[:, :, self.VEL_XY_IDX],
+                agent_headings=trajs[:, :, self.HEADING_IDX],
+                agent_relevance=agent_relevance,
+                last_observed_timestep=scenario_data["current_time_index"],
+                total_timesteps=self.LAST_TIMESTEP,
+                stationary_speed=self.STATIONARY_SPEED,
+                agent_to_agent_max_distance=self.AGENT_TO_AGENT_MAX_DISTANCE,
+                agent_to_conflict_point_max_distance=self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE,
+                agent_to_agent_distance_breach=self.AGENT_TO_AGENT_DISTANCE_BREACH,
+                timestamps=np.asarray(scenario_data["timestamps_seconds"], dtype=np.float32),
+                num_conflict_points=num_conflict_points,
+                map_conflict_points=conflict_points,
+                agent_distances_to_conflict_points=agent_distances_to_conflict_points,
+                num_polylines=num_polylines,
+                map_polylines=map_polylines,
+                lane_ids=lane_ids,
+                lane_speed_limits_mph=lane_speed_limits_mph,
+                lane_polyline_idxs=lane_polyline_idxs,
+                road_line_ids=road_line_ids,
+                road_line_polyline_idxs=road_line_polyline_idxs,
+                road_edge_ids=road_edge_ids,
+                road_edge_polyline_idxs=road_edge_polyline_idxs,
+                crosswalk_ids=crosswalk_ids,
+                crosswalk_polyline_idxs=crosswalk_polyline_idxs,
+                speed_bump_ids=speed_bump_ids,
+                speed_bump_polyline_idxs=speed_bump_polyline_idxs,
+                stop_sign_ids=stop_sign_ids,
+                stop_sign_polyline_idxs=stop_sign_polyline_idxs,
+                stop_sign_lane_ids=stop_sign_lane_ids,
+                num_dynamic_stop_points=num_dynamic_stop_points,
+                dynamic_stop_points=dynamic_stop_points,
+                dynamic_stop_points_lane_ids=dynamic_stop_points_lane_ids,
+            )
+        except (ValidationError, TypeError) as e:
+            raise e
+        return scenario
 
     def check_conflict_points(self):
         """Checks if conflict points are already computed for each scenario.
