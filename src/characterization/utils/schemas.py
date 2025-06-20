@@ -186,7 +186,7 @@ class ScenarioFeatures(BaseModel):
         collision (Float32NDArray1D | None): Collision distance between agents at each timestep.
         mttcp (Float32NDArray1D | None): Minimum time to conflict point (mTTCP) for each agent at each timestep.
         interaction_status (List[InteractionStatus] | None):
-            List of interaction statuses for each agent pair in the scenario, indicating the status of their interactions.
+            List of interaction statuses for each agent pair in the scenario.
         interaction_agent_indices (List[tuple[int, int]] | None):
             List of tuples representing the indices of interacting agents in the scenario.
         interaction_agent_types (List[tuple[str, str]] | None):

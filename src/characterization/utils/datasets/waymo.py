@@ -6,6 +6,7 @@ import time
 import numpy as np
 from natsort import natsorted
 from omegaconf import DictConfig
+from pydantic import ValidationError
 from scipy.signal import resample
 from tqdm import tqdm
 
@@ -182,61 +183,61 @@ class WaymoData(BaseDataset):
         dynamic_stop_points_lane_ids = None
         if dynamic_map_infos is not None:
             # For dynamic map information, we only need stop points for conflict points
-            if "stop_point" in dynamic_map_infos:
+            if "stop_point" in dynamic_map_infos and len(dynamic_map_infos["stop_point"]) > 0:
                 dynamic_stop_points = dynamic_map_infos["stop_point"]  # shape: [N, 3] or [N, 3, 2]
                 num_dynamic_stop_points = len(dynamic_stop_points)
                 if num_dynamic_stop_points > 0 and len(dynamic_stop_points[0]) > 0:
                     dynamic_stop_points = dynamic_stop_points[0].astype(np.float32).squeeze(axis=0)  # shape: [N, 3]
-                dynamic_stop_points_lane_ids = (
-                    dynamic_map_infos["lane_id"][0].astype(np.int32).squeeze(axis=0)
-                    if "lane_id" in dynamic_map_infos
-                    else None
-                )
+                    dynamic_stop_points_lane_ids = dynamic_map_infos["lane_id"][0].astype(np.int32).squeeze(axis=0)
 
         # TODO: add type of lane, road, etc
-        return Scenario(
-            num_agents=num_agents,
-            scenario_id=scenario_data["scenario_id"],
-            ego_index=sdc_index,
-            ego_id=scenario_data["track_infos"]["object_id"][sdc_index],
-            agent_ids=scenario_data["track_infos"]["object_id"],
-            agent_types=scenario_data["track_infos"]["object_type"],
-            agent_valid=trajs[:, :, self.AGENT_VALID].astype(np.bool_),
-            agent_positions=trajs[:, :, self.POS_XYZ_IDX],
-            agent_dimensions=trajs[:, :, self.AGENT_DIMS],
-            agent_velocities=trajs[:, :, self.VEL_XY_IDX],
-            agent_headings=trajs[:, :, self.HEADING_IDX],
-            agent_relevance=agent_relevance,
-            last_observed_timestep=scenario_data["current_time_index"],
-            total_timesteps=self.LAST_TIMESTEP,
-            stationary_speed=self.STATIONARY_SPEED,
-            agent_to_agent_max_distance=self.AGENT_TO_AGENT_MAX_DISTANCE,
-            agent_to_conflict_point_max_distance=self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE,
-            agent_to_agent_distance_breach=self.AGENT_TO_AGENT_DISTANCE_BREACH,
-            timestamps=np.asarray(scenario_data["timestamps_seconds"], dtype=np.float32),
-            num_conflict_points=num_conflict_points,
-            map_conflict_points=conflict_points,
-            agent_distances_to_conflict_points=agent_distances_to_conflict_points,
-            num_polylines=num_polylines,
-            map_polylines=map_polylines,
-            lane_ids=lane_ids,
-            lane_speed_limits_mph=lane_speed_limits_mph,
-            lane_polyline_idxs=lane_polyline_idxs,
-            road_line_ids=road_line_ids,
-            road_line_polyline_idxs=road_line_polyline_idxs,
-            road_edge_ids=road_edge_ids,
-            road_edge_polyline_idxs=road_edge_polyline_idxs,
-            crosswalk_ids=crosswalk_ids,
-            crosswalk_polyline_idxs=crosswalk_polyline_idxs,
-            speed_bump_ids=speed_bump_ids,
-            speed_bump_polyline_idxs=speed_bump_polyline_idxs,
-            stop_sign_ids=stop_sign_ids,
-            stop_sign_polyline_idxs=stop_sign_polyline_idxs,
-            stop_sign_lane_ids=stop_sign_lane_ids,
-            num_dynamic_stop_points=num_dynamic_stop_points,
-            dynamic_stop_points=dynamic_stop_points,
-            dynamic_stop_points_lane_ids=dynamic_stop_points_lane_ids,
-        )
+        try:
+            scenario = Scenario(
+                num_agents=num_agents,
+                scenario_id=scenario_data["scenario_id"],
+                ego_index=sdc_index,
+                ego_id=scenario_data["track_infos"]["object_id"][sdc_index],
+                agent_ids=scenario_data["track_infos"]["object_id"],
+                agent_types=scenario_data["track_infos"]["object_type"],
+                agent_valid=trajs[:, :, self.AGENT_VALID].astype(np.bool_),
+                agent_positions=trajs[:, :, self.POS_XYZ_IDX],
+                agent_dimensions=trajs[:, :, self.AGENT_DIMS],
+                agent_velocities=trajs[:, :, self.VEL_XY_IDX],
+                agent_headings=trajs[:, :, self.HEADING_IDX],
+                agent_relevance=agent_relevance,
+                last_observed_timestep=scenario_data["current_time_index"],
+                total_timesteps=self.LAST_TIMESTEP,
+                stationary_speed=self.STATIONARY_SPEED,
+                agent_to_agent_max_distance=self.AGENT_TO_AGENT_MAX_DISTANCE,
+                agent_to_conflict_point_max_distance=self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE,
+                agent_to_agent_distance_breach=self.AGENT_TO_AGENT_DISTANCE_BREACH,
+                timestamps=np.asarray(scenario_data["timestamps_seconds"], dtype=np.float32),
+                num_conflict_points=num_conflict_points,
+                map_conflict_points=conflict_points,
+                agent_distances_to_conflict_points=agent_distances_to_conflict_points,
+                num_polylines=num_polylines,
+                map_polylines=map_polylines,
+                lane_ids=lane_ids,
+                lane_speed_limits_mph=lane_speed_limits_mph,
+                lane_polyline_idxs=lane_polyline_idxs,
+                road_line_ids=road_line_ids,
+                road_line_polyline_idxs=road_line_polyline_idxs,
+                road_edge_ids=road_edge_ids,
+                road_edge_polyline_idxs=road_edge_polyline_idxs,
+                crosswalk_ids=crosswalk_ids,
+                crosswalk_polyline_idxs=crosswalk_polyline_idxs,
+                speed_bump_ids=speed_bump_ids,
+                speed_bump_polyline_idxs=speed_bump_polyline_idxs,
+                stop_sign_ids=stop_sign_ids,
+                stop_sign_polyline_idxs=stop_sign_polyline_idxs,
+                stop_sign_lane_ids=stop_sign_lane_ids,
+                num_dynamic_stop_points=num_dynamic_stop_points,
+                dynamic_stop_points=dynamic_stop_points,
+                dynamic_stop_points_lane_ids=dynamic_stop_points_lane_ids,
+            )
+        except (ValidationError, TypeError) as e:
+            raise e
+        return scenario
 
     def check_conflict_points(self):
         """Checks if conflict points are already computed for each scenario.
