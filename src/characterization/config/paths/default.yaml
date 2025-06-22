@@ -1,14 +1,11 @@
 root_path: "."
-log_path: ${root_path}/logs
+log_path: ${paths.root_path}/logs
 
 base_path: /data/
 
 cache_path: ${paths.base_path}/cache
 output_paths:
-  feature_cache_path: ${paths.cache_path}/features/${scenario_type}_${characterizer.config.return_criteria}
-  scores_cache_path: ${paths.cache_path}/scores/${scenario_type}_${characterizer.config.return_criteria}
-  vis_cache_path: ${paths.cache_path}/visualization/${scenario_type}_${characterizer.config.return_criteria}
+  feature_cache_path: ${paths.cache_path}/features/${scenario_type}_${characterizer.config.return_criterion}
+  scores_cache_path: ${paths.cache_path}/scores/${scenario_type}_${characterizer.config.return_criterion}
+  vis_cache_path: ${paths.cache_path}/visualization/${scenario_type}_${characterizer.config.return_criterion}
   conflict_points_cache_path: ${paths.cache_path}/conflict_points/
-
-  # stats_cache_path: ${paths.cache_path}/stats/${scenario_type}_${characterizer.config.return_criteria}
-  # shards_cache_path: ${paths.cache_path}/shards/${scenario_type}_${characterizer.config.return_criteria}

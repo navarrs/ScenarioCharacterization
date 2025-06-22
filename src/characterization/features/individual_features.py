@@ -16,12 +16,12 @@ class IndividualFeatures(BaseFeature):
         Args:
             config (DictConfig): Configuration for the feature. Expected to contain key-value pairs
                 relevant to feature computation, such as thresholds or parameters. Must include
-                'return_criteria' (str), which determines whether to return 'critical' or 'average'
+                'return_criterion' (str), which determines whether to return 'critical' or 'average'
                 statistics for each feature.
         """
         super(IndividualFeatures, self).__init__(config)
 
-        self.return_criteria = config.get("return_criteria", "critical")
+        self.return_criterion = config.get("return_criterion", "critical")
 
     def compute(self, scenario: Scenario) -> ScenarioFeatures:
         """Computes features for each agent in the scenario.
@@ -95,7 +95,7 @@ class IndividualFeatures(BaseFeature):
                 stationary_speed,
             )
 
-            if self.return_criteria == "critical":
+            if self.return_criterion == "critical":
                 speed = speeds.max()
                 speed_limit_diff = speed_limit_diffs.max()
                 acceleration = accelerations.max()
@@ -105,7 +105,7 @@ class IndividualFeatures(BaseFeature):
                 waiting_interval = waiting_intervals.max()
                 waiting_distance = waiting_distances.min()
 
-            elif self.return_criteria == "average":
+            elif self.return_criterion == "average":
                 speed = speeds.mean()
                 speed_limit_diff = speed_limit_diffs.mean()
                 acceleration = accelerations.mean()
@@ -116,7 +116,7 @@ class IndividualFeatures(BaseFeature):
                 waiting_distance = waiting_distances.mean()
 
             else:
-                raise ValueError(f"Unknown return criteria: {self.return_criteria}")
+                raise ValueError(f"Unknown return criteria: {self.return_criterion}")
 
             scenario_valid_idxs.append(n)
             scenario_speeds.append(speed)

@@ -1,0 +1,14 @@
+processor:
+  _target_: characterization.processors.scores_processor.ScoresProcessor
+  config:
+    scenario_type: ${scenario_type}
+
+    batch_size: ${batch_size}
+    num_workers: ${num_workers}
+    shuffle: ${shuffle}
+
+    save: ${save}
+    output_path: ${paths.output_paths.scores_cache_path}
+
+    feature_path: ${paths.output_paths.feature_cache_path}
+    features: ${characterizer.config.features}

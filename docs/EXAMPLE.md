@@ -26,24 +26,24 @@ Sample files are available in the `samples` directory for quick testing.
    mkdir -p samples/raw
    cd samples/raw
    gcloud init
-   gsutil -m cp -r "gs://waymo_open_dataset_motion_v_1_3_0/uncompressed/scenario/testing/testing.tfrecord-00000-of-00150" .
+   gsutil -m cp -r "gs://waymo_open_dataset_motion_v_1_3_0/uncompressed/scenario/training/training.tfrecord-00000-of-01000" .
    ```
 3. **Pre-process the data:**
    (Script adapted from [SafeShift](https://github.com/cmubig/SafeShift?tab=readme-ov-file#waymo-dataset-preparation))
    ```bash
-   uv run -m characterization.utils.datasets.waymo_preprocess.py ./samples/raw ./samples/scenarios
+   uv run -m characterization.utils.datasets.waymo_preprocess ./samples/raw ./samples/
    ```
    This will generate temporary scenario files in `samples/scenarios` for use in the pipeline. A sample config file (`test.yaml`) is provided under `config/paths` with local paths to the sample data.
 
-   The test setup uses ground truth data (`scenario_type: gt`) and computes critical features (`return_criteria: critical`).
+   The test setup uses ground truth data (`scenario_type: gt`) and computes critical features (`return_criterion: critical`).
 
 ---
 
 ### 2. Compute Features
 
 ```bash
-uv run -m characterization.run_processor processor=features characterizer=individual_features paths=test
-uv run -m characterization.run_processor processor=features characterizer=interaction_features paths=test
+uv run -m characterization.run_processor characterizer=individual_features paths=test
+uv run -m characterization.run_processor characterizer=interaction_features paths=test
 ```
 
 This step creates a `./cache` directory with temporary feature data:
@@ -55,9 +55,9 @@ This step creates a `./cache` directory with temporary feature data:
 ### 3. Compute Scores
 
 ```bash
-uv run -m characterization.run_processor processor=scores characterizer=individual_scores paths=test
-uv run -m characterization.run_processor processor=scores characterizer=interaction_scores paths=test
-uv run -m characterization.run_processor processor=scores characterizer=safeshift_scores paths=test
+uv run -m characterization.run_processor characterizer=individual_scores paths=test
+uv run -m characterization.run_processor characterizer=interaction_scores paths=test
+uv run -m characterization.run_processor characterizer=safeshift_scores paths=test
 ```
 
 This uses the computed features to generate per-agent and per-scenario scores, saved in `./cache/scores/gt_critical`.

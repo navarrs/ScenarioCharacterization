@@ -38,7 +38,7 @@ print("\nTransformed scenario (fields):", scenario.model_fields.keys())
 # Compute features
 feature_config = DictConfig(
     {
-        "return_criteria": "critical",  # Can be 'critical' or 'average'
+        "return_criterion": "critical",  # Can be 'critical' or 'average'
     }
 )
 feature_processor = IndividualFeatures(feature_config)

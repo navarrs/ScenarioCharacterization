@@ -11,7 +11,7 @@ import sys
 
 import numpy as np
 import tensorflow as tf
-from tqdm import tqdm
+from rich.progress import track
 from waymo_open_dataset.protos import scenario_pb2
 
 object_type = {0: "TYPE_UNSET", 1: "TYPE_VEHICLE", 2: "TYPE_PEDESTRIAN", 3: "TYPE_CYCLIST", 4: "TYPE_OTHER"}
@@ -374,7 +374,7 @@ def get_infos_from_protos(data_path, output_path=None, num_workers=8):
 
     # func(src_files[0])
     with multiprocessing.Pool(num_workers) as p:
-        data_infos = list(tqdm(p.imap(func, src_files), total=len(src_files)))
+        data_infos = list(track(p.imap(func, src_files), total=len(src_files)))
 
     all_infos = [item for infos in data_infos for item in infos]
     return all_infos

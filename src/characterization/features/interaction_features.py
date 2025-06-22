@@ -18,12 +18,12 @@ class InteractionFeatures(BaseFeature):
         Args:
             config (DictConfig): Configuration for the feature. Expected to contain key-value pairs
                 relevant to feature computation, such as thresholds or parameters. Must include
-                'return_criteria' (str), which determines whether to return 'critical' or 'average'
+                'return_criterion' (str), which determines whether to return 'critical' or 'average'
                 statistics for each feature.
         """
         super(InteractionFeatures, self).__init__(config)
 
-        self.return_criteria = config.get("return_criteria", "critical")
+        self.return_criterion = config.get("return_criterion", "critical")
         self.agent_i = interaction.InteractionAgent()
         self.agent_j = interaction.InteractionAgent()
 
@@ -121,12 +121,12 @@ class InteractionFeatures(BaseFeature):
             # Minimum time to conflict point (mTTCP)
             mttcps = interaction.compute_mttcp(self.agent_i, self.agent_j, agent_to_conflict_point_max_distance)
 
-            if self.return_criteria == "critical":
+            if self.return_criterion == "critical":
                 separation = separations.min()
                 intersection = intersections.sum()
                 collision = collisions.sum()
                 mttcp = mttcps.min()
-            elif self.return_criteria == "average":
+            elif self.return_criterion == "average":
                 separation = separations.mean()
                 intersection = intersections.mean()
                 collision = collisions.mean()
