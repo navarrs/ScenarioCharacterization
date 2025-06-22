@@ -62,7 +62,7 @@ class BaseDataset(Dataset, ABC):
         Returns:
             str: The name of the dataset class and its base path.
         """
-        return f"{self.__class__.__name__}\n\t(from: {self.scenario_base_path})"
+        return f"{self.__class__.__name__} (loaded from: {self.scenario_base_path})"
 
     def shard(self) -> None:
         """Shards the dataset into smaller parts for distributed or parallel processing.

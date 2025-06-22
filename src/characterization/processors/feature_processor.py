@@ -1,6 +1,6 @@
 from omegaconf import DictConfig
+from rich.progress import track
 from torch.utils.data import Dataset
-from tqdm import tqdm
 
 from characterization.features.base_feature import BaseFeature
 from characterization.processors.base_processor import BaseProcessor
@@ -45,17 +45,14 @@ class FeatureProcessor(BaseProcessor):
         Returns:
             None
         """
-        logger.info(f"Processing {self.characterizer.name} features for {self.dataset.name}.")
+        logger.info(f"Processing {self.characterizer.name} for {self.dataset.name}.")
 
         # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop.
-        for scenario_batch in tqdm(self.dataloader, desc="Processing scenarios"):
+        for scenario_batch in track(self.dataloader, total=len(self.dataloader), description="Processing features..."):
             for scenario in scenario_batch["scenario"]:
-                # scenario: characterization.utils.schemas.Scenario
-                # features: characterization.utils.schemas.ScenarioFeatures
                 features: ScenarioFeatures = self.characterizer.compute(scenario)
 
                 if self.save:
                     to_pickle(self.output_path, features.model_dump(), scenario.scenario_id)
-                # TODO: what if not saving?
 
         logger.info(f"Finished processing {self.characterizer.name} features for {self.dataset.name}.")

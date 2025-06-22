@@ -109,9 +109,11 @@ class Scenario(BaseModel):
 
     # Scenario Information
     scenario_id: str
+    scenario_type: str
     total_timesteps: PositiveInt
     last_observed_timestep: PositiveInt
     timestamps: Float32NDArray1D
+    last_timestep_to_consider: PositiveInt
 
     # Agent Information
     num_agents: PositiveInt

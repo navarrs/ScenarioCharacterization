@@ -7,8 +7,8 @@ import numpy as np
 from natsort import natsorted
 from omegaconf import DictConfig
 from pydantic import ValidationError
+from rich.progress import track
 from scipy.signal import resample
-from tqdm import tqdm
 
 from characterization.utils.common import compute_dists_to_conflict_points, get_logger
 from characterization.utils.datasets.dataset import BaseDataset
@@ -56,6 +56,11 @@ class WaymoData(BaseDataset):
 
         self.LAST_TIMESTEP = 91
         self.HIST_TIMESTEP = 11
+
+        self.LAST_TIMESTEP_TO_CONSIDER = {
+            "gt": self.LAST_TIMESTEP,
+            "ho": self.HIST_TIMESTEP,
+        }
 
         self.STATIONARY_SPEED = 0.25  # m/s
         self.AGENT_TO_AGENT_MAX_DISTANCE = 50.0  # meters
@@ -105,7 +110,7 @@ class WaymoData(BaseDataset):
                 f"Number of scenarios ({num_scenarios}) != number of conflict points ({num_conflict_points})."
             )
 
-    def transform_scenario_data(self, scenario_data: dict, conflict_points: dict | None = None) -> Scenario:
+    def transform_scenario_data(self, scenario_data: dict, conflict_points_data: dict | None = None) -> Scenario:
         """Transforms the scene data into a format suitable for processing.
 
         Args:
@@ -137,12 +142,30 @@ class WaymoData(BaseDataset):
 
         sdc_index = scenario_data["sdc_track_index"]
         trajs = scenario_data["track_infos"]["trajs"]
-        num_agents = trajs.shape[0]
+        num_agents, num_timesteps, _ = trajs.shape
 
-        agent_distances_to_conflict_points = (
-            None if conflict_points is None else conflict_points["agent_distances_to_conflict_points"]
-        )
-        conflict_points = None if conflict_points is None else conflict_points["all_conflict_points"]
+        T_last = self.LAST_TIMESTEP_TO_CONSIDER[self.scenario_type]
+        if num_timesteps < T_last:
+            raise AssertionError(
+                f"Scenario {scenario_data['scenario_id']} has only {num_timesteps} timesteps, "
+                f"but expected at least {T_last} timesteps."
+            )
+        trajs = trajs[:, :T_last, :]  # shape: [num_agents, T_last, dim]
+
+        agent_distances_to_conflict_points = None
+        conflict_points = None
+        if conflict_points_data is not None:
+            agent_distances_to_conflict_points = (
+                None
+                if conflict_points_data["agent_distances_to_conflict_points"] is None
+                else conflict_points_data["agent_distances_to_conflict_points"][:, :T_last, :]
+            )
+            conflict_points = (
+                None
+                if conflict_points_data["all_conflict_points"] is None
+                else conflict_points_data["all_conflict_points"]
+            )
+        timestamps = np.asarray(scenario_data["timestamps_seconds"], dtype=np.float32)[:T_last]
         num_conflict_points = 0 if conflict_points is None else conflict_points.shape[0]
 
         # TODO: improve this relevance criteria
@@ -190,28 +213,30 @@ class WaymoData(BaseDataset):
                     dynamic_stop_points = dynamic_stop_points[0].astype(np.float32).squeeze(axis=0)  # shape: [N, 3]
                     dynamic_stop_points_lane_ids = dynamic_map_infos["lane_id"][0].astype(np.int32).squeeze(axis=0)
 
-        # TODO: add type of lane, road, etc
         try:
+            # TODO: add type of lane, road, etc
             scenario = Scenario(
                 num_agents=num_agents,
                 scenario_id=scenario_data["scenario_id"],
+                scenario_type=self.scenario_type,
                 ego_index=sdc_index,
                 ego_id=scenario_data["track_infos"]["object_id"][sdc_index],
                 agent_ids=scenario_data["track_infos"]["object_id"],
                 agent_types=scenario_data["track_infos"]["object_type"],
-                agent_valid=trajs[:, :, self.AGENT_VALID].astype(np.bool_),
-                agent_positions=trajs[:, :, self.POS_XYZ_IDX],
-                agent_dimensions=trajs[:, :, self.AGENT_DIMS],
-                agent_velocities=trajs[:, :, self.VEL_XY_IDX],
-                agent_headings=trajs[:, :, self.HEADING_IDX],
+                agent_valid=trajs[..., self.AGENT_VALID].astype(np.bool_),
+                agent_positions=trajs[..., self.POS_XYZ_IDX],
+                agent_dimensions=trajs[..., self.AGENT_DIMS],
+                agent_velocities=trajs[..., self.VEL_XY_IDX],
+                agent_headings=trajs[..., self.HEADING_IDX],
                 agent_relevance=agent_relevance,
                 last_observed_timestep=scenario_data["current_time_index"],
                 total_timesteps=self.LAST_TIMESTEP,
+                last_timestep_to_consider=T_last,
                 stationary_speed=self.STATIONARY_SPEED,
                 agent_to_agent_max_distance=self.AGENT_TO_AGENT_MAX_DISTANCE,
                 agent_to_conflict_point_max_distance=self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE,
                 agent_to_agent_distance_breach=self.AGENT_TO_AGENT_DISTANCE_BREACH,
-                timestamps=np.asarray(scenario_data["timestamps_seconds"], dtype=np.float32),
+                timestamps=timestamps,
                 num_conflict_points=num_conflict_points,
                 map_conflict_points=conflict_points,
                 agent_distances_to_conflict_points=agent_distances_to_conflict_points,
@@ -276,11 +301,11 @@ class WaymoData(BaseDataset):
 
             outs = Parallel(n_jobs=self.num_workers, batch_size=self.batch_size)(
                 delayed(process_file)(scenario_id=scenario_id, scenario_path=scenario_path)
-                for scenario_id, scenario_path in tqdm(zipped, total=len(self.data.scenarios_ids))
+                for scenario_id, scenario_path in track(zipped, total=len(self.data.scenarios_ids))
             )
             self.data.conflict_points = natsorted(outs)
         else:
-            for scenario_id, scenario_path in tqdm(zipped, total=len(self.data.scenarios_ids)):
+            for scenario_id, scenario_path in track(zipped, total=len(self.data.scenarios_ids)):
                 out = process_file(scenario_id=scenario_id, scenario_path=scenario_path)
                 self.data.conflict_points.append(out)
 

@@ -5,10 +5,10 @@ from enum import Enum
 
 import colorlog
 import numpy as np
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 EPS = 1e-6
-SUPPORTED_SCENARIO_TYPES = ["gt"]
+SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
 
 
 class InteractionStatus(Enum):
@@ -119,7 +119,8 @@ def to_pickle(output_path: str, input_data: dict, tag: str) -> None:
         with open(data_file, "rb") as f:
             data = pickle.load(f)  # nosec B301
 
-    if data["scenario_id"] != input_data["scenario_id"]:
+    scenario_id_data = data.get("scenario_id", None)
+    if scenario_id_data is not None and scenario_id_data != input_data["scenario_id"]:
         raise AttributeError("Mismatched scenario IDs when merging pickle data.")
 
     # NOTE: with current ScenarioScores and ScenarioFeatures implementation, computing interaction and individual
@@ -133,3 +134,21 @@ def to_pickle(output_path: str, input_data: dict, tag: str) -> None:
 
     with open(data_file, "wb") as f:
         pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def print_config(cfg: DictConfig, theme: str = "monokai") -> None:
+    """Prints the configuration in a readable format.
+
+    Args:
+        cfg (DictConfig): Configuration dictionary to print.
+
+    Returns:
+        None
+    """
+    from rich.console import Console
+    from rich.syntax import Syntax
+
+    yaml_str = OmegaConf.to_yaml(cfg, resolve=True)
+    console = Console()
+    syntax = Syntax(yaml_str, "yaml", theme=theme, word_wrap=True)
+    console.print(syntax)

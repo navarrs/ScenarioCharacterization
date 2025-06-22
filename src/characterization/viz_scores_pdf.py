@@ -1,95 +1,22 @@
 import os
+from itertools import product
 
 import hydra
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
+import characterization.utils.viz.utils as viz_utils
 from characterization.scorer import SUPPORTED_SCORERS
-from characterization.utils.common import from_pickle, get_logger
-from characterization.utils.schemas import ScenarioScores
+from characterization.utils.common import (
+    SUPPORTED_SCENARIO_TYPES,
+    from_pickle,
+    get_logger,
+)
 from characterization.utils.viz.visualizer import BaseVisualizer
 
 logger = get_logger(__name__)
-
-
-def get_sample_to_plot(
-    df: pd.DataFrame,
-    key: str,
-    min_value: float,
-    max_value: float,
-    seed: int,
-    sample_size: int,
-) -> pd.DataFrame:
-    """
-    Selects a random sample of rows from a DataFrame within a specified value range for a given column.
-
-    Args:
-        df (pd.DataFrame): The DataFrame to sample from.
-        key (str): The column name to filter by value range.
-        min_value (float): The minimum value (inclusive) for filtering.
-        max_value (float): The maximum value (exclusive) for filtering.
-        seed (int): Random seed for reproducibility.
-        sample_size (int): Number of samples to return.
-
-    Returns:
-        pd.DataFrame: A DataFrame containing the sampled rows within the specified range.
-    """
-    df_subset = df[(df[key] >= min_value) & (df[key] < max_value)]
-    subset_size = len(df_subset)
-    logger.info(f"Found {subset_size} rows between [{round(min_value, 2)} to {round(max_value, 2)}] for {key}")
-    sample_size = min(sample_size, subset_size)
-    return df_subset.sample(n=sample_size, random_state=seed)
-
-
-def plot_histograms_from_dataframe(df, output_filepath: str = "temp.png", dpi: int = 30, alpha=0.5):
-    """
-    Plots overlapping histograms and density curves for each numeric column in a DataFrame.
-
-    Args:
-        df (pd.DataFrame): DataFrame containing numeric data to plot.
-        output_filepath (str): Path to save the output plot image.
-        dpi (int): Dots per inch for the saved figure.
-        alpha (float): Transparency level for the histograms (0 = transparent, 1 = solid).
-
-    Raises:
-        ValueError: If no numeric columns are found in the DataFrame.
-    """
-    # Select numeric columns, excluding the specified one
-    columns_to_plot = df.select_dtypes(include="number").columns
-    N = len(columns_to_plot)
-
-    if N == 0:
-        raise ValueError("No numeric columns to plot.")
-
-    palette = sns.color_palette("husl", N)
-
-    plt.figure(figsize=(10, 6))
-
-    for i, col in enumerate(columns_to_plot):
-        sns.histplot(
-            df[col],
-            color=palette[i],
-            label=col,
-            kde=True,
-            stat="density",
-            alpha=alpha,
-            edgecolor="white",
-        )
-
-    sns.despine(top=True, right=True)
-
-    plt.legend()
-    plt.xlabel("Scores")
-    plt.ylabel("Density")
-    plt.title("Score Density Function over Scenarios")
-    plt.grid(True, linestyle="--", alpha=0.4)
-    plt.tight_layout()
-    plt.savefig(output_filepath, dpi=dpi)
-    plt.close()
 
 
 @hydra.main(config_path="config", config_name="viz_scores_pdf", version_base="1.3")
@@ -108,20 +35,7 @@ def run(cfg: DictConfig) -> None:
     Raises:
         ValueError: If unsupported scorers are specified in the configuration.
     """
-    # TODO: Adapt to different scoring criteria types (e.g, GT, Critical-vs-Average, etc.)
-    seed = cfg.get("seed", 42)
     os.makedirs(cfg.output_dir, exist_ok=True)
-
-    # Verify scorer type is supported
-    unsupported_scores = [scorer for scorer in cfg.scores if scorer not in SUPPORTED_SCORERS]
-    if unsupported_scores:
-        raise ValueError(f"Scorers {unsupported_scores} not in supported list {SUPPORTED_SCORERS}")
-    else:
-        scores: dict = {}  # Initialize with an empty list for scenarios
-        agent_scores: dict = {}  # Initialize with an empty list for agents
-        for scorer in cfg.scores:
-            scores[scorer] = []
-            agent_scores[scorer] = []
 
     # Instantiate dataset and visualizer
     cfg.dataset.config.load = False
@@ -131,71 +45,102 @@ def run(cfg: DictConfig) -> None:
     logger.info("Instatiating visualizer: %s", cfg.viz._target_)
     visualizer: BaseVisualizer = hydra.utils.instantiate(cfg.viz)
 
-    # Load scores from score path
-    scenario_scores_filepaths = [os.path.join(cfg.scores_path, f) for f in os.listdir(cfg.scores_path)]
-    scores["scenario_ids"] = [f for f in os.listdir(cfg.scores_path) if f.endswith(".pkl")]
-    agent_scores["scenario_ids"] = scores["scenario_ids"]
+    # Verify scenario types are supported
+    unsupported_scenario_types = [
+        scenario_type for scenario_type in cfg.scenario_types if scenario_type not in SUPPORTED_SCENARIO_TYPES
+    ]
+    if unsupported_scenario_types:
+        raise ValueError(
+            f"Scenario types {unsupported_scenario_types} not in supported list {SUPPORTED_SCENARIO_TYPES}"
+        )
+    # Verify scorer type is supported
+    unsupported_scores = [scorer for scorer in cfg.scores if scorer not in SUPPORTED_SCORERS]
+    if unsupported_scores:
+        raise ValueError(f"Scorers {unsupported_scores} not in supported list {SUPPORTED_SCORERS}")
+
+    scene_scores: dict = {}
+    agent_scores: dict = {}
+    for scenario_type, scorer, criteria in product(cfg.scenario_types, cfg.scores, cfg.criteria):
+        key = f"{scenario_type}_{criteria}_{scorer}"
+        scene_scores[key] = []
+        key = f"{scenario_type}_{criteria}_{scorer}"
+        agent_scores[key] = []
+
+    scenario_ids = viz_utils.get_valid_scenario_ids(cfg.scenario_types, cfg.criteria, cfg.scores_path)
+    if not scenario_ids:
+        raise ValueError(
+            f"No valid scenarios found in {cfg.scores_path} for types {cfg.scenario_types} and criteria {cfg.criteria}"
+        )
+    scene_scores["scenario_ids"] = scenario_ids
+    agent_scores["scenario_ids"] = scenario_ids
 
     # Generate score histogram and density plot
+    logger.info("Loading the scores")
+    for scenario_type, criteria in product(cfg.scenario_types, cfg.criteria):
+        scenario_scores_path = os.path.join(cfg.scores_path, f"{scenario_type}_{criteria}")
+        prefix = f"{scenario_type}_{criteria}"
+        scene_scores, agent_scores = viz_utils.load_scores(
+            scene_scores,
+            agent_scores,
+            scenario_ids,
+            scenario_scores_path,
+            prefix,
+            cfg.scores,
+        )
     logger.info(f"Visualizing density function for scores: {cfg.scores}")
-    for scenario_filepath in scenario_scores_filepaths:
-        scenario_scores = from_pickle(scenario_filepath)  # nosec B301
-        scenario_scores = ScenarioScores.model_validate(scenario_scores)
 
-        for scorer in cfg.scores:
-            key = f"{scorer}_scene_score"
-            scores[scorer].append(scenario_scores[key])
-            key = f"{scorer}_agent_scores"
-            agent_scores[scorer].append(scenario_scores[key])
+    scene_scores_df = pd.DataFrame(scene_scores)
+    output_filepath = os.path.join(cfg.output_dir, f"{cfg.tag}_score_density_plot.png")
+    viz_utils.plot_histograms_from_dataframe(scene_scores_df, output_filepath, cfg.dpi)
 
-    scores_df = pd.DataFrame(scores)
-
-    output_filepath = os.path.join(cfg.output_dir, "score_density_plot.png")
-    plot_histograms_from_dataframe(scores_df, output_filepath, cfg.dpi)
-
-    agent_scores_df = pd.DataFrame(agent_scores)
     # Generate scenario visualizations
-    for key in scores_df.keys():
-        if "scenario" in key:
-            continue
-        key_path = os.path.join(cfg.output_dir, key)
-        os.makedirs(key_path, exist_ok=True)
+    if cfg.viz_scenarios:
+        agent_scores_df = pd.DataFrame(agent_scores)
+        logger.info("Visualizing scenarios based on scores")
 
-        # Visualize a few scenarios across various percentiles
-        # Get score percentiles
-        percentiles = np.percentile(scores_df[key], cfg.percentiles)
-        logger.info(f"Percentiles for {key}: {percentiles}")
-        percentiles_low = np.append(scores_df[key].min(), percentiles)
-        percentiles_high = np.append(percentiles, scores_df[key].max())
-        percentile_ranges = zip(percentiles_low, percentiles_high)
-
-        scenarios_path = os.path.join(key_path, "scenarios")
-        os.makedirs(scenarios_path, exist_ok=True)
-        for min_value, max_value in percentile_ranges:
-            rows = get_sample_to_plot(scores_df, key, min_value, max_value, seed, cfg.min_scenarios_to_plot)
-            if rows.empty:
-                logger.warning(f"No rows found for {key} in range [{min_value}, {max_value}]")
+        for key in scene_scores_df.keys():
+            if "scenario" in key:
                 continue
+            scenario_type, criteria, scorer = key.split("_")
+            scenarios_path = os.path.join(cfg.output_dir, f"{scenario_type}_{criteria}", scorer)
+            os.makedirs(scenarios_path, exist_ok=True)
 
-            for index, row in rows.iterrows():
-                score = row[key]
-                scenario_id = row["scenario_ids"]
-                agent_scores = agent_scores_df[agent_scores_df["scenario_ids"] == scenario_id][key].values[0]
-                scenario_id = row["scenario_ids"].split(".")[0]
+            # Visualize a few scenarios across various percentiles
+            # Get score percentiles
+            percentiles = np.percentile(scene_scores_df[key], cfg.percentiles)
+            logger.info(f"Percentiles for {key}: {percentiles}")
+            percentiles_low = np.append(scene_scores_df[key].min(), percentiles)
+            percentiles_high = np.append(percentiles, scene_scores_df[key].max())
+            percentile_ranges = zip(percentiles_low, percentiles_high)
 
-                logger.info(f"Processing {scenario_id} for scorer {key}")
-                scenario_input_filepath = os.path.join(cfg.paths.scenario_base_path, f"sample_{scenario_id}.pkl")
-
-                scenario_data = from_pickle(scenario_input_filepath)  # nosec B301
-                scenario = dataset.transform_scenario_data(scenario_data)
-
-                scenario_title = f"Scenario Score: {score:.2f}"
-                scenario_output_filepath = os.path.join(
-                    scenarios_path, f"scenario-id-{scenario_id}_score-{score:.2f}.png"
+            os.makedirs(scenarios_path, exist_ok=True)
+            for min_value, max_value in percentile_ranges:
+                rows = viz_utils.get_sample_to_plot(
+                    scene_scores_df, key, min_value, max_value, cfg.seed, cfg.min_scenarios_to_plot
                 )
-                visualizer.visualize_scenario(
-                    scenario, scores=agent_scores, title=scenario_title, output_filepath=scenario_output_filepath
-                )
+                if rows.empty:
+                    logger.warning(f"No rows found for {key} in range [{min_value}, {max_value}]")
+                    continue
+
+                for index, row in rows.iterrows():
+                    score = row[key]
+                    scenario_id = row["scenario_ids"]
+                    agent_scores = agent_scores_df[agent_scores_df["scenario_ids"] == scenario_id][key].values[0]
+                    scenario_id = row["scenario_ids"].split(".")[0]
+
+                    logger.info(f"Processing {scenario_id} for scorer {key}")
+                    scenario_input_filepath = os.path.join(cfg.paths.scenario_base_path, f"sample_{scenario_id}.pkl")
+
+                    scenario_data = from_pickle(scenario_input_filepath)  # nosec B301
+                    scenario = dataset.transform_scenario_data(scenario_data)
+
+                    scenario_title = f"Scenario Score: {score:.2f}"
+                    scenario_output_filepath = os.path.join(
+                        scenarios_path, f"scenario-id-{scenario_id}_score-{score:.2f}.png"
+                    )
+                    visualizer.visualize_scenario(
+                        scenario, scores=agent_scores, title=scenario_title, output_filepath=scenario_output_filepath
+                    )
 
 
 if __name__ == "__main__":
