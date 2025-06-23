@@ -11,6 +11,7 @@ scenario_types:
 
 criteria:
   - critical
+  - average
 
 scores:
   - individual
@@ -26,5 +27,5 @@ percentiles:
   - 90
 
 min_scenarios_to_plot: 10
-viz_scenarios: true
+viz_scenarios: false
 tag: ''
