@@ -12,3 +12,6 @@ characterizer:
       - intersection
       - collision
       - mttcp
+      - thw
+      - ttc
+      - drac

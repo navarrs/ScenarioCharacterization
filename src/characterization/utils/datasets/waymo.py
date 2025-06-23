@@ -28,6 +28,9 @@ class WaymoData(BaseDataset):
         # heading -> yaw angle in radians of the forward direction of the the BBox
         # velocity_x, velocity_y -> x and y components of the object's velocity in m/s
         self.AGENT_DIMS = [False, False, False, True, True, True, False, False, False, False]
+        self.AGENT_LENGTHS = [False, False, False, True, False, False, False, False, False, False]
+        self.AGENT_WIDTHS = [False, False, False, False, True, False, False, False, False, False]
+        self.AGENT_HEIGHTS = [False, False, False, False, False, True, False, False, False, False]
         self.HEADING_IDX = [False, False, False, False, False, False, True, False, False, False]
         self.POS_XY_IDX = [True, True, False, False, False, False, False, False, False, False]
         self.POS_XYZ_IDX = [True, True, True, False, False, False, False, False, False, False]
@@ -66,6 +69,7 @@ class WaymoData(BaseDataset):
         self.AGENT_TO_AGENT_MAX_DISTANCE = 50.0  # meters
         self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE = 2.0  # meters
         self.AGENT_TO_AGENT_DISTANCE_BREACH = 1.0  # meters
+        self.HEADING_THRESHOLD = 45  # degrees
 
         self.AGENT_TO_AGENT_MAX_HEADING = 45.0  # degrees
 
@@ -223,11 +227,13 @@ class WaymoData(BaseDataset):
                 ego_id=scenario_data["track_infos"]["object_id"][sdc_index],
                 agent_ids=scenario_data["track_infos"]["object_id"],
                 agent_types=scenario_data["track_infos"]["object_type"],
-                agent_valid=trajs[..., self.AGENT_VALID].astype(np.bool_),
+                agent_valid=trajs[..., self.AGENT_VALID].astype(np.bool_).squeeze(axis=-1),
                 agent_positions=trajs[..., self.POS_XYZ_IDX],
-                agent_dimensions=trajs[..., self.AGENT_DIMS],
                 agent_velocities=trajs[..., self.VEL_XY_IDX],
-                agent_headings=trajs[..., self.HEADING_IDX],
+                agent_lengths=trajs[..., self.AGENT_LENGTHS].squeeze(axis=-1),
+                agent_widths=trajs[..., self.AGENT_WIDTHS].squeeze(axis=-1),
+                agent_heights=trajs[..., self.AGENT_HEIGHTS].squeeze(axis=-1),
+                agent_headings=trajs[..., self.HEADING_IDX].squeeze(axis=-1),
                 agent_relevance=agent_relevance,
                 last_observed_timestep=scenario_data["current_time_index"],
                 total_timesteps=self.LAST_TIMESTEP,
@@ -236,6 +242,7 @@ class WaymoData(BaseDataset):
                 agent_to_agent_max_distance=self.AGENT_TO_AGENT_MAX_DISTANCE,
                 agent_to_conflict_point_max_distance=self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE,
                 agent_to_agent_distance_breach=self.AGENT_TO_AGENT_DISTANCE_BREACH,
+                heading_threshold=self.HEADING_THRESHOLD,
                 timestamps=timestamps,
                 num_conflict_points=num_conflict_points,
                 map_conflict_points=conflict_points,

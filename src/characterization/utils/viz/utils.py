@@ -52,7 +52,9 @@ def get_valid_scenario_ids(scenario_types: str, criteria: str, base_path: str) -
     return scenario_ids
 
 
-def plot_histograms_from_dataframe(df, output_filepath: str = "temp.png", dpi: int = 30, alpha=0.5):
+def plot_histograms_from_dataframe(
+    df: pd.DataFrame, output_filepath: str = "temp.png", dpi: int = 30, alpha: float = 0.5
+) -> None:
     """
     Plots overlapping histograms and density curves for each numeric column in a DataFrame.
 
@@ -106,7 +108,7 @@ def load_scores(
     scores_path: str,
     prefix: str,
     score_types: list[str] = SUPPORTED_SCORERS,
-) -> pd.DataFrame:
+) -> tuple[dict, dict]:
     """
     Loads scenario scores from the specified path and updates the scores DataFrame.
 

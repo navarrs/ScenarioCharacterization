@@ -61,12 +61,12 @@ def compute_acceleration_profile(speed: np.ndarray, timestamps: np.ndarray) -> t
         ValueError: If speed and timestamps do not have the same shape.
     """
 
-    def get_acc_sums(acc: np.array, idx: np.array) -> tuple[np.array, np.array]:
+    def get_acc_sums(acc: np.ndarray, idx: np.ndarray) -> tuple[np.ndarray, list[tuple[int, int]]]:
         diff = idx[1:] - idx[:-1]
         diff = np.array([-1] + np.where(diff > 1)[0].tolist() + [diff.shape[0]])
         se_idxs = [(idx[s + 1], idx[e] + 1) for s, e in zip(diff[:-1], diff[1:])]
         sums = np.array([acc[s:e].sum() for s, e in se_idxs])
-        return sums, se_idxs
+        return sums, se_idxs  # pyright: ignore[reportReturnType]
 
     if not speed.shape == timestamps.shape:
         raise ValueError("Speed and timestamps must have the same shape.")
@@ -89,15 +89,15 @@ def compute_acceleration_profile(speed: np.ndarray, timestamps: np.ndarray) -> t
         acceleration = np.zeros(shape=(1,))
     # If both
     else:
-        deceleration, idx_dec = get_acc_sums(acceleration_raw, dr_idx)
+        deceleration, _ = get_acc_sums(acceleration_raw, dr_idx)
 
         ar_idx = np.where(acceleration_raw >= 0.0)[0]
-        acceleration, idx_acc = get_acc_sums(acceleration_raw, ar_idx)
+        acceleration, _ = get_acc_sums(acceleration_raw, ar_idx)
 
     return acceleration_raw, acceleration, np.abs(deceleration)
 
 
-def compute_jerk(speed: np.ndarray, timestamps: np.ndarray) -> np.ndarray:
+def compute_jerk(speed: np.ndarray, timestamps: np.ndarray) -> np.ndarray | None:
     """Computes the jerk from the acceleration profile and time delta.
 
     Args:

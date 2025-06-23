@@ -14,9 +14,10 @@ SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
 class InteractionStatus(Enum):
     UNKNOWN = -1
     COMPUTED_OK = 0
-    MASK_NOT_VALID = 1
-    AGENT_DISTANCE_TOO_FAR = 2
-    AGENTS_STATIONARY = 3
+    PARTIAL_INVALID_HEADING = 1
+    MASK_NOT_VALID = 2
+    DISTANCE_TOO_FAR = 3
+    STATIONARY = 4
 
 
 def compute_dists_to_conflict_points(conflict_points: np.ndarray, trajectories: np.ndarray) -> np.ndarray:
@@ -35,6 +36,235 @@ def compute_dists_to_conflict_points(conflict_points: np.ndarray, trajectories: 
     return np.linalg.norm(diff, axis=-1)  # shape (num_agents, num_time_steps, num_conflict_points)
 
 
+class InteractionAgent:
+    """Class representing an agent for interaction feature computation."""
+
+    def __init__(self):
+        """Initializes an InteractionAgent and resets all attributes."""
+        self.reset()
+
+    @property
+    def position(self) -> np.ndarray | None:
+        """np.ndarray: The positions of the agent over time (shape: [T, 2])."""
+        return self._position
+
+    @position.setter
+    def position(self, value: np.ndarray | None) -> None:
+        """Sets the positions of the agent.
+
+        Args:
+            value (np.ndarray): The positions of the agent over time (shape: [T, 2]).
+        """
+        if value is not None:
+            self._position = np.asarray(value, dtype=np.float32)
+        else:
+            self._position = None
+
+    @property
+    def speed(self) -> np.ndarray | None:
+        """np.ndarray: The velocities of the agent over time (shape: [T,])."""
+        return self._speed
+
+    @speed.setter
+    def speed(self, value: np.ndarray | None) -> None:
+        """Sets the velocities of the agent.
+
+        Args:
+            value (np.ndarray): The velocities of the agent over time (shape: [T,]).
+        """
+        if value is not None:
+            self._speed = np.asarray(value, dtype=np.float32)
+        else:
+            self._speed = None
+
+    @property
+    def heading(self) -> np.ndarray | None:
+        """np.ndarray: The headings of the agent over time (shape: [T,])."""
+        return self._heading
+
+    @heading.setter
+    def heading(self, value: np.ndarray | None) -> None:
+        """Sets the headings of the agent.
+
+        Args:
+            value (np.ndarray): The headings of the agent over time (shape: [T,]).
+        """
+        if value is not None:
+            self._heading = np.asarray(value, dtype=np.float32)
+        else:
+            self._heading = None
+
+    @property
+    def length(self) -> np.ndarray | None:
+        """np.ndarray or None: The lengths of the agent over time (shape: [T,])."""
+        return self._length
+
+    @length.setter
+    def length(self, value: np.ndarray | None) -> None:
+        """Sets the lengths of the agent.
+
+        Args:
+            value (np.ndarray): The lengths of the agent over time (shape: [T,]).
+        """
+        if value is not None:
+            self._length = np.asarray(value, dtype=np.float32)
+        else:
+            self._length = None
+
+    @property
+    def width(self) -> np.ndarray | None:
+        """np.ndarray or None: The widths of the agent over time (shape: [T,])."""
+        return self._width
+
+    @width.setter
+    def width(self, value: np.ndarray | None) -> None:
+        """Sets the widths of the agent.
+
+        Args:
+            value (np.ndarray): The widths of the agent over time (shape: [T,]).
+        """
+        if value is not None:
+            self._height = np.asarray(value, dtype=np.float32)
+        else:
+            self._width = None
+
+    @property
+    def height(self) -> np.ndarray | None:
+        """np.ndarray or None: The heights of the agent over time (shape: [T,])."""
+        return self._height
+
+    @height.setter
+    def height(self, value: np.ndarray | None) -> None:
+        """Sets the heights of the agent.
+
+        Args:
+            value (np.ndarray): The heights of the agent over time (shape: [T,]).
+        """
+        if value is not None:
+            self._height = np.asarray(value, dtype=np.float32)
+        else:
+            self._height = None
+
+    @property
+    def agent_type(self) -> str | None:
+        """str: The type of the agent."""
+        return self._agent_type
+
+    @agent_type.setter
+    def agent_type(self, value: str | None) -> None:
+        """Sets the type of the agent.
+
+        Args:
+            value (str): The type of the agent.
+        """
+        if value is not None:
+            self._agent_type = str(value)
+        else:
+            self._agent_type = None
+
+    @property
+    def is_stationary(self) -> bool | None:
+        """bool or None: Whether the agent is stationary (True/False), or None if unknown."""
+        if self._speed is None:
+            self._is_stationary = None
+        else:
+            self._is_stationary = self.speed.mean() < self._stationary_speed
+        return self._is_stationary
+
+    @property
+    def stationary_speed(self) -> float:
+        """float: The speed threshold below which the agent is considered stationary."""
+        return self._stationary_speed
+
+    @stationary_speed.setter
+    def stationary_speed(self, value: float | None) -> None:
+        """Sets the stationary speed threshold.
+
+        Args:
+            value (float): The speed threshold below which the agent is considered stationary.
+        """
+        if value is not None:
+            self._stationary_speed = float(value)
+        else:
+            self._stationary_speed = 0.1
+
+    @property
+    def in_conflict_point(self) -> bool:
+        """bool: Whether the agent is in a conflict point."""
+        if self._dists_to_conflict is None:
+            self._in_conflict_point = False
+        else:
+            self._in_conflict_point = np.any(
+                self._dists_to_conflict <= self._agent_to_conflict_point_max_distance
+            ).__bool__()
+        return self._in_conflict_point
+
+    @property
+    def agent_to_conflict_point_max_distance(self) -> float | None:
+        """float: The maximum distance to a conflict point."""
+        return self._agent_to_conflict_point_max_distance
+
+    @agent_to_conflict_point_max_distance.setter
+    def agent_to_conflict_point_max_distance(self, value: float | None) -> None:
+        """Sets the maximum distance to a conflict point.
+
+        Args:
+            value (float): The maximum distance to a conflict point.
+        """
+        if value is not None:
+            self._agent_to_conflict_point_max_distance = float(value)
+        else:
+            self._agent_to_conflict_point_max_distance = 0.5  # Default value
+
+    @property
+    def dists_to_conflict(self) -> np.ndarray | None:
+        """np.ndarray: The distances to conflict points (shape: [T,])."""
+        return self._dists_to_conflict
+
+    @dists_to_conflict.setter
+    def dists_to_conflict(self, value: np.ndarray | None) -> None:
+        """Sets the distances to conflict points.
+
+        Args:
+            value (np.ndarray | None): The distances to conflict points (shape: [T,]).
+        """
+        if value is not None:
+            self._dists_to_conflict = np.asarray(value, dtype=np.float32)
+        else:
+            self._dists_to_conflict = None
+
+    @property
+    def lane(self) -> np.ndarray | None:
+        """np.ndarray or None: The lane of the agent, if available."""
+        return self._lane
+
+    @lane.setter
+    def lane(self, value: np.ndarray | None) -> None:
+        """Sets the lane of the agent.
+
+        Args:
+            value (np.ndarray or None): The lane of the agent, if available.
+        """
+        if value is not None:
+            self._lane = np.asarray(value, dtype=np.float32)
+        else:
+            self._lane = None
+
+    def reset(self) -> None:
+        """Resets all agent attributes to their default values."""
+        self._position = None
+        self._speed = None
+        self._heading = None
+        self._dists_to_conflict = None
+        self._stationary_speed = 0.1  # Default stationary speed threshold
+        self._agent_to_conflict_point_max_distance = 0.5  # Default max distance to conflict point
+        self._lane = None
+        self._length = None
+        self._width = None
+        self._height = None
+        self._agent_type = None
+
+
 def make_output_paths(cfg: DictConfig) -> None:
     """Creates output directories as specified in the configuration.
 
@@ -50,7 +280,7 @@ def make_output_paths(cfg: DictConfig) -> None:
         os.makedirs(path, exist_ok=True)
 
 
-def get_logger(name=__name__):
+def get_logger(name: str = __name__) -> logging.Logger:
     """Creates a logger with colorized output for better readability.
 
     Args:
@@ -81,7 +311,7 @@ def get_logger(name=__name__):
     return logger
 
 
-def from_pickle(data_file: str) -> dict:
+def from_pickle(data_file: str) -> dict:  # pyright: ignore[reportMissingTypeArgument]
     """Loads data from a pickle file.
 
     Args:
@@ -102,7 +332,7 @@ def from_pickle(data_file: str) -> dict:
     return data
 
 
-def to_pickle(output_path: str, input_data: dict, tag: str) -> None:
+def to_pickle(output_path: str, input_data: dict, tag: str) -> None:  # pyright: ignore[reportMissingTypeArgument]
     """Saves data to a pickle file, merging with existing data if present.
 
     Args:

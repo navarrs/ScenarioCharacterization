@@ -32,17 +32,20 @@ dependencies = [
    "pandas==1.5.3; python_version == '3.10'",
    "pandas>=2.3.0; python_version >= '3.11'",
    "pydantic>=2.11.5",
+   "pyright>=1.1.402",
    "rich>=14.0.0",
    "scipy>=1.9.1",
    "seaborn>=0.12.0",
    "shapely>=2.0.7",
    "torch>=2.7.1",
+   "tqdm>=4.67.1",
 ]
 keywords = ["Trajectory Datasets", "Safety Metrics", "Characterization"]
 
 [project.optional-dependencies]
 viz = [
     "matplotlib>=3.6.1",
+    "seaborn>=0.12.0",
 ]
 dev = [
     "black>=25.1.0",
@@ -50,6 +53,7 @@ dev = [
     "pre-commit>=4.2.0",
     "duckdb>=1.3.0",
     "deptry>=0.23.0",
+    "ruff>=0.12.0",
 ]
 waymo = [
     "tensorflow==2.11; python_version=='3.10'",
@@ -72,6 +76,19 @@ exclude = ["tests", "docs", "scripts"]
 include-package-data = true
 
 [tool.black]
+line-length = 120
+target-version = ['py312']
+skip-string-normalization = false
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+fix = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.flake8]
 line-length = 120
 
 [tool.isort]
@@ -96,7 +113,37 @@ DEP002 = [
     "tensorflow"
 ]
 
-[dependency-groups]
-dev = [
-    "pre-commit>=4.2.0",
+[tool.pyright]
+pythonVersion = "3.12"
+include = ["src", "tests"]
+exclude = [
+    "**/__pycache__",
+    "tmp",
+    "src/scripts",
+    "src/characterization/utils/datasets/waymo_preprocess.py"
 ]
+typeCheckingMode = "strict"
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportUnknownMemberType = false
+reportUnusedCallResult = false
+reportUnknownParameterType = false
+reportInvalidTypeForm = false
+
+deprecateTypingAliases = false
+reportMissingImports = false
+reportUnusedImports = false
+reportOptionalSubscript = false
+reportOptionalMemberAccess = false
+reportMissingTypeArgument = false
+reportMissingParameterType = false
+reportPossiblyUnboundVariable = false
+reportOptionalOperand = false
+reportMissingModuleSource = false
+reportCallIssue = false
+reportUntypedFunction = false
+reportUntypedBaseClass = false
+reportUntypedFunctionDecorator = false
+reportIncompatibleMethodOverride = false
+reportArgumentType = false
+reportUnnecessaryComparison = false

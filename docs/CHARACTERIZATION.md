@@ -43,8 +43,9 @@ uv run -m characterization.run_processor characterizer=interaction_features
 Currently supported features:
 - Collisions
 - Minimum Time to Conflict Point (mTTCP)
-- **WIP:** Time headway
-- **WIP:** Time to collision
+- Time headway
+- Time to collision
+- Deceleration Rate to Avoid a Crash (DRAC)
 - **WIP:** Trajectory-pair anomaly
 
 ---

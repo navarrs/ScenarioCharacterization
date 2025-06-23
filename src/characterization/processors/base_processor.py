@@ -54,11 +54,11 @@ class BaseProcessor(ABC):
             batch_size=self.batch_size,
             shuffle=self.shuffle,
             num_workers=self.num_workers,
-            collate_fn=self.dataset.collate_batch,
+            collate_fn=self.dataset.collate_batch,  # pyright: ignore[reportAttributeAccessIssue]
         )
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Returns the name of the processor class.
 
         Returns:

@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from omegaconf import DictConfig
+from matplotlib.axes import Axes
+
 from characterization.utils.common import get_logger
 from characterization.utils.schemas import Scenario
 from characterization.utils.viz.visualizer import BaseVisualizer
@@ -12,13 +15,13 @@ logger = get_logger(__name__)
 
 
 class WaymoVisualizer(BaseVisualizer):
-    def __init__(self, config):
+    def __init__(self, config: DictConfig):
         super().__init__(config)
 
     def visualize_scenario(
         self,
         scenario: Scenario,
-        scores: dict = {},
+        scores: np.ndarray,
         title: str = "Scenario",
         output_filepath: str = "temp.png",
     ) -> None:
@@ -35,7 +38,7 @@ class WaymoVisualizer(BaseVisualizer):
             output_filepath (str, optional): Path to save the visualization. Defaults to "temp.png".
         """
         num_windows = 2
-        fig, axs = plt.subplots(1, num_windows, figsize=(5 * num_windows, 5 * 1))
+        _, axs = plt.subplots(1, num_windows, figsize=(5 * num_windows, 5 * 1))
 
         # Plot static map information
         if scenario.map_polylines is None:
@@ -71,11 +74,11 @@ class WaymoVisualizer(BaseVisualizer):
         axs[1].set_title("Highlighted Relevant and SDC Agent Trajectories")
         plt.subplots_adjust(wspace=0.05)
         plt.savefig(output_filepath, dpi=300, bbox_inches="tight")
-        ax.cla()
+        axs.cla()
         plt.close()
 
     def plot_agent(
-        self, ax: plt.Axes, x: float, y: float, heading: float, width: float, height: float, alpha: float
+        self, ax: Axes, x: float, y: float, heading: float, width: float, height: float, alpha: float
     ) -> None:
         """
         Plots a single agent as a point (optionally as a rectangle) on the axes.
@@ -104,7 +107,7 @@ class WaymoVisualizer(BaseVisualizer):
         # )
         # ax.add_patch(rect)
 
-    def plot_sequences(self, ax: plt.Axes, scenario: Scenario, scores, show_relevant: bool = False) -> None:
+    def plot_sequences(self, ax: Axes, scenario: Scenario, scores: np.ndarray, show_relevant: bool = False) -> None:
         """
         Plots agent trajectories for a scenario, with optional highlighting and score-based transparency.
 
@@ -115,7 +118,8 @@ class WaymoVisualizer(BaseVisualizer):
             show_relevant (bool, optional): If True, highlights relevant and SDC agents. Defaults to False.
         """
         agent_positions = scenario.agent_positions
-        agent_dimensions = scenario.agent_dimensions
+        agent_lengths = scenario.agent_lengths
+        agent_widths = scenario.agent_widths
         agent_headings = scenario.agent_headings
         agent_types = scenario.agent_types
         agent_valid = scenario.agent_valid
@@ -136,24 +140,24 @@ class WaymoVisualizer(BaseVisualizer):
                 agent_types[idx] = "TYPE_RELEVANT"
             agent_types[ego_index] = "TYPE_SDC"  # Mark ego agent for visualization
 
-        zipped = zip(agent_positions, agent_dimensions, agent_headings, agent_valid, agent_types, scores)
-        for apos, adim, ahead, amask, atype, score in zipped:
+        zipped = zip(agent_positions, agent_lengths, agent_widths, agent_headings, agent_valid, agent_types, scores)
+        for apos, alen, awid, ahead, amask, atype, score in zipped:
             amask = amask.squeeze(-1)
             if not amask.any() or amask.sum() < 2:
                 continue
 
             pos = apos[amask, :]
             heading = ahead[amask][0]
-            lenght = adim[0, 0]
-            width = adim[0, 1]
+            length = alen[amask]
+            width = awid[amask]
             color = self.agent_colors[atype]
             ax.plot(pos[:, 0], pos[:, 1], color=color, linewidth=2, alpha=score)
             # Plot the agent
-            self.plot_agent(ax, pos[0, 0], pos[0, 1], heading, lenght, width, score)
+            self.plot_agent(ax, pos[0, 0], pos[0, 1], heading, length, width, score)
 
     def plot_static_map_infos(
         self,
-        ax: plt.Axes,
+        ax: Axes,
         map_polylines: np.ndarray,
         lane_polyline_idxs: np.ndarray | None = None,
         road_line_polyline_idxs: np.ndarray | None = None,
@@ -200,7 +204,7 @@ class WaymoVisualizer(BaseVisualizer):
             self.plot_stop_signs(ax, road_graph, stop_sign_polyline_idxs, num_windows, color=color)
 
     def plot_dynamic_map_infos(
-        self, ax: plt.Axes, dynamic_stop_points: np.ndarray, num_windows: int = 0, dim: int = 2
+        self, ax: Axes, dynamic_stop_points: np.ndarray, num_windows: int = 0, dim: int = 2
     ) -> None:
         """
         Plots dynamic map features (e.g., stop points) for a scenario.
@@ -218,12 +222,12 @@ class WaymoVisualizer(BaseVisualizer):
         if num_windows == 1:
             ax.scatter(x_pos, y_pos, s=6, c=color, marker="s", alpha=alpha)
         else:
-            for a in ax.reshape(-1):
+            for a in ax.reshape(-1):  # pyright: ignore[reportAttributeAccessIssue]
                 a.scatter(x_pos, y_pos, s=6, c=color, marker="s", alpha=alpha)
 
     def plot_stop_signs(
         self,
-        ax: plt.Axes,
+        ax: Axes,
         road_graph: np.ndarray,
         polyline_idxs: np.ndarray,
         num_windows: int = 0,
@@ -247,18 +251,18 @@ class WaymoVisualizer(BaseVisualizer):
             if num_windows == 1:
                 ax.scatter(pos[:, 0], pos[:, 1], s=16, c=color, marker="H", alpha=1.0)
             else:
-                for a in ax.reshape(-1):
+                for a in ax.reshape(-1):  # pyright: ignore[reportAttributeAccessIssue]
                     a.scatter(pos[:, 0], pos[:, 1], s=16, c=color, marker="H", alpha=1.0)
 
     def plot_polylines(
         self,
-        ax: plt.Axes,
+        ax: Axes,
         road_graph: np.ndarray,
         polyline_idxs: np.ndarray,
-        num_windows=0,
-        color="k",
-        alpha=1.0,
-        linewidth=0.5,
+        num_windows: int = 0,
+        color: str = "k",
+        alpha: float = 1.0,
+        linewidth: float = 0.5,
     ) -> None:
         """
         Plots polylines (e.g., lanes, crosswalks) on the axes for a scenario.
@@ -278,5 +282,5 @@ class WaymoVisualizer(BaseVisualizer):
             if num_windows == 1:
                 ax.plot(pos[:, 0], pos[:, 1], color, alpha=alpha, linewidth=linewidth)
             else:
-                for a in ax.reshape(-1):
+                for a in ax.reshape(-1):  # pyright: ignore[reportAttributeAccessIssue]
                     a.plot(pos[:, 0], pos[:, 1], color, alpha=alpha, linewidth=linewidth)

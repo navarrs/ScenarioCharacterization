@@ -7,16 +7,16 @@ scores_path: ${paths.cache_path}/scores
 
 scenario_types:
   - gt
-  - ho
+  # - ho
 
 criteria:
   - critical
-  - average
+  # - average
 
 scores:
   - individual
   - interaction
-  - safeshift
+  # - safeshift
 
 dpi: 300
 output_dir: ${paths.cache_path}/visualization

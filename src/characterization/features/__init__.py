@@ -11,4 +11,7 @@ SUPPORTED_FEATURES = [
     "intersection",
     "collision",
     "mttcp",
+    "thw",
+    "ttc",
+    "drac",
 ]

@@ -15,6 +15,12 @@ characterizer:
     weights:
       collision: 2.0
       mttcp: 2.0
+      thw: 1.0
+      ttc: 1.0
+      drac: 0.2
 
     detections:
       mttcp: 4
+      thw: 4
+      ttc: 4
+      drac: 2

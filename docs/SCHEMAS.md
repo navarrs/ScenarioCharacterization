@@ -28,10 +28,12 @@ class Scenario(BaseModel):
     agent_types: List[str]
 
     agent_positions: Float32NDArray3D
-    agent_dimensions: Float32NDArray3D
     agent_velocities: Float32NDArray3D
-    agent_headings: Float32NDArray3D
-    agent_valid: BooleanNDArray3D
+    agent_lengths: Float32NDArray2D
+    agent_widths: Float32NDArray2D
+    agent_heights: Float32NDArray2D
+    agent_headings: Float32NDArray2D
+    agent_valid: BooleanNDArray2D
     agent_relevance: Float32NDArray1D
 
     # Map Information
@@ -97,11 +99,12 @@ class ScenarioFeatures(BaseModel):
     intersection: Float32NDArray1D | None = None
     collision: Float32NDArray1D | None = None
     mttcp: Float32NDArray1D | None = None
+    thw: Float32NDArray1D | None = None
+    ttc: Float32NDArray1D | None = None
+    drac: Float32NDArray1D | None = None
     interaction_status: List[InteractionStatus] | None = None
     interaction_agent_indices: List[tuple[int, int]] | None = None
     interaction_agent_types: List[tuple[str, str]] | None = None
-
-    model_config = {"arbitrary_types_allowed": True}
 ```
 
 ---
