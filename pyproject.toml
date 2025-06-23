@@ -32,7 +32,6 @@ dependencies = [
    "pandas==1.5.3; python_version == '3.10'",
    "pandas>=2.3.0; python_version >= '3.11'",
    "pydantic>=2.11.5",
-   "pyright>=1.1.402",
    "rich>=14.0.0",
    "scipy>=1.9.1",
    "seaborn>=0.12.0",
@@ -54,6 +53,7 @@ dev = [
     "duckdb>=1.3.0",
     "deptry>=0.23.0",
     "ruff>=0.12.0",
+    "pyright>=1.1.402",
 ]
 waymo = [
     "tensorflow==2.11; python_version=='3.10'",
