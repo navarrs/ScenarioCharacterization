@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+import numpy as np
 from omegaconf import DictConfig
 
 from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
@@ -53,7 +54,7 @@ class BaseVisualizer(ABC):
 
     @abstractmethod
     def visualize_scenario(
-        self, scenario: Scenario, scores: dict = {}, title: str = "Scenario", output_filepath: str = "temp.png"
+        self, scenario: Scenario, scores: np.ndarray, title: str = "Scenario", output_filepath: str = "temp.png"
     ) -> None:
         """
         Visualizes a single scenario and saves the output to a file.

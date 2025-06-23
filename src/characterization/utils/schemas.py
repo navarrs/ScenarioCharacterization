@@ -24,6 +24,7 @@ def validate_array(expected_dtype: Any, expected_ndim: int) -> Callable[[Any], N
 
 
 # Reusable types
+BooleanNDArray2D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 2))]
 BooleanNDArray3D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 3))]
 Float32NDArray3D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 3))]
 Float32NDArray2D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 2))]
@@ -123,10 +124,12 @@ class Scenario(BaseModel):
     agent_types: List[str]
 
     agent_positions: Float32NDArray3D
-    agent_dimensions: Float32NDArray3D
     agent_velocities: Float32NDArray3D
-    agent_headings: Float32NDArray3D
-    agent_valid: BooleanNDArray3D
+    agent_lengths: Float32NDArray2D
+    agent_widths: Float32NDArray2D
+    agent_heights: Float32NDArray2D
+    agent_headings: Float32NDArray2D
+    agent_valid: BooleanNDArray2D
     agent_relevance: Float32NDArray1D
 
     # Map Information
@@ -158,6 +161,7 @@ class Scenario(BaseModel):
     agent_to_agent_max_distance: float
     agent_to_conflict_point_max_distance: float
     agent_to_agent_distance_breach: float
+    heading_threshold: float
 
     # To allow numpy and other arbitrary types in the model
     model_config = {"arbitrary_types_allowed": True}
@@ -216,6 +220,11 @@ class ScenarioFeatures(BaseModel):
     intersection: Float32NDArray1D | None = None
     collision: Float32NDArray1D | None = None
     mttcp: Float32NDArray1D | None = None
+    thw: Float32NDArray1D | None = None
+    ttc: Float32NDArray1D | None = None
+    drac: Float32NDArray1D | None = None
+    # leader_follower: Float32NDArray1D | None = None
+    # valid_headings: Float32NDArray1D | None = None
     interaction_status: List[InteractionStatus] | None = None
     interaction_agent_indices: List[tuple[int, int]] | None = None
     interaction_agent_types: List[tuple[str, str]] | None = None

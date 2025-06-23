@@ -5,7 +5,6 @@ import hydra
 import numpy as np
 import pandas as pd
 from omegaconf import DictConfig
-from torch.utils.data import Dataset
 
 import characterization.utils.viz.utils as viz_utils
 from characterization.scorer import SUPPORTED_SCORERS
@@ -40,7 +39,7 @@ def run(cfg: DictConfig) -> None:
     # Instantiate dataset and visualizer
     cfg.dataset.config.load = False
     logger.info("Instatiating dataset: %s", cfg.dataset._target_)
-    dataset: Dataset = hydra.utils.instantiate(cfg.dataset)
+    dataset = hydra.utils.instantiate(cfg.dataset)
 
     logger.info("Instatiating visualizer: %s", cfg.viz._target_)
     visualizer: BaseVisualizer = hydra.utils.instantiate(cfg.viz)
@@ -58,8 +57,8 @@ def run(cfg: DictConfig) -> None:
     if unsupported_scores:
         raise ValueError(f"Scorers {unsupported_scores} not in supported list {SUPPORTED_SCORERS}")
 
-    scene_scores: dict = {}
-    agent_scores: dict = {}
+    scene_scores = {}
+    agent_scores = {}
     for scenario_type, scorer, criteria in product(cfg.scenario_types, cfg.scores, cfg.criteria):
         key = f"{scenario_type}_{criteria}_{scorer}"
         scene_scores[key] = []
@@ -122,7 +121,7 @@ def run(cfg: DictConfig) -> None:
                     logger.warning(f"No rows found for {key} in range [{min_value}, {max_value}]")
                     continue
 
-                for index, row in rows.iterrows():
+                for _, row in rows.iterrows():
                     score = row[key]
                     scenario_id = row["scenario_ids"]
                     agent_scores = agent_scores_df[agent_scores_df["scenario_ids"] == scenario_id][key].values[0]
@@ -144,4 +143,4 @@ def run(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    run()
+    run()  # pyright: ignore[reportCallIssue]

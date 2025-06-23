@@ -70,6 +70,15 @@ class InteractionScorer(BaseScorer):
                 mttcp=scenario_features.mttcp[n],
                 mttcp_weight=self.weights.mttcp,
                 mttcp_detection=self.detections.mttcp,
+                thw=scenario_features.thw[n],
+                thw_weight=self.weights.thw,
+                thw_detection=self.detections.thw,
+                ttc=scenario_features.ttc[n],
+                ttc_weight=self.weights.ttc,
+                ttc_detection=self.detections.ttc,
+                drac=scenario_features.drac[n],
+                drac_weight=self.weights.drac,
+                drac_detection=self.detections.drac,
             )
             scores[i] += weights[i] * agent_pair_score
             scores[j] += weights[j] * agent_pair_score

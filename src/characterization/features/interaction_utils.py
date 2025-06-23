@@ -1,163 +1,86 @@
 import numpy as np
 from shapely import LineString
 
-from characterization.utils.common import get_logger
+from characterization.utils.common import get_logger, InteractionAgent, EPS
 
 logger = get_logger(__name__)
 
 
-class InteractionAgent:
-    """Class representing an agent for interaction feature computation."""
+def is_sharing_lane(lane_i: np.ndarray | None, lane_j: np.ndarray | None) -> bool:
+    """Checks if two agents are sharing the same lane.
 
-    def __init__(self):
-        """Initializes an InteractionAgent and resets all attributes."""
-        self.reset()
+    Args:
+        lane_i (np.ndarray or None): The lane of the first agent.
+        lane_j (np.ndarray or None): The lane of the second agent.
 
-    @property
-    def position(self) -> np.ndarray:
-        """np.ndarray: The positions of the agent over time (shape: [T, 2])."""
-        return self._position
+    Returns:
+        bool: True if both agents are sharing the same lane, False otherwise.
+    """
+    # if lane_i is None or lane_j is None:
+    #     return False
+    # lane_i = lane_i[np.isfinite(lane_i)]
+    # lane_j = lane_j[np.isfinite(lane_j)]
+    # return np.isin(lane_i, lane_j).any()
+    return True
 
-    @position.setter
-    def position(self, value: np.ndarray) -> None:
-        """Sets the positions of the agent.
 
-        Args:
-            value (np.ndarray): The positions of the agent over time (shape: [T, 2]).
-        """
-        if value is not None:
-            self._position = np.asarray(value, dtype=np.float32)
-        else:
-            self._position = None
+def find_valid_headings(
+    agent_i: InteractionAgent, agent_j: InteractionAgent, heading_threshold: float = 0.1
+) -> np.ndarray:
+    """Checks if the headings of two agents are within a specified threshold.
 
-    @property
-    def velocity(self) -> np.ndarray:
-        """np.ndarray: The velocities of the agent over time (shape: [T,])."""
-        return self._velocity
+    Args:
+        agent_i (InteractionAgent): The first agent.
+        agent_j (InteractionAgent): The second agent.
+        heading_threshold (float): Threshold for considering headings as valid. Heading are assumed to be in degrees.
 
-    @velocity.setter
-    def velocity(self, value: np.ndarray) -> None:
-        """Sets the velocities of the agent.
+    Returns:
+        bool: True if the headings of both agents are within the threshold, False otherwise.
+    """
+    valid_headings = np.empty(shape=(0,), dtype=np.bool)
+    if agent_i.heading is None or agent_j.heading is None:
+        return valid_headings
+    if not is_sharing_lane(agent_i.lane, agent_j.lane):
+        return valid_headings
 
-        Args:
-            value (np.ndarray): The velocities of the agent over time (shape: [T,]).
-        """
-        if value is not None:
-            self._velocity = np.asarray(value, dtype=np.float32)
-        else:
-            self._velocity = None
+    heading_diff = np.abs((agent_j.heading - agent_i.heading + 540) % 360 - 180)
+    valid_headings = np.where(heading_diff <= heading_threshold)[0]
+    return valid_headings
 
-    @property
-    def heading(self) -> np.ndarray:
-        """np.ndarray: The headings of the agent over time (shape: [T,])."""
-        return self._heading
 
-    @heading.setter
-    def heading(self, value: np.ndarray) -> None:
-        """Sets the headings of the agent.
+def find_leading_agent(agent_i: InteractionAgent, agent_j: InteractionAgent, mask: np.ndarray | None = None) -> int:
+    """Determines which agent is leading based on their positions and headings.
+    Args:
+        agent_i (InteractionAgent): The first agent.
+        agent_j (InteractionAgent): The second agent.
+        mask (np.ndarray or None): Optional mask to filter positions.
+    Returns:
+        int: 0 if agent_i is leading, 1 if agent_j is leading.
+    """
+    position_i, position_j = agent_i.position, agent_j.position
+    if mask is not None:
+        position_i = position_i[mask]
+        position_j = position_j[mask]
+        heading_i = agent_i.heading[mask]
 
-        Args:
-            value (np.ndarray): The headings of the agent over time (shape: [T,]).
-        """
-        if value is not None:
-            self._heading = np.asarray(value, dtype=np.float32)
-        else:
-            self._heading = None
+    # Compute i-to-j angles based on positions and headings
+    x_i, y_i = position_i[:, 0], position_i[:, 1]
+    x_j, y_j = position_j[:, 0], position_j[:, 1]
+    heading_i = np.deg2rad(heading_i)
 
-    @property
-    def agent_type(self) -> str:
-        """str: The type of the agent."""
-        return self._agent_type
+    # Vector i to j
+    vector_to_j = np.array([x_j - x_i, y_j - y_i])
+    angle_to_j = np.arctan2(vector_to_j[1], vector_to_j[0])  # Angle in radians
 
-    @agent_type.setter
-    def agent_type(self, value: str) -> None:
-        """Sets the type of the agent.
+    # Adjust the angle difference to be between -π and π
+    angle_ij = angle_to_j - heading_i
+    # Wrap the angle difference to be between -π and π
+    angle_ij = np.rad2deg((angle_ij + np.pi) % (2 * np.pi) - np.pi)
 
-        Args:
-            value (str): The type of the agent.
-        """
-        if value is not None:
-            self._agent_type = str(value)
-        else:
-            self._agent_type = None
-
-    @property
-    def is_stationary(self) -> bool | None:
-        """bool or None: Whether the agent is stationary (True/False), or None if unknown."""
-        if self._velocity is None:
-            self._is_stationary = None
-        else:
-            self._is_stationary = self.velocity.mean() < self._stationary_speed
-        return self._is_stationary
-
-    @property
-    def stationary_speed(self) -> float:
-        """float: The speed threshold below which the agent is considered stationary."""
-        return self._stationary_speed
-
-    @stationary_speed.setter
-    def stationary_speed(self, value: float) -> None:
-        """Sets the stationary speed threshold.
-
-        Args:
-            value (float): The speed threshold below which the agent is considered stationary.
-        """
-        if value is not None:
-            self._stationary_speed = float(value)
-        else:
-            self._stationary_speed = 0.1
-
-    @property
-    def in_conflict_point(self) -> bool:
-        """bool: Whether the agent is in a conflict point."""
-        if self._dists_to_conflict is None:
-            self._in_conflict_point = False
-        else:
-            self._in_conflict_point = np.any(self._dists_to_conflict <= self._agent_to_conflict_point_max_distance)
-        return self._in_conflict_point
-
-    @property
-    def agent_to_conflict_point_max_distance(self) -> float:
-        """float: The maximum distance to a conflict point."""
-        return self._agent_to_conflict_point_max_distance
-
-    @agent_to_conflict_point_max_distance.setter
-    def agent_to_conflict_point_max_distance(self, value: float) -> None:
-        """Sets the maximum distance to a conflict point.
-
-        Args:
-            value (float): The maximum distance to a conflict point.
-        """
-        if value is not None:
-            self._agent_to_conflict_point_max_distance = float(value)
-        else:
-            self._agent_to_conflict_point_max_distance = 0.5  # Default value
-
-    @property
-    def dists_to_conflict(self) -> np.ndarray:
-        """np.ndarray: The distances to conflict points (shape: [T,])."""
-        return self._dists_to_conflict
-
-    @dists_to_conflict.setter
-    def dists_to_conflict(self, value: np.ndarray) -> None:
-        """Sets the distances to conflict points.
-
-        Args:
-            value (np.ndarray): The distances to conflict points (shape: [T,]).
-        """
-        if value is not None:
-            self._dists_to_conflict = np.asarray(value, dtype=np.float32)
-        else:
-            self._dists_to_conflict = None
-
-    def reset(self) -> None:
-        """Resets all agent attributes to their default values."""
-        self._position = None
-        self._velocity = None
-        self._heading = None
-        self._dists_to_conflict = None
-        self._stationary_speed = 0.1  # Default stationary speed threshold
-        self._agent_to_conflict_point_max_distance = 0.5  # Default max distance to conflict point
+    # Check if position_j is "behind" position_i
+    leading_agent = np.abs(angle_ij) > 90
+    # 0 -> i is leading, 1 -> j is leading
+    return (~leading_agent).astype(int)
 
 
 def compute_separation(agent_i: InteractionAgent, agent_j: InteractionAgent) -> np.ndarray:
@@ -170,8 +93,8 @@ def compute_separation(agent_i: InteractionAgent, agent_j: InteractionAgent) -> 
     Returns:
         np.ndarray: Array of separation distances between agent_i and agent_j at each timestep (shape: [T,]).
     """
-    pos_i, pos_j = agent_i.position, agent_j.position
-    return np.linalg.norm(pos_i - pos_j, axis=-1)
+    position_i, position_j = agent_i.position, agent_j.position
+    return np.linalg.norm(position_i - position_j, axis=-1)
 
 
 def compute_intersections(agent_i: InteractionAgent, agent_j: InteractionAgent) -> np.ndarray:
@@ -185,12 +108,12 @@ def compute_intersections(agent_i: InteractionAgent, agent_j: InteractionAgent) 
         np.ndarray: Boolean array indicating whether each segment of agent_i intersects with the corresponding segment
             of agent_j (shape: [T,]).
     """
-    pos_i, pos_j = agent_i.position, agent_j.position
-    if pos_i.shape[0] < 2 or pos_j.shape[0] < 2:
-        return np.zeros((pos_i.shape[0],), dtype=np.bool)
+    position_i, position_j = agent_i.position, agent_j.position
+    if position_i.shape[0] < 2 or position_j.shape[0] < 2:
+        return np.zeros((position_i.shape[0],), dtype=np.bool)
 
-    segments_i = np.stack([pos_i[:-1], pos_i[1:]], axis=1)
-    segments_j = np.stack([pos_j[:-1], pos_j[1:]], axis=1)
+    segments_i = np.stack([position_i[:-1], position_i[1:]], axis=1)
+    segments_j = np.stack([position_j[:-1], position_j[1:]], axis=1)
     segments_i = [LineString(x) for x in segments_i]
     segments_j = [LineString(x) for x in segments_j]
 
@@ -205,6 +128,9 @@ def compute_mttcp(
     agent_to_agent_max_distance: float = 0.5,
 ) -> np.ndarray:
     """Computes the minimum time to conflict point (mTTCP) between two agents.
+                                 | 𝚫xi(t)     𝚫xj(t)  |
+        𝚫TTCP  =       min       |------  ‒‒  ------  |
+                  t in {0, tcp}  | 𝚫vi(t)     𝚫vj(t)  |
 
     The mTTCP is defined as the minimum absolute difference in time for each agent to reach a conflict point,
     for all timesteps where the agents are within a specified distance threshold.
@@ -217,31 +143,31 @@ def compute_mttcp(
     Returns:
         np.ndarray: An array of mTTCP values for each timestep (shape: [N,]), or [np.inf] if no valid pairs are found.
     """
-    pos_i, pos_j = agent_i.position, agent_j.position
-    vel_i, vel_j = agent_i.velocity, agent_j.velocity
+    position_i, position_j = agent_i.position, agent_j.position
+    vel_i, vel_j = agent_i.speed, agent_j.speed
 
     # T, 2 -> T, T
-    dists = np.linalg.norm(pos_i[:, None, :] - pos_j, axis=-1)
-    i_idx, j_idx = np.where(dists <= agent_to_agent_max_distance)
+    dists = np.linalg.norm(position_i[:, None, :] - position_j, axis=-1)
+    i_idx, _ = np.where(dists <= agent_to_agent_max_distance)
 
-    vals, i_unique = np.unique(i_idx, return_index=True)
+    _, i_unique = np.unique(i_idx, return_index=True)
     ti = i_idx[i_unique]
     if len(ti) == 0:
         mttcp = np.array([np.inf], dtype=np.float32)
         return mttcp
 
-    conflict_points = pos_i[ti]
+    conflict_points = position_i[ti]
     mttcp = np.inf * np.ones(conflict_points.shape[0])
 
-    cp_to_pos_i = np.linalg.norm(pos_i - conflict_points[:, None], axis=-1)
-    cp_to_pos_j = np.linalg.norm(pos_j - conflict_points[:, None], axis=-1)
-    tj = cp_to_pos_j.argmin(axis=-1)
+    cp_to_position_i = np.linalg.norm(position_i - conflict_points[:, None], axis=-1)
+    cp_to_position_j = np.linalg.norm(position_j - conflict_points[:, None], axis=-1)
+    tj = cp_to_position_j.argmin(axis=-1)
 
     t_min = np.minimum(ti, tj) + 1
     for n, t in enumerate(t_min):
         # Compute the time to conflict point for each agent
-        ttcp_i = cp_to_pos_i[n, :t] / vel_i[:t]  # Shape: (num. conflict points, 0 to t)
-        ttcp_j = cp_to_pos_j[n, :t] / vel_j[:t]
+        ttcp_i = cp_to_position_i[n, :t] / vel_i[:t]  # Shape: (num. conflict points, 0 to t)
+        ttcp_j = cp_to_position_j[n, :t] / vel_j[:t]
 
         # Calculate the absolute difference in time to conflict point
         ttcp = np.abs(ttcp_i - ttcp_j)
@@ -250,3 +176,188 @@ def compute_mttcp(
         mttcp[n] = ttcp.min()
 
     return mttcp
+
+
+def compute_thw(
+    agent_i: InteractionAgent,
+    agent_j: InteractionAgent,
+    leading_agent: np.ndarray,
+    valid_headings: np.ndarray | None = None,
+    return_only_finite: bool = True,
+) -> np.ndarray:
+    """Computes the following leader-follower interaction measurements:
+
+        Time Headway (THW):
+        -------------------
+            TWH = d / v_f
+
+        where d is the gap between the leader and the follower, and v_f is the speed of the follower.
+
+    Args:
+        agent_i (InteractionAgent): The first agent.
+        agent_j (InteractionAgent): The second agent.
+        leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
+        valid_headings (np.ndarray | None): Optional mask to filter valid headings.
+    Returns:
+        np.ndarray: Array of time headway values for each timestep (shape: [T,]).
+    """
+    if agent_i.position is None or agent_j.position is None:
+        raise ValueError(
+            "Both agents must have position data.",
+            f"agent_i position: {agent_i.position}, agent_j position: {agent_j.position}",
+        )
+    position_i, position_j = np.linalg.norm(agent_i.position, axis=-1), np.linalg.norm(agent_j.position, axis=-1)
+    speed_i, speed_j = agent_i.speed, agent_j.speed
+    length_i, length_j = agent_i.length, agent_j.length
+    if valid_headings is not None:
+        position_i = position_i[valid_headings]
+        speed_i = speed_i[valid_headings]
+        length_i = length_i[valid_headings]
+        position_j = position_j[valid_headings]
+        speed_j = speed_j[valid_headings]
+        length_j = length_j[valid_headings]
+
+    thw = np.full(position_i.shape[0], np.inf, dtype=np.float32)
+
+    # NOTE: this assumes the leader value is correctly computed. Need to still verify this.
+    # ...where i is the agent ahead
+    i_idx = np.where(leading_agent == 0)[0]
+    if len(i_idx) > 0:
+        d_i = position_i[i_idx] - position_j[i_idx] - length_i[i_idx]
+        thw[i_idx] = d_i / (speed_j[i_idx] + EPS)
+
+    # ...where j is the agent ahead
+    j_idx = np.where(leading_agent == 1)[0]
+    if len(j_idx) > 0:
+        d_j = position_j[j_idx] - position_i[j_idx] - length_j[j_idx]
+        thw[j_idx] = d_j / (speed_i[j_idx] + EPS)
+
+    if return_only_finite:
+        thw = thw[np.isfinite(thw)]
+        if thw.size == 0:
+            thw = np.array([np.inf], dtype=np.float32)
+    return np.abs(thw)
+
+
+def compute_ttc(
+    agent_i: InteractionAgent,
+    agent_j: InteractionAgent,
+    leading_agent: np.ndarray,
+    valid_headings: np.ndarray | None = None,
+    return_only_finite: bool = True,
+) -> np.ndarray:
+    """Computes the following leader-follower interaction measurement:
+
+        Time-to-Collision (TTC):
+        ------------------------
+                        d
+            TTC = ---------------  forall v_i > v_j
+                     v_i - v_j
+
+        where d is the gap between the leader and the follower, and v_i and v_j are the speeds of the follower and the
+        leader, and where the follower's speed is higher than the leader's speed.
+
+    Args:
+        agent_i (InteractionAgent): The first agent.
+        agent_j (InteractionAgent): The second agent.
+        leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
+        valid_headings (np.ndarray | None): Optional mask to filter valid headings.
+    Returns:
+        np.ndarray: Array of time-to-collision values for each timestep (shape: [T,]).
+    """
+    position_i, position_j = np.linalg.norm(agent_i.position, axis=-1), np.linalg.norm(agent_j.position, axis=-1)
+    speed_i, speed_j = agent_i.speed, agent_j.speed
+    length_i, length_j = agent_i.length, agent_j.length
+    if valid_headings is not None:
+        position_i = position_i[valid_headings]
+        speed_i = speed_i[valid_headings]
+        length_i = length_i[valid_headings]
+        position_j = position_j[valid_headings]
+        speed_j = speed_j[valid_headings]
+        length_j = length_j[valid_headings]
+
+    ttc = np.full(position_i.shape[0], np.inf, dtype=np.float32)
+    # ...where i is the agent ahead and j's speed is higher
+    i_leads = np.where(leading_agent == 0)[0]
+    j_faster = np.where(speed_j > speed_i)[0]
+    i_idx = np.intersect1d(i_leads, j_faster)
+    if len(i_idx) > 0:
+        d_ij = position_j[i_idx] - position_i[i_idx] - length_i[i_idx]
+        ttc[i_idx] = d_ij / (speed_j[i_idx] - speed_i[i_idx] + EPS)
+
+    # ...where j is the agent ahead and i's speed is higher
+    j_leads = np.where(leading_agent == 1)[0]
+    i_faster = np.where(speed_i > speed_j)[0]
+    j_idx = np.intersect1d(j_leads, i_faster)
+    if len(j_idx) > 0:
+        d_ji = position_i[j_idx] - position_j[j_idx] - length_j[j_idx]
+        ttc[j_idx] = d_ji / (speed_i[j_idx] - speed_j[j_idx] + EPS)
+
+    if return_only_finite:
+        ttc = ttc[np.isfinite(ttc)]
+        if ttc.size == 0:
+            ttc = np.array([np.inf], dtype=np.float32)
+    return np.abs(ttc)
+
+
+def compute_drac(
+    agent_i: InteractionAgent,
+    agent_j: InteractionAgent,
+    leading_agent: np.ndarray,
+    valid_headings: np.ndarray | None = None,
+    return_nonzero_only: bool = True,
+) -> np.ndarray:
+    """Computes the following leader-follower interaction measurement:
+
+        Deceleration Rate to Avoid a Crash (DRAC):
+        -----------------------------------------
+                (v_j - v_i) ** 2
+        DRAC = ------------------
+                      2 d
+        the average delay of a road user to avoid an accident at given velocities and distance between vehicles,
+        where i is the leader and j is the follower.
+    Args:
+        agent_i (InteractionAgent): The first agent.
+        agent_j (InteractionAgent): The second agent.
+        leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
+        valid_headings (np.ndarray | None): Optional mask to filter valid headings.
+    Returns:
+        np.ndarray: Array of time-to-collision values for each timestep (shape: [T,]).
+    """
+    position_i, position_j = np.linalg.norm(agent_i.position, axis=-1), np.linalg.norm(agent_j.position, axis=-1)
+    speed_i, speed_j = agent_i.speed, agent_j.speed
+    length_i, length_j = agent_i.length, agent_j.length
+    if valid_headings is not None:
+        position_i = position_i[valid_headings]
+        speed_i = speed_i[valid_headings]
+        length_i = length_i[valid_headings]
+        position_j = position_j[valid_headings]
+        speed_j = speed_j[valid_headings]
+        length_j = length_j[valid_headings]
+
+    drac = np.full(position_i.shape[0], 0.0, dtype=np.float32)
+
+    # ...where i is the agent ahead and j's speed is higher
+    i_leads = np.where(leading_agent == 0)[0]
+    j_faster = np.where(speed_j > speed_i)[0]
+    i_idx = np.intersect1d(i_leads, j_faster)
+    if len(i_idx) > 0:
+        d_ij = np.abs(position_j[i_idx] - position_i[i_idx] - length_i[i_idx])
+        v_ji = speed_j[i_idx] - speed_i[i_idx]
+        drac[i_idx] = (v_ji**2) / (2 * d_ij + EPS)
+
+    # ...where j is the agent ahead and i's speed is higher
+    j_leads = np.where(leading_agent == 1)[0]
+    i_faster = np.where(speed_i > speed_j)[0]
+    j_idx = np.intersect1d(j_leads, i_faster)
+    if len(j_idx) > 0:
+        d_ji = np.abs(position_i[j_idx] - position_j[j_idx] - length_j[j_idx])
+        v_ij = speed_i[j_idx] - speed_j[j_idx]
+        drac[j_idx] = (v_ij**2) / (2 * d_ji + EPS)
+
+    # TODO: account for the leader deceleration rate
+    if return_nonzero_only:
+        drac = drac[np.isfinite(drac) & (drac > 0)]
+        if drac.size == 0:
+            drac = np.array([0.0], dtype=np.float32)
+    return drac
