@@ -58,10 +58,11 @@ def find_leading_agent(agent_i: InteractionAgent, agent_j: InteractionAgent, mas
         int: 0 if agent_i is leading, 1 if agent_j is leading.
     """
     position_i, position_j = agent_i.position, agent_j.position
+    heading_i = agent_i.heading
     if mask is not None:
         position_i = position_i[mask]
         position_j = position_j[mask]
-        heading_i = agent_i.heading[mask]
+        heading_i = heading_i[mask]
 
     # Compute i-to-j angles based on positions and headings
     x_i, y_i = position_i[:, 0], position_i[:, 1]

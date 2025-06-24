@@ -19,6 +19,9 @@ characterizer:
       - intersection
       - collision
       - mttcp
+      - thw
+      - ttc
+      - drac
 
     individual_score_function: simple
     interaction_score_function: simple
@@ -38,6 +41,9 @@ characterizer:
 
       collision: 2.0
       mttcp: 2.0
+      thw: 1.0
+      ttc: 1.0
+      drac: 0.2
 
     detections:
       speed: 10
@@ -49,3 +55,6 @@ characterizer:
       waiting_distances: 8
 
       mttcp: 4
+      thw: 4
+      ttc: 4
+      drac: 2

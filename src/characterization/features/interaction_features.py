@@ -44,7 +44,7 @@ class InteractionFeatures(BaseFeature):
             ValueError: If no agent combinations are found (i.e., less than two agents in the scenario).
         """
         agent_combinations = list(itertools.combinations(range(scenario.num_agents), 2))
-        if agent_combinations is None:
+        if len(agent_combinations) == 0:
             raise ValueError("No agent combinations found. Ensure that the scenario has at least two agents.")
 
         agent_types = scenario.agent_types
@@ -173,6 +173,8 @@ class InteractionFeatures(BaseFeature):
                 ttc = ttc.mean()
                 thw = thw.mean()
                 drac = drac.mean()
+            else:
+                raise ValueError(f"Criterion: {self.return_criterion} not supported. Expected 'critical' or 'average'.")
 
             # Store computed features in the state dictionary
             scenario_separations[n] = separation

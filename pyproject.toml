@@ -48,7 +48,6 @@ viz = [
 ]
 dev = [
     "black>=25.1.0",
-    "isort>=6.0.1",
     "pre-commit>=4.2.0",
     "duckdb>=1.3.0",
     "deptry>=0.23.0",
@@ -67,7 +66,7 @@ Repository = "https://github.com/navarrs/ScenarioCharacterization"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-exclude = ["tests", "docs", "scripts"]
+exclude = ["docs", "scripts", "tmp", "samples", "assets"]
 
 [tool.setuptools.package-data]
 "characterization" = ["**/*.yaml"]
@@ -91,9 +90,6 @@ convention = "google"
 [tool.flake8]
 line-length = 120
 
-[tool.isort]
-profile = "black"
-
 [tool.deptry]
 exclude = [
     "tmp", "src/scripts"
@@ -109,13 +105,12 @@ DEP002 = [
     "duckdb",
     "pre-commit",
     "black",
-    "isort",
     "tensorflow"
 ]
 
 [tool.pyright]
 pythonVersion = "3.12"
-include = ["src", "tests"]
+include = ["src"]
 exclude = [
     "**/__pycache__",
     "tmp",
@@ -123,27 +118,27 @@ exclude = [
     "src/characterization/utils/datasets/waymo_preprocess.py"
 ]
 typeCheckingMode = "strict"
+deprecateTypingAliases = true
+reportMissingTypeArgument = true
+reportMissingParameterType = true
+reportPossiblyUnboundVariable = true
+reportUnusedImports = true
+reportCallIssue = true
+reportUntypedFunction = true
+reportUntypedBaseClass = true
+reportUnnecessaryComparison = true
+reportIncompatibleMethodOverride = true
+reportArgumentType = true
+
 reportUnknownArgumentType = false
 reportUnknownVariableType = false
 reportUnknownMemberType = false
 reportUnusedCallResult = false
 reportUnknownParameterType = false
 reportInvalidTypeForm = false
-
-deprecateTypingAliases = false
-reportMissingImports = false
-reportUnusedImports = false
 reportOptionalSubscript = false
 reportOptionalMemberAccess = false
-reportMissingTypeArgument = false
-reportMissingParameterType = false
-reportPossiblyUnboundVariable = false
 reportOptionalOperand = false
 reportMissingModuleSource = false
-reportCallIssue = false
-reportUntypedFunction = false
-reportUntypedBaseClass = false
 reportUntypedFunctionDecorator = false
-reportIncompatibleMethodOverride = false
-reportArgumentType = false
-reportUnnecessaryComparison = false
+reportMissingImports = false

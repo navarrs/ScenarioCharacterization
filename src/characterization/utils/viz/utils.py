@@ -102,13 +102,13 @@ def plot_histograms_from_dataframe(
 
 
 def load_scores(
-    scene_scores: dict,
-    agent_scores: dict,
+    scene_scores: dict[str, list[float]],
+    agent_scores: dict[str, list[float]],
     scenario_ids: list[str],
     scores_path: str,
     prefix: str,
     score_types: list[str] = SUPPORTED_SCORERS,
-) -> tuple[dict, dict]:
+) -> tuple[dict[str, list[float]], dict[str, list[float]]]:
     """
     Loads scenario scores from the specified path and updates the scores DataFrame.
 
