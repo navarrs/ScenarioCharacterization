@@ -51,7 +51,7 @@ class FeatureProcessor(BaseProcessor):
         # for scenario_batch in track(self.dataloader, total=len(self.dataloader), description="Processing features"):
         for scenario_batch in tqdm(self.dataloader, total=len(self.dataloader), desc="Processing features..."):
             for scenario in scenario_batch["scenario"]:
-                features: ScenarioFeatures = self.characterizer.compute(scenario)
+                features: ScenarioFeatures = self.characterizer.compute(scenario)  # pyright: ignore[reportCallIssue]
 
                 if self.save:
                     to_pickle(self.output_path, features.model_dump(), scenario.scenario_id)

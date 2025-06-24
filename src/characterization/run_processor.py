@@ -46,4 +46,5 @@ def run(cfg: DictConfig) -> None:
 
 if __name__ == "__main__":
     """Entry point for running the scenario characterization processor."""
-    run()
+    # The run function is decorated with @hydra.main, which allows it to be executed
+    run()  # pyright: ignore[reportCallIssue]

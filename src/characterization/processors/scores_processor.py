@@ -85,7 +85,7 @@ class ScoresProcessor(BaseProcessor):
                     )
 
                 scores: ScenarioScores = self.characterizer.compute(
-                    scenario=scenario, scenario_features=scenario_features
+                    scenario=scenario, scenario_features=scenario_features  # pyright: ignore[reportCallIssue]
                 )
 
                 if self.save:

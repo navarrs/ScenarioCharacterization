@@ -1,4 +1,5 @@
-from typing import Annotated, Any, Callable, List, TypeVar
+from typing import Annotated, Any, TypeVar
+from collections.abc import Callable
 
 import numpy as np
 from numpy.typing import NDArray
@@ -10,8 +11,10 @@ DType = TypeVar("DType", bound=np.generic)
 
 
 # Validator factory
-def validate_array(expected_dtype: Any, expected_ndim: int) -> Callable[[Any], NDArray]:
-    def _validator(v: Any) -> NDArray:
+def validate_array(
+    expected_dtype: Any, expected_ndim: int
+) -> Callable[[Any], NDArray]:  # pyright: ignore[reportMissingTypeArgument]
+    def _validator(v: Any) -> NDArray:  # pyright: ignore[reportMissingTypeArgument]
         if not isinstance(v, np.ndarray):
             raise TypeError("Expected a numpy.ndarray")
         if v.dtype != expected_dtype:
@@ -33,7 +36,7 @@ Int32NDArray1D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.
 Int32NDArray2D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.int32, 2))]
 
 
-class Scenario(BaseModel):
+class Scenario(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     """Represents a scenario containing information about agents, their trajectories, and the environment.
     This class is used to encapsulate all relevant data for a scenario, including agent states, map information,
     and scenario metadata. It is designed to be used in the context of autonomous driving or similar.
@@ -46,8 +49,8 @@ class Scenario(BaseModel):
         num_agents (PositiveInt): Total number of agents in the scenario, including those with padded trajectories.
         ego_index (NonNegativeInt): Index of the ego agent (e.g., self-driving car) in the scenario.
         ego_id (PositiveInt): Unique identifier for the ego agent.
-        agent_ids (List[NonNegativeInt]): List of all agent identifiers in the scenario, including the ego agent.
-        agent_types (List[str]): List of types for each agent, e.g., "vehicle", "pedestrian", etc.
+        agent_ids (list[NonNegativeInt]): list of all agent identifiers in the scenario, including the ego agent.
+        agent_types (list[str]): list of types for each agent, e.g., "vehicle", "pedestrian", etc.
         agent_positions (Float32NDArray3D): 3D array of shape(num_agents, total_timesteps, 3) representing each agent's
             (x, y, z) positions at each timestep.
         agent_dimensions (Float32NDArray3D): 3D array of shape(num_agents, total_timesteps, 3) representing each agent's
@@ -93,7 +96,7 @@ class Scenario(BaseModel):
             polyline.
         stop_sign_polyline_idxs (Int32NDArray2D | None): 2D array of shape(num_polylines, 2) representing the start and
             end indices of each stop sign in the polylines.
-        stop_sign_lane_ids (list[list[int]] | None): List of lists representing the lane IDs associated with each stop
+        stop_sign_lane_ids (list[list[int]] | None): list of lists representing the lane IDs associated with each stop
             sign, if available.
         num_dynamic_stop_points (NonNegativeInt): Number of dynamic stop points in the map, if available.
         dynamic_stop_points (Float32NDArray2D | None): 2D array of shape(num_dynamic_stop_points, 3) representing the
@@ -120,8 +123,8 @@ class Scenario(BaseModel):
     num_agents: PositiveInt
     ego_index: NonNegativeInt
     ego_id: PositiveInt
-    agent_ids: List[NonNegativeInt]
-    agent_types: List[str]
+    agent_ids: list[NonNegativeInt]
+    agent_types: list[str]
 
     agent_positions: Float32NDArray3D
     agent_velocities: Float32NDArray3D
@@ -167,7 +170,7 @@ class Scenario(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
 
-class ScenarioFeatures(BaseModel):
+class ScenarioFeatures(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     """Represents the features extracted from a scenario, including individual agent features and interaction features.
     This class is used to encapsulate all relevant features for a scenario, including agent states, interaction metrics,
     and other characteristics that can be used for analysis or modeling.
@@ -176,7 +179,7 @@ class ScenarioFeatures(BaseModel):
         scenario_id (str): Unique identifier for the scenario.
         num_agents (PositiveInt): Total number of agents in the scenario.
         valid_idxs (Int32NDArray1D | None): Indices of valid agents in the scenario.
-        agent_types (List[str] | None): List of types for each agent, e.g., "vehicle", "pedestrian", etc.
+        agent_types (list[str] | None): list of types for each agent, e.g., "vehicle", "pedestrian", etc.
         speed (Float32NDArray1D | None): Speed of each agent at each timestep.
         speed_limit_diff (Float32NDArray1D | None): Difference between agent speed and speed limit at each timestep.
         acceleration (Float32NDArray1D | None): Acceleration of each agent at each timestep.
@@ -191,12 +194,12 @@ class ScenarioFeatures(BaseModel):
         intersection (Float32NDArray1D | None): Intersection distance between agents at each timestep.
         collision (Float32NDArray1D | None): Collision distance between agents at each timestep.
         mttcp (Float32NDArray1D | None): Minimum time to conflict point (mTTCP) for each agent at each timestep.
-        interaction_status (List[InteractionStatus] | None):
-            List of interaction statuses for each agent pair in the scenario.
-        interaction_agent_indices (List[tuple[int, int]] | None):
-            List of tuples representing the indices of interacting agents in the scenario.
-        interaction_agent_types (List[tuple[str, str]] | None):
-            List of tuples representing the types of interacting agents in the scenario.
+        interaction_status (list[InteractionStatus] | None):
+            list of interaction statuses for each agent pair in the scenario.
+        interaction_agent_indices (list[tuple[int, int]] | None):
+            list of tuples representing the indices of interacting agents in the scenario.
+        interaction_agent_types (list[tuple[str, str]] | None):
+            list of tuples representing the types of interacting agents in the scenario.
     """
 
     scenario_id: str
@@ -204,7 +207,7 @@ class ScenarioFeatures(BaseModel):
 
     # Individual Features
     valid_idxs: Int32NDArray1D | None = None
-    agent_types: List[str] | None = None
+    agent_types: list[str] | None = None
     speed: Float32NDArray1D | None = None
     speed_limit_diff: Float32NDArray1D | None = None
     acceleration: Float32NDArray1D | None = None
@@ -225,14 +228,14 @@ class ScenarioFeatures(BaseModel):
     drac: Float32NDArray1D | None = None
     # leader_follower: Float32NDArray1D | None = None
     # valid_headings: Float32NDArray1D | None = None
-    interaction_status: List[InteractionStatus] | None = None
-    interaction_agent_indices: List[tuple[int, int]] | None = None
-    interaction_agent_types: List[tuple[str, str]] | None = None
+    interaction_status: list[InteractionStatus] | None = None
+    interaction_agent_indices: list[tuple[int, int]] | None = None
+    interaction_agent_types: list[tuple[str, str]] | None = None
 
     model_config = {"arbitrary_types_allowed": True}
 
 
-class ScenarioScores(BaseModel):
+class ScenarioScores(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     """Represents the scores for a scenario, including individual agent scores, interaction scores, and combined.
     This class is used to encapsulate the results of scoring a scenario based on various criteria, such as safety and
     interaction quality.
