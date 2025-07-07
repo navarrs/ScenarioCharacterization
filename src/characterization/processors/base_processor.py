@@ -46,8 +46,7 @@ class BaseProcessor(ABC):
         if self.save:
             if self.output_path is None:
                 raise ValueError("Output path must be specified in the configuration.")
-            else:
-                logger.info(f"Features {self.characterizer.name} will be saved to {self.output_path}")
+            logger.info(f"Features {self.characterizer.name} will be saved to {self.output_path}")
 
         self.dataloader = DataLoader(
             dataset,
@@ -75,4 +74,3 @@ class BaseProcessor(ABC):
         Raises:
             NotImplementedError: If the method is not implemented in the subclass.
         """
-        pass

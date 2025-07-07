@@ -64,7 +64,7 @@ def compute_acceleration_profile(speed: np.ndarray, timestamps: np.ndarray) -> t
     def get_acc_sums(acc: np.ndarray, idx: np.ndarray) -> tuple[np.ndarray, list[tuple[int, int]]]:
         diff = idx[1:] - idx[:-1]
         diff = np.array([-1] + np.where(diff > 1)[0].tolist() + [diff.shape[0]])
-        se_idxs = [(idx[s + 1], idx[e] + 1) for s, e in zip(diff[:-1], diff[1:])]
+        se_idxs = [(idx[s + 1], idx[e] + 1) for s, e in zip(diff[:-1], diff[1:], strict=False)]
         sums = np.array([acc[s:e].sum() for s, e in se_idxs])
         return sums, se_idxs  # pyright: ignore[reportReturnType]
 
@@ -167,7 +167,7 @@ def compute_waiting_period(
         starts = np.where(is_waiting == 1)[0]
         ends = np.where(is_waiting == -1)[0]
 
-        waiting_intervals = np.array([dt[start:end].sum() for start, end in zip(starts, ends)])
+        waiting_intervals = np.array([dt[start:end].sum() for start, end in zip(starts, ends, strict=False)])
         # intervals = np.array([end - start for start, end in zip(starts, ends)])
 
         # For every timestep, get the minimum distance to the set of conflict points

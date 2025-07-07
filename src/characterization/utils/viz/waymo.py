@@ -1,8 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
-from omegaconf import DictConfig
 from matplotlib.axes import Axes
+from omegaconf import DictConfig
 
 from characterization.utils.common import get_logger
 from characterization.utils.schemas import Scenario
@@ -25,8 +24,7 @@ class WaymoVisualizer(BaseVisualizer):
         title: str = "Scenario",
         output_filepath: str = "temp.png",
     ) -> None:
-        """
-        Visualizes a Waymo scenario, including static/dynamic map elements and agent trajectories.
+        """Visualizes a Waymo scenario, including static/dynamic map elements and agent trajectories.
 
         Creates a two-panel plot: one for all agent trajectories, one highlighting relevant and SDC agents.
         Overlays static and dynamic map features. Optionally uses agent scores for transparency.
@@ -78,10 +76,16 @@ class WaymoVisualizer(BaseVisualizer):
         plt.close()
 
     def plot_agent(
-        self, ax: Axes, x: float, y: float, heading: float, width: float, height: float, alpha: float
+        self,
+        ax: Axes,
+        x: float,
+        y: float,
+        heading: float,
+        width: float,
+        height: float,
+        alpha: float,
     ) -> None:
-        """
-        Plots a single agent as a point (optionally as a rectangle) on the axes.
+        """Plots a single agent as a point (optionally as a rectangle) on the axes.
 
         Args:
             ax (matplotlib.axes.Axes): Axes to plot on.
@@ -108,8 +112,7 @@ class WaymoVisualizer(BaseVisualizer):
         # ax.add_patch(rect)
 
     def plot_sequences(self, ax: Axes, scenario: Scenario, scores: np.ndarray, show_relevant: bool = False) -> None:
-        """
-        Plots agent trajectories for a scenario, with optional highlighting and score-based transparency.
+        """Plots agent trajectories for a scenario, with optional highlighting and score-based transparency.
 
         Args:
             ax (matplotlib.axes.Axes): Axes to plot on.
@@ -140,7 +143,9 @@ class WaymoVisualizer(BaseVisualizer):
                 agent_types[idx] = "TYPE_RELEVANT"
             agent_types[ego_index] = "TYPE_SDC"  # Mark ego agent for visualization
 
-        zipped = zip(agent_positions, agent_lengths, agent_widths, agent_headings, agent_valid, agent_types, scores)
+        zipped = zip(
+            agent_positions, agent_lengths, agent_widths, agent_headings, agent_valid, agent_types, scores, strict=False
+        )
         for apos, alen, awid, ahead, amask, atype, score in zipped:
             amask = amask.squeeze(-1)
             if not amask.any() or amask.sum() < 2:
@@ -168,8 +173,7 @@ class WaymoVisualizer(BaseVisualizer):
         num_windows: int = 0,
         dim: int = 2,
     ) -> None:
-        """
-        Plots static map features (lanes, road lines, crosswalks, etc.) for a scenario.
+        """Plots static map features (lanes, road lines, crosswalks, etc.) for a scenario.
 
         Args:
             ax (matplotlib.axes.Axes): Axes to plot on.
@@ -204,10 +208,13 @@ class WaymoVisualizer(BaseVisualizer):
             self.plot_stop_signs(ax, road_graph, stop_sign_polyline_idxs, num_windows, color=color)
 
     def plot_dynamic_map_infos(
-        self, ax: Axes, dynamic_stop_points: np.ndarray, num_windows: int = 0, dim: int = 2
+        self,
+        ax: Axes,
+        dynamic_stop_points: np.ndarray,
+        num_windows: int = 0,
+        dim: int = 2,
     ) -> None:
-        """
-        Plots dynamic map features (e.g., stop points) for a scenario.
+        """Plots dynamic map features (e.g., stop points) for a scenario.
 
         Args:
             ax (matplotlib.axes.Axes): Axes to plot on.
@@ -234,8 +241,7 @@ class WaymoVisualizer(BaseVisualizer):
         color: str = "red",
         dim: int = 2,
     ) -> None:
-        """
-        Plots stop signs on the axes for a scenario using polyline indices.
+        """Plots stop signs on the axes for a scenario using polyline indices.
 
         Args:
             ax (matplotlib.axes.Axes): Axes to plot on.
@@ -264,8 +270,7 @@ class WaymoVisualizer(BaseVisualizer):
         alpha: float = 1.0,
         linewidth: float = 0.5,
     ) -> None:
-        """
-        Plots polylines (e.g., lanes, crosswalks) on the axes for a scenario.
+        """Plots polylines (e.g., lanes, crosswalks) on the axes for a scenario.
 
         Args:
             ax (matplotlib.axes.Axes): Axes to plot on.

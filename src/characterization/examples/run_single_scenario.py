@@ -27,7 +27,7 @@ dataset_config = DictConfig(
         "scenario_base_path": None,
         "scenario_meta_path": None,
         "conflict_points_path": None,
-    }
+    },
 )
 dataset = WaymoData(dataset_config)
 
@@ -39,7 +39,7 @@ print("\nTransformed scenario (fields):", scenario.model_fields.keys())
 feature_config = DictConfig(
     {
         "return_criterion": "critical",  # Can be 'critical' or 'average'
-    }
+    },
 )
 feature_processor = IndividualFeatures(feature_config)
 features = feature_processor.compute(scenario)
@@ -71,7 +71,7 @@ scorer_config = DictConfig(
             "waiting_intervals": 8,
             "waiting_distances": 8,
         },
-    }
+    },
 )
 scorer = IndividualScorer(scorer_config)
 scores = scorer.compute(scenario=scenario, scenario_features=features)

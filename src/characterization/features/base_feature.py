@@ -42,4 +42,3 @@ class BaseFeature(ABC):
         Raises:
             ValueError: If the scenario does not contain the required information.
         """
-        pass

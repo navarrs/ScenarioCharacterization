@@ -22,7 +22,7 @@ class InteractionScorer(BaseScorer):
         if self.config.interaction_score_function not in INTERACTION_SCORE_FUNCTIONS:
             raise ValueError(
                 f"Score function {self.config.interaction_score_function} not supported. "
-                f"Supported functions are: {list(INTERACTION_SCORE_FUNCTIONS.keys())}"
+                f"Supported functions are: {list(INTERACTION_SCORE_FUNCTIONS.keys())}",
             )
         self.score_function = INTERACTION_SCORE_FUNCTIONS[self.config.interaction_score_function]
 

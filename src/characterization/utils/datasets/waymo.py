@@ -96,9 +96,9 @@ class WaymoData(BaseDataset):
         logger.info(f"Loading WOMD scenario base data from {self.scenario_base_path}")
         with open(self.scenario_meta_path, "rb") as f:
             self.data.metas = pickle.load(f)[:: self.step]  # nosec B301
-        self.data.scenarios_ids = natsorted([f'sample_{x["scenario_id"]}.pkl' for x in self.data.metas])
+        self.data.scenarios_ids = natsorted([f"sample_{x['scenario_id']}.pkl" for x in self.data.metas])
         self.data.scenarios = natsorted(
-            [f'{self.scenario_base_path}/sample_{x["scenario_id"]}.pkl' for x in self.data.metas]
+            [f"{self.scenario_base_path}/sample_{x['scenario_id']}.pkl" for x in self.data.metas],
         )
         logger.info(f"Loading data took {time.time() - start} seconds.")
 
@@ -112,11 +112,13 @@ class WaymoData(BaseDataset):
         num_conflict_points = len(self.data.conflict_points)
         if not num_scenarios == num_conflict_points:
             raise AssertionError(
-                f"Number of scenarios ({num_scenarios}) != number of conflict points ({num_conflict_points})."
+                f"Number of scenarios ({num_scenarios}) != number of conflict points ({num_conflict_points}).",
             )
 
     def transform_scenario_data(
-        self, scenario_data: dict[str, Any], conflict_points_data: dict[str, Any] | None = None
+        self,
+        scenario_data: dict[str, Any],
+        conflict_points_data: dict[str, Any] | None = None,
     ) -> Scenario:
         """Transforms the scene data into a format suitable for processing.
 
@@ -141,7 +143,8 @@ class WaymoData(BaseDataset):
 
         def get_polyline_idxs(polyline: dict[str, Any], key: str) -> np.ndarray | None:
             polyline_idxs = np.array(
-                [[value["polyline_index"][0], value["polyline_index"][1]] for value in polyline[key]], dtype=np.int32
+                [[value["polyline_index"][0], value["polyline_index"][1]] for value in polyline[key]],
+                dtype=np.int32,
             )
             if polyline_idxs.shape[0] == 0:
                 return None
@@ -155,7 +158,7 @@ class WaymoData(BaseDataset):
         if num_timesteps < T_last:
             raise AssertionError(
                 f"Scenario {scenario_data['scenario_id']} has only {num_timesteps} timesteps, "
-                f"but expected at least {T_last} timesteps."
+                f"but expected at least {T_last} timesteps.",
             )
         trajs = trajs[:, :T_last, :]  # shape: [num_agents, T_last, dim]
 
@@ -182,11 +185,11 @@ class WaymoData(BaseDataset):
         tracks_to_predict_difficulty = np.asarray(tracks_to_predict["difficulty"] + [2.0])
 
         # Set agent_relevance for tracks_to_predict_index based on tracks_to_predict_difficulty
-        for idx, difficulty in zip(tracks_to_predict_index, tracks_to_predict_difficulty):
+        for idx, difficulty in zip(tracks_to_predict_index, tracks_to_predict_difficulty, strict=False):
             agent_relevance[idx] = self.DIFFICULTY_WEIGHTS.get(difficulty, 0.0)
 
         # Extract static map information
-        map_infos = scenario_data.get("map_infos", None)
+        map_infos = scenario_data.get("map_infos")
         num_polylines, map_polylines = 0, None
         if map_infos is not None:
             map_polylines = map_infos["all_polylines"].astype(np.float32)  # shape: [N, 3] or [N, 3, 2]
@@ -222,7 +225,7 @@ class WaymoData(BaseDataset):
             stop_sign_lane_ids = []
 
         # Extract static and dynamic map information
-        dynamic_map_infos = scenario_data.get("dynamic_map_infos", None)
+        dynamic_map_infos = scenario_data.get("dynamic_map_infos")
         num_dynamic_stop_points = 0
         dynamic_stop_points = None
         dynamic_stop_points_lane_ids = None
@@ -300,7 +303,7 @@ class WaymoData(BaseDataset):
         """
         logger.info("Checking if conflict points have been computed for each scenario.")
         start = time.time()
-        zipped = zip(self.data.scenarios_ids, self.data.scenarios)
+        zipped = zip(self.data.scenarios_ids, self.data.scenarios, strict=False)
 
         def process_file(scenario_id: str, scenario_path: str) -> str:
             conflict_points_filepath = os.path.join(self.conflict_points_path, scenario_id)
@@ -339,7 +342,10 @@ class WaymoData(BaseDataset):
         logger.info(f"Conflict points check completed in {time.time() - start:.2f} seconds.")
 
     def find_conflict_points(
-        self, static_map_info: dict[str, Any], dynamic_map_info: dict[str, Any], agent_positions: np.ndarray
+        self,
+        static_map_info: dict[str, Any],
+        dynamic_map_info: dict[str, Any],
+        agent_positions: np.ndarray,
     ) -> dict[str, Any]:
         """Finds the conflict points in the map for a scenario.
 
@@ -392,7 +398,7 @@ class WaymoData(BaseDataset):
             lane_i, lane_j = lanes[i], lanes[j]
 
             D = np.linalg.norm(lane_i[:, None] - lane_j, axis=-1)
-            i_idx, j_idx = np.where(D < self.conflict_points_cfg.intersection_threshold)
+            i_idx, j_idx = np.where(self.conflict_points_cfg.intersection_threshold > D)
 
             # TODO: determine if two lanes are consecutive, but not entry/exit lanes. If this is the
             # case there'll be an intersection that is not a conflict point.
@@ -432,7 +438,7 @@ class WaymoData(BaseDataset):
         if lane_intersections.shape[0] > 0:
             conflict_point_list.append(lane_intersections)
 
-        conflict_points = np.concatenate(conflict_point_list, dtype=np.float32) if len(conflict_point_list) else None
+        conflict_points = np.concatenate(conflict_point_list, dtype=np.float32) if conflict_point_list else None
 
         dists_to_conflict_points = (
             compute_dists_to_conflict_points(conflict_points, agent_positions) if conflict_points is not None else None

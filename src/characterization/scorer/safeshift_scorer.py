@@ -25,14 +25,14 @@ class SafeShiftScorer(BaseScorer):
         if self.config.individual_score_function not in INDIVIDUAL_SCORE_FUNCTIONS:
             raise ValueError(
                 f"Score function {self.config.individual_score_function} not supported. "
-                f"Supported functions are: {list(INDIVIDUAL_SCORE_FUNCTIONS.keys())}"
+                f"Supported functions are: {list(INDIVIDUAL_SCORE_FUNCTIONS.keys())}",
             )
         self.individual_score_function = INDIVIDUAL_SCORE_FUNCTIONS[self.config.individual_score_function]
 
         if self.config.interaction_score_function not in INTERACTION_SCORE_FUNCTIONS:
             raise ValueError(
                 f"Score function {self.config.interaction_score_function} not supported. "
-                f"Supported functions are: {list(INTERACTION_SCORE_FUNCTIONS.keys())}"
+                f"Supported functions are: {list(INTERACTION_SCORE_FUNCTIONS.keys())}",
             )
         self.interaction_score_function = INTERACTION_SCORE_FUNCTIONS[self.config.interaction_score_function]
 

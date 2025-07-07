@@ -38,9 +38,9 @@ def run(cfg: DictConfig) -> None:
     try:
         logger.info("Generating scenario features...")
         processor.run()
-    except AssertionError as e:
-        logger.error(f"Error Processing Data: %{e}\n")
-        raise e
+    except AssertionError:
+        logger.exception("Error Processing Data")
+        raise
     logger.info("Processing completed successfully.")
 
 
