@@ -107,6 +107,10 @@ class SafeShiftScorer(BaseScorer):
         # Compute the interaction scores
         scores_int = np.zeros(shape=(scenario.num_agents,), dtype=np.float32)
         interaction_agent_indices = scenario_features.interaction_agent_indices
+        if self.score_wrt_ego_only:
+            interaction_agent_indices = [
+                (i, j) for i, j in interaction_agent_indices if i == scenario.ego_index or j == scenario.ego_index
+            ]
         for n, (i, j) in enumerate(interaction_agent_indices):
             status = scenario_features.interaction_status[n]
             if status != InteractionStatus.COMPUTED_OK:

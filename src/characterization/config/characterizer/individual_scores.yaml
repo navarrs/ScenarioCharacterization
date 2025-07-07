@@ -4,10 +4,10 @@ defaults:
   - scores.yaml
 
 characterizer:
-  _target_: characterization.features.individual_features.IndividualFeatures
+  _target_: characterization.scorer.individual_scorer.IndividualScorer
   config:
     individual_score_function: simple
-
+    score_wrt_ego_only: ${processor.config.score_wrt_ego_only}
     score_clip:
       min: 0.0
       max: 150.0
