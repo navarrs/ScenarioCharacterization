@@ -1,5 +1,5 @@
-from typing import Annotated, Any, TypeVar
 from collections.abc import Callable
+from typing import Annotated, Any, TypeVar
 
 import numpy as np
 from numpy.typing import NDArray
@@ -12,7 +12,8 @@ DType = TypeVar("DType", bound=np.generic)
 
 # Validator factory
 def validate_array(
-    expected_dtype: Any, expected_ndim: int
+    expected_dtype: Any,
+    expected_ndim: int,
 ) -> Callable[[Any], NDArray]:  # pyright: ignore[reportMissingTypeArgument]
     def _validator(v: Any) -> NDArray:  # pyright: ignore[reportMissingTypeArgument]
         if not isinstance(v, np.ndarray):
@@ -270,8 +271,7 @@ class ScenarioScores(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     model_config = {"arbitrary_types_allowed": True}
 
     def __getitem__(self, key: str) -> Any:
-        """
-        Get the value of a key in the ScenarioScores object.
+        """Get the value of a key in the ScenarioScores object.
 
         Args:
             key (str): The key to retrieve.
@@ -281,5 +281,4 @@ class ScenarioScores(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         """
         if hasattr(self, key):
             return getattr(self, key)
-        else:
-            raise KeyError(f"Key '{key}' not found in ScenarioScores.")
+        raise KeyError(f"Key '{key}' not found in ScenarioScores.")

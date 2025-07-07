@@ -84,4 +84,3 @@ class BaseScorer(ABC):
         Returns:
             ScenarioScores: An object containing computed scenario scores.
         """
-        pass

@@ -30,7 +30,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         self.scenario_type = config.scenario_type
         if self.scenario_type not in SUPPORTED_SCENARIO_TYPES:
             raise ValueError(
-                f"Scenario type {self.scenario_type} not supported. Supported types are: {SUPPORTED_SCENARIO_TYPES}"
+                f"Scenario type {self.scenario_type} not supported. Supported types are: {SUPPORTED_SCENARIO_TYPES}",
             )
 
         self.scenario_base_path = config.scenario_base_path
@@ -53,7 +53,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
                 "scenarios_ids": [],
                 "conflict_points": [],
                 "metas": [],
-            }
+            },
         )
 
     @property
@@ -99,7 +99,6 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
 
         This method should be implemented by subclasses to load all required data.
         """
-        pass
 
     @abstractmethod
     def collate_batch(self, batch_data) -> dict[str, dict[str, Any]]:  # pyright: ignore[reportMissingParameterType]
@@ -111,7 +110,6 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         Returns:
             dict: The collated batch.
         """
-        pass
 
     @abstractmethod
     def load_scenario_information(self, index: int) -> dict[str, dict[str, Any]]:
@@ -123,11 +121,12 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         Returns:
             dict: The loaded scenario information.
         """
-        pass
 
     @abstractmethod
     def transform_scenario_data(
-        self, scenario_data: dict[str, Any], conflict_points_data: dict[str, Any] | None = None
+        self,
+        scenario_data: dict[str, Any],
+        conflict_points_data: dict[str, Any] | None = None,
     ) -> Scenario:
         """Transforms scenario data and conflict points into a model-ready format.
 
@@ -138,7 +137,6 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         Returns:
             dict: Transformed scenario data.
         """
-        pass
 
     def __getitem__(self, index: int) -> Scenario:
         """Retrieves a single scenario by index.

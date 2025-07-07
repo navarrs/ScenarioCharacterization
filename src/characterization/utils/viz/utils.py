@@ -21,8 +21,7 @@ def get_sample_to_plot(
     seed: int,
     sample_size: int,
 ) -> pd.DataFrame:
-    """
-    Selects a random sample of rows from a DataFrame within a specified value range for a given column.
+    """Selects a random sample of rows from a DataFrame within a specified value range for a given column.
 
     Args:
         df (pd.DataFrame): The DataFrame to sample from.
@@ -53,10 +52,12 @@ def get_valid_scenario_ids(scenario_types: str, criteria: str, base_path: str) -
 
 
 def plot_histograms_from_dataframe(
-    df: pd.DataFrame, output_filepath: str = "temp.png", dpi: int = 30, alpha: float = 0.5
+    df: pd.DataFrame,
+    output_filepath: str = "temp.png",
+    dpi: int = 30,
+    alpha: float = 0.5,
 ) -> None:
-    """
-    Plots overlapping histograms and density curves for each numeric column in a DataFrame.
+    """Plots overlapping histograms and density curves for each numeric column in a DataFrame.
 
     Args:
         df (pd.DataFrame): DataFrame containing numeric data to plot.
@@ -109,8 +110,7 @@ def load_scores(
     prefix: str,
     score_types: list[str] = SUPPORTED_SCORERS,
 ) -> tuple[dict[str, list[float]], dict[str, list[float]]]:
-    """
-    Loads scenario scores from the specified path and updates the scores DataFrame.
+    """Loads scenario scores from the specified path and updates the scores DataFrame.
 
     Args:
         scores_df (pd.DataFrame): DataFrame to update with loaded scores.

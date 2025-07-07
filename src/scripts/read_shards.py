@@ -11,7 +11,7 @@ result = duckdb.query(
     SELECT scenario_id
     FROM '/data/driving/waymo/cache/shards/gt/*.parquet'
     WHERE base_score_scenes > 800
-    """
+    """,
 ).to_df()
 
 print(result)

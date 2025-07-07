@@ -31,7 +31,6 @@ def compute_dists_to_conflict_points(conflict_points: np.ndarray, trajectories: 
         np.ndarray: Distances from each agent at each timestep to each conflict point
             (shape: [num_agents, num_time_steps, num_conflict_points]).
     """
-
     diff = conflict_points[None, None, :] - trajectories[:, :, None, :]
     return np.linalg.norm(diff, axis=-1)  # shape (num_agents, num_time_steps, num_conflict_points)
 
@@ -164,7 +163,7 @@ class InteractionAgent:
 
     @property
     def is_stationary(self) -> bool | None:
-        """bool or None: Whether the agent is stationary (True/False), or None if unknown."""
+        """Bool or None: Whether the agent is stationary (True/False), or None if unknown."""
         if self._speed is None:
             self._is_stationary = None
         else:
@@ -195,7 +194,7 @@ class InteractionAgent:
             self._in_conflict_point = False
         else:
             self._in_conflict_point = np.any(
-                self._dists_to_conflict <= self._agent_to_conflict_point_max_distance
+                self._dists_to_conflict <= self._agent_to_conflict_point_max_distance,
             ).__bool__()
         return self._in_conflict_point
 
@@ -292,7 +291,7 @@ def get_logger(name: str = __name__) -> logging.Logger:
     handler = colorlog.StreamHandler()
     handler.setFormatter(
         colorlog.ColoredFormatter(
-            "%(log_color)s[%(levelname)s]%(reset)s %(name)s " "(%(filename)s:%(lineno)d): %(message)s",
+            "%(log_color)s[%(levelname)s]%(reset)s %(name)s (%(filename)s:%(lineno)d): %(message)s",
             log_colors={
                 "DEBUG": "cyan",
                 "INFO": "green",
@@ -300,7 +299,7 @@ def get_logger(name: str = __name__) -> logging.Logger:
                 "ERROR": "red",
                 "CRITICAL": "bold_red",
             },
-        )
+        ),
     )
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)

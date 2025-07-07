@@ -1,7 +1,7 @@
 import numpy as np
 from shapely import LineString
 
-from characterization.utils.common import get_logger, InteractionAgent, EPS
+from characterization.utils.common import EPS, InteractionAgent, get_logger
 
 logger = get_logger(__name__)
 
@@ -25,7 +25,9 @@ def is_sharing_lane(lane_i: np.ndarray | None, lane_j: np.ndarray | None) -> boo
 
 
 def find_valid_headings(
-    agent_i: InteractionAgent, agent_j: InteractionAgent, heading_threshold: float = 0.1
+    agent_i: InteractionAgent,
+    agent_j: InteractionAgent,
+    heading_threshold: float = 0.1,
 ) -> np.ndarray:
     """Checks if the headings of two agents are within a specified threshold.
 
@@ -50,10 +52,12 @@ def find_valid_headings(
 
 def find_leading_agent(agent_i: InteractionAgent, agent_j: InteractionAgent, mask: np.ndarray | None = None) -> int:
     """Determines which agent is leading based on their positions and headings.
+
     Args:
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
         mask (np.ndarray or None): Optional mask to filter positions.
+
     Returns:
         int: 0 if agent_i is leading, 1 if agent_j is leading.
     """
@@ -118,7 +122,7 @@ def compute_intersections(agent_i: InteractionAgent, agent_j: InteractionAgent) 
     segments_i = [LineString(x) for x in segments_i]
     segments_j = [LineString(x) for x in segments_j]
 
-    intersections = [x.intersects(y) for x, y in zip(segments_i, segments_j)]
+    intersections = [x.intersects(y) for x, y in zip(segments_i, segments_j, strict=False)]
     # Make it consistent with the number of timesteps
     return np.array([intersections[0]] + intersections, dtype=np.bool)
 
@@ -199,6 +203,7 @@ def compute_thw(
         agent_j (InteractionAgent): The second agent.
         leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
         valid_headings (np.ndarray | None): Optional mask to filter valid headings.
+
     Returns:
         np.ndarray: Array of time headway values for each timestep (shape: [T,]).
     """
@@ -263,6 +268,7 @@ def compute_ttc(
         agent_j (InteractionAgent): The second agent.
         leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
         valid_headings (np.ndarray | None): Optional mask to filter valid headings.
+
     Returns:
         np.ndarray: Array of time-to-collision values for each timestep (shape: [T,]).
     """
@@ -317,11 +323,13 @@ def compute_drac(
                       2 d
         the average delay of a road user to avoid an accident at given velocities and distance between vehicles,
         where i is the leader and j is the follower.
+
     Args:
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
         leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
         valid_headings (np.ndarray | None): Optional mask to filter valid headings.
+
     Returns:
         np.ndarray: Array of time-to-collision values for each timestep (shape: [T,]).
     """
