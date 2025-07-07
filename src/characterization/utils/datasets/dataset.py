@@ -30,7 +30,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         self.scenario_type = config.scenario_type
         if self.scenario_type not in SUPPORTED_SCENARIO_TYPES:
             raise ValueError(
-                f"Scenario type {self.scenario_type} not supported. " f"Supported types are: {SUPPORTED_SCENARIO_TYPES}"
+                f"Scenario type {self.scenario_type} not supported. Supported types are: {SUPPORTED_SCENARIO_TYPES}"
             )
 
         self.scenario_base_path = config.scenario_base_path

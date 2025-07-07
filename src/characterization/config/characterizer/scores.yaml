@@ -1,6 +1,7 @@
 processor:
   _target_: characterization.processors.scores_processor.ScoresProcessor
   config:
+    score_wrt_ego_only: true
     scenario_type: ${scenario_type}
 
     batch_size: ${batch_size}
