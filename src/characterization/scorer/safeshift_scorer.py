@@ -7,7 +7,7 @@ from characterization.scorer import (
     INTERACTION_SCORE_FUNCTIONS,
 )
 from characterization.scorer.base_scorer import BaseScorer
-from characterization.utils.common import EPS, get_logger
+from characterization.utils.common import get_logger
 from characterization.utils.schemas import Scenario, ScenarioFeatures, ScenarioScores
 
 logger = get_logger(__name__)
@@ -25,30 +25,16 @@ class SafeShiftScorer(BaseScorer):
         if self.config.individual_score_function not in INDIVIDUAL_SCORE_FUNCTIONS:
             raise ValueError(
                 f"Score function {self.config.individual_score_function} not supported. "
-                f"Supported functions are: {list(INDIVIDUAL_SCORE_FUNCTIONS.keys())}"
+                f"Supported functions are: {list(INDIVIDUAL_SCORE_FUNCTIONS.keys())}",
             )
         self.individual_score_function = INDIVIDUAL_SCORE_FUNCTIONS[self.config.individual_score_function]
 
         if self.config.interaction_score_function not in INTERACTION_SCORE_FUNCTIONS:
             raise ValueError(
                 f"Score function {self.config.interaction_score_function} not supported. "
-                f"Supported functions are: {list(INTERACTION_SCORE_FUNCTIONS.keys())}"
+                f"Supported functions are: {list(INTERACTION_SCORE_FUNCTIONS.keys())}",
             )
         self.interaction_score_function = INTERACTION_SCORE_FUNCTIONS[self.config.interaction_score_function]
-
-    def aggregate_simple_interaction_score(self, **kwargs) -> np.ndarray:
-        """Aggregates a simple interaction score for an agent pair using weighted feature values.
-
-        Args:
-            **kwargs: Feature values for the agent pair, including collision and mttcp.
-
-        Returns:
-            np.ndarray: The aggregated score for the agent pair.
-        """
-        collision = kwargs.get("collision", 0.0)
-        mttcp = kwargs.get("mttcp", 0.0)
-        inv_mttcp = 1.0 / (mttcp + EPS)
-        return self.weights.collision * collision + self.weights.mttcp * min(self.detections.mttcp, inv_mttcp)
 
     def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> ScenarioScores:
         """Computes interaction scores for agent pairs and a scene-level score from scenario features.
@@ -121,6 +107,10 @@ class SafeShiftScorer(BaseScorer):
         # Compute the interaction scores
         scores_int = np.zeros(shape=(scenario.num_agents,), dtype=np.float32)
         interaction_agent_indices = scenario_features.interaction_agent_indices
+        if self.score_wrt_ego_only:
+            interaction_agent_indices = [
+                (i, j) for i, j in interaction_agent_indices if i == scenario.ego_index or j == scenario.ego_index
+            ]
         for n, (i, j) in enumerate(interaction_agent_indices):
             status = scenario_features.interaction_status[n]
             if status != InteractionStatus.COMPUTED_OK:
@@ -133,6 +123,12 @@ class SafeShiftScorer(BaseScorer):
                 mttcp=scenario_features.mttcp[n],
                 mttcp_weight=self.weights.mttcp,
                 mttcp_detection=self.detections.mttcp,
+                ttc=scenario_features.ttc[n],
+                ttc_weight=self.weights.ttc,
+                ttc_detection=self.detections.ttc,
+                drac=scenario_features.drac[n],
+                drac_weight=self.weights.drac,
+                drac_detection=self.detections.drac,
             )
             scores_int[i] += weights[i] * agent_pair_score
             scores_int[j] += weights[j] * agent_pair_score

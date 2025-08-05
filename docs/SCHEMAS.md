@@ -10,14 +10,14 @@ This repository currently uses three main schemas:
 
 ## Scenario Schema
 
-The dataset adapter class is responsible for converting data from a dataset-specific format into a structured representation, as defined by the schema below:
+The dataset adapter class is responsible for converting data from a dataset-specific format into a structured representation, as defined by the schema [[SOURCE](../src/characterization/utils/schemas.py#L35)] below:
 
 ```python
 class Scenario(BaseModel):
     # Scenario Information
     scenario_id: str
-    last_observed_timestep: PositiveInt
     total_timesteps: PositiveInt
+    last_observed_timestep: PositiveInt
     timestamps: Float32NDArray1D
 
     # Agent Information
@@ -26,16 +26,39 @@ class Scenario(BaseModel):
     ego_id: PositiveInt
     agent_ids: List[NonNegativeInt]
     agent_types: List[str]
-    agent_valid: BooleanNDArray3D
+
     agent_positions: Float32NDArray3D
-    agent_dimensions: Float32NDArray3D
     agent_velocities: Float32NDArray3D
-    agent_headings: Float32NDArray3D
+    agent_lengths: Float32NDArray2D
+    agent_widths: Float32NDArray2D
+    agent_heights: Float32NDArray2D
+    agent_headings: Float32NDArray2D
+    agent_valid: BooleanNDArray2D
     agent_relevance: Float32NDArray1D
 
     # Map Information
+    num_conflict_points: NonNegativeInt = 0
     map_conflict_points: Float32NDArray2D | None
     agent_distances_to_conflict_points: Float32NDArray3D | None
+    num_polylines: NonNegativeInt = 0
+    map_polylines: Float32NDArray2D | None = None
+    lane_ids: Int32NDArray1D | None = None
+    lane_speed_limits_mph: Float32NDArray1D | None = None
+    lane_polyline_idxs: Int32NDArray2D | None = None
+    road_line_ids: Int32NDArray1D | None = None
+    road_line_polyline_idxs: Int32NDArray2D | None = None
+    road_edge_ids: Int32NDArray1D | None = None
+    road_edge_polyline_idxs: Int32NDArray2D | None = None
+    crosswalk_ids: Int32NDArray1D | None = None
+    crosswalk_polyline_idxs: Int32NDArray2D | None = None
+    speed_bump_ids: Int32NDArray1D | None = None
+    speed_bump_polyline_idxs: Int32NDArray2D | None = None
+    stop_sign_ids: Int32NDArray1D | None = None
+    stop_sign_polyline_idxs: Int32NDArray2D | None = None
+    stop_sign_lane_ids: list[list[int]] | None = None
+    num_dynamic_stop_points: NonNegativeInt = 0
+    dynamic_stop_points: Float32NDArray2D | None = None
+    dynamic_stop_points_lane_ids: Int32NDArray1D | None = None
 
     # Thresholds
     stationary_speed: float
@@ -43,6 +66,7 @@ class Scenario(BaseModel):
     agent_to_conflict_point_max_distance: float
     agent_to_agent_distance_breach: float
 
+    # To allow numpy and other arbitrary types in the model
     model_config = {"arbitrary_types_allowed": True}
 ```
 
@@ -50,7 +74,7 @@ class Scenario(BaseModel):
 
 ## Scenario Features Schema
 
-The feature processor takes a `Scenario` as input and produces `ScenarioFeatures` as output:
+The feature processor takes a `Scenario` as input and produces `ScenarioFeatures` [[SOURCE](../src/characterization/utils/schemas.py#L164)] as output:
 
 ```python
 class ScenarioFeatures(BaseModel):
@@ -75,18 +99,19 @@ class ScenarioFeatures(BaseModel):
     intersection: Float32NDArray1D | None = None
     collision: Float32NDArray1D | None = None
     mttcp: Float32NDArray1D | None = None
+    thw: Float32NDArray1D | None = None
+    ttc: Float32NDArray1D | None = None
+    drac: Float32NDArray1D | None = None
     interaction_status: List[InteractionStatus] | None = None
     interaction_agent_indices: List[tuple[int, int]] | None = None
     interaction_agent_types: List[tuple[str, str]] | None = None
-
-    model_config = {"arbitrary_types_allowed": True}
 ```
 
 ---
 
 ## Scenario Scores Schema
 
-The score processor takes a `Scenario` and its corresponding `ScenarioFeatures` as input, and produces `ScenarioScores` as output:
+The score processor takes a `Scenario` and its corresponding `ScenarioFeatures` as input, and produces `ScenarioScores` [[SOURCE](../src/characterization/utils/schemas.py#L224)] as output:
 
 ```python
 class ScenarioScores(BaseModel):

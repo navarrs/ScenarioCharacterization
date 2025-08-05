@@ -1,8 +1,17 @@
 defaults:
   - _self_
   - run_processor.yaml
+  - viz: waymo
 
-scores_path: ${paths.output_paths.scores_cache_path}
+scores_path: ${paths.cache_path}/scores
+
+scenario_types:
+  - gt
+  # - ho
+
+criteria:
+  - critical
+  # - average
 
 scores:
   - individual
@@ -10,10 +19,13 @@ scores:
   - safeshift
 
 dpi: 300
-output_dir: ${paths.output_paths.vis_cache_path}
+output_dir: ${paths.cache_path}/visualization
 
 percentiles:
   - 10
   - 50
   - 90
+
 min_scenarios_to_plot: 10
+viz_scenarios: false
+tag: ''

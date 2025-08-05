@@ -1,12 +1,16 @@
-_target_: characterization.features.individual_features.IndividualFeatures
-config:
-  return_criteria: ${return_criteria} # Can be 'critical', 'average', or 'none'
+# @package _global_
+defaults:
+  - features.yaml
 
-  features:
-    - speed
-    - acceleration
-    - deceleration
-    - jerk
-    - waiting_period
-    - waiting_interval
-    - waiting_distance
+characterizer:
+  _target_: characterization.features.individual_features.IndividualFeatures
+  config:
+    return_criterion: ${return_criterion} # Can be 'critical', 'average', or 'none'
+    features:
+      - speed
+      - acceleration
+      - deceleration
+      - jerk
+      - waiting_period
+      - waiting_interval
+      - waiting_distance

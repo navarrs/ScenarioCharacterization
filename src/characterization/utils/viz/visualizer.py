@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+import numpy as np
 from omegaconf import DictConfig
 
 from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
@@ -10,8 +11,7 @@ logger = get_logger(__name__)
 
 class BaseVisualizer(ABC):
     def __init__(self, config: DictConfig):
-        """
-        Initializes the BaseVisualizer with visualization configuration and validates required keys.
+        """Initializes the BaseVisualizer with visualization configuration and validates required keys.
 
         This base class provides a flexible interface for scenario visualizers, supporting custom map and agent color
         schemes, transparency, and scenario type validation. Subclasses should implement scenario-specific visualization
@@ -28,7 +28,7 @@ class BaseVisualizer(ABC):
         self.scenario_type = config.scenario_type
         if self.scenario_type not in SUPPORTED_SCENARIO_TYPES:
             raise AssertionError(
-                f"Scenario type {self.scenario_type} not supported. Supported types are: {SUPPORTED_SCENARIO_TYPES}"
+                f"Scenario type {self.scenario_type} not supported. Supported types are: {SUPPORTED_SCENARIO_TYPES}",
             )
 
         self.static_map_keys = config.get("static_map_keys", None)
@@ -53,10 +53,13 @@ class BaseVisualizer(ABC):
 
     @abstractmethod
     def visualize_scenario(
-        self, scenario: Scenario, scores: dict = {}, title: str = "Scenario", output_filepath: str = "temp.png"
+        self,
+        scenario: Scenario,
+        scores: np.ndarray,
+        title: str = "Scenario",
+        output_filepath: str = "temp.png",
     ) -> None:
-        """
-        Visualizes a single scenario and saves the output to a file.
+        """Visualizes a single scenario and saves the output to a file.
 
         This method should be implemented by subclasses to provide scenario-specific visualization, supporting flexible
         titles and output paths. It is designed to handle both static and dynamic map features, as well as agent

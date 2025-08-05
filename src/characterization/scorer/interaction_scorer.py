@@ -22,7 +22,7 @@ class InteractionScorer(BaseScorer):
         if self.config.interaction_score_function not in INTERACTION_SCORE_FUNCTIONS:
             raise ValueError(
                 f"Score function {self.config.interaction_score_function} not supported. "
-                f"Supported functions are: {list(INTERACTION_SCORE_FUNCTIONS.keys())}"
+                f"Supported functions are: {list(INTERACTION_SCORE_FUNCTIONS.keys())}",
             )
         self.score_function = INTERACTION_SCORE_FUNCTIONS[self.config.interaction_score_function]
 
@@ -58,6 +58,10 @@ class InteractionScorer(BaseScorer):
         scores = np.zeros(shape=(scenario.num_agents,), dtype=np.float32)
 
         interaction_agent_indices = scenario_features.interaction_agent_indices
+        if self.score_wrt_ego_only:
+            interaction_agent_indices = [
+                (i, j) for i, j in interaction_agent_indices if i == scenario.ego_index or j == scenario.ego_index
+            ]
         for n, (i, j) in enumerate(interaction_agent_indices):
             status = scenario_features.interaction_status[n]
             if status != InteractionStatus.COMPUTED_OK:
@@ -70,6 +74,15 @@ class InteractionScorer(BaseScorer):
                 mttcp=scenario_features.mttcp[n],
                 mttcp_weight=self.weights.mttcp,
                 mttcp_detection=self.detections.mttcp,
+                thw=scenario_features.thw[n],
+                thw_weight=self.weights.thw,
+                thw_detection=self.detections.thw,
+                ttc=scenario_features.ttc[n],
+                ttc_weight=self.weights.ttc,
+                ttc_detection=self.detections.ttc,
+                drac=scenario_features.drac[n],
+                drac_weight=self.weights.drac,
+                drac_detection=self.detections.drac,
             )
             scores[i] += weights[i] * agent_pair_score
             scores[j] += weights[j] * agent_pair_score

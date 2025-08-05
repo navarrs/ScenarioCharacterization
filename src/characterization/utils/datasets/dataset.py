@@ -1,7 +1,7 @@
 import math
 from abc import ABC, abstractmethod
+from typing import Any
 
-from easydict import EasyDict
 from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
@@ -11,7 +11,7 @@ from characterization.utils.schemas import Scenario
 logger = get_logger(__name__)
 
 
-class BaseDataset(Dataset, ABC):
+class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, reportUntypedBaseClass]
     """Base class for datasets that handle scenario data."""
 
     def __init__(self, config: DictConfig):
@@ -30,7 +30,7 @@ class BaseDataset(Dataset, ABC):
         self.scenario_type = config.scenario_type
         if self.scenario_type not in SUPPORTED_SCENARIO_TYPES:
             raise ValueError(
-                f"Scenario type {self.scenario_type} not supported. " f"Supported types are: {SUPPORTED_SCENARIO_TYPES}"
+                f"Scenario type {self.scenario_type} not supported. Supported types are: {SUPPORTED_SCENARIO_TYPES}",
             )
 
         self.scenario_base_path = config.scenario_base_path
@@ -47,11 +47,14 @@ class BaseDataset(Dataset, ABC):
         self.num_shards = config.get("num_shards", 1)
         self.shard_index = config.get("shard_index", 0)
 
-        self.data = EasyDict()
-        self.data.scenarios = []
-        self.data.scenarios_ids = []
-        self.data.conflict_points = []
-        self.data.metas = []
+        self.data = DictConfig(
+            {
+                "scenarios": [],
+                "scenarios_ids": [],
+                "conflict_points": [],
+                "metas": [],
+            },
+        )
 
     @property
     def name(self) -> str:
@@ -60,7 +63,7 @@ class BaseDataset(Dataset, ABC):
         Returns:
             str: The name of the dataset class and its base path.
         """
-        return f"{self.__class__.__name__}\n\t(from: {self.scenario_base_path})"
+        return f"{self.__class__.__name__} (loaded from: {self.scenario_base_path})"
 
     def shard(self) -> None:
         """Shards the dataset into smaller parts for distributed or parallel processing.
@@ -96,10 +99,9 @@ class BaseDataset(Dataset, ABC):
 
         This method should be implemented by subclasses to load all required data.
         """
-        pass
 
     @abstractmethod
-    def collate_batch(self, batch_data) -> dict:
+    def collate_batch(self, batch_data) -> dict[str, dict[str, Any]]:  # pyright: ignore[reportMissingParameterType]
         """Collates a batch of data into a single dictionary.
 
         Args:
@@ -108,10 +110,9 @@ class BaseDataset(Dataset, ABC):
         Returns:
             dict: The collated batch.
         """
-        pass
 
     @abstractmethod
-    def load_scenario_information(self, index: int) -> dict:
+    def load_scenario_information(self, index: int) -> dict[str, dict[str, Any]]:
         """Loads scenario information for a given index.
 
         Args:
@@ -120,10 +121,13 @@ class BaseDataset(Dataset, ABC):
         Returns:
             dict: The loaded scenario information.
         """
-        pass
 
     @abstractmethod
-    def transform_scenario_data(self, scenario: dict, conflict_points: dict) -> Scenario:
+    def transform_scenario_data(
+        self,
+        scenario_data: dict[str, Any],
+        conflict_points_data: dict[str, Any] | None = None,
+    ) -> Scenario:
         """Transforms scenario data and conflict points into a model-ready format.
 
         Args:
@@ -133,7 +137,6 @@ class BaseDataset(Dataset, ABC):
         Returns:
             dict: Transformed scenario data.
         """
-        pass
 
     def __getitem__(self, index: int) -> Scenario:
         """Retrieves a single scenario by index.
@@ -149,7 +152,9 @@ class BaseDataset(Dataset, ABC):
         """
         scenario_information = self.load_scenario_information(index)
         scenario = scenario_information.get("scenario", None)
-        conflict_points = scenario_information.get("conflict_points", None)
+        if scenario is None:
+            raise ValueError(f"Scenario information for index {index} is missing or invalid.")
 
+        conflict_points = scenario_information.get("conflict_points", None)
         scenario = self.transform_scenario_data(scenario, conflict_points)
         return scenario

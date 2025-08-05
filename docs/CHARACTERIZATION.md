@@ -10,7 +10,7 @@ The feature processor uses a feature class specified in the `characterizer` conf
 
 **Example usage:**
 ```bash
-uv run -m characterization.run_processor processor=features characterizer=[feature_type]
+uv run -m characterization.run_processor characterizer=[feature_type]
 ```
 
 Available feature groups (see `config/characterizer`):
@@ -21,7 +21,7 @@ Available feature groups (see `config/characterizer`):
 
 To run the individual features characterizer:
 ```bash
-uv run -m characterization.run_processor processor=features characterizer=individual_features
+uv run -m characterization.run_processor  characterizer=individual_features
 ```
 
 Currently supported features:
@@ -37,14 +37,15 @@ Currently supported features:
 
 To run the interaction features characterizer:
 ```bash
-uv run -m characterization.run_processor processor=features characterizer=interaction_features
+uv run -m characterization.run_processor characterizer=interaction_features
 ```
 
 Currently supported features:
 - Collisions
 - Minimum Time to Conflict Point (mTTCP)
-- **WIP:** Time headway
-- **WIP:** Time to collision
+- Time headway
+- Time to collision
+- Deceleration Rate to Avoid a Crash (DRAC)
 - **WIP:** Trajectory-pair anomaly
 
 ---
@@ -55,7 +56,7 @@ The score processor uses a list of features specified in the `characterizer` con
 
 **Example usage:**
 ```bash
-uv run -m characterization.run_processor processor=scores characterizer=[score_type]
+uv run -m characterization.run_processor characterizer=[score_type]
 ```
 
 Available score groups (see `config/characterizer`):
@@ -66,14 +67,14 @@ Available score groups (see `config/characterizer`):
 
 To run the individual scorer:
 ```bash
-uv run -m characterization.run_processor processor=scores characterizer=individual_scores
+uv run -m characterization.run_processor characterizer=individual_scores
 ```
 
 ### Interaction Scorer
 
 To run the interaction scorer:
 ```bash
-uv run -m characterization.run_processor processor=scores characterizer=interaction_scores
+uv run -m characterization.run_processor characterizer=interaction_scores
 ```
 
 ---

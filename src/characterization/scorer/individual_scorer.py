@@ -21,7 +21,7 @@ class IndividualScorer(BaseScorer):
         if self.config.individual_score_function not in INDIVIDUAL_SCORE_FUNCTIONS:
             raise ValueError(
                 f"Score function {self.config.individual_score_function} not supported. "
-                f"Supported functions are: {list(INDIVIDUAL_SCORE_FUNCTIONS.keys())}"
+                f"Supported functions are: {list(INDIVIDUAL_SCORE_FUNCTIONS.keys())}",
             )
         self.score_function = INDIVIDUAL_SCORE_FUNCTIONS[self.config.individual_score_function]
 

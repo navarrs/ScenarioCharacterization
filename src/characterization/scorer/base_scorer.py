@@ -19,10 +19,11 @@ class BaseScorer(ABC):
         super(BaseScorer, self).__init__()
         self.config = config
         self.characterizer_type = "score"
-        self.features = self.config.features
+        self.features = self.config.get("features", None)
         self.detections = self.config.detections
         self.weights = self.config.weights
         self.score_clip = self.config.score_clip
+        self.score_wrt_ego_only = self.config.get("score_wrt_ego_only", False)
 
     @property
     def name(self) -> str:
@@ -56,10 +57,14 @@ class BaseScorer(ABC):
         # An agent's contribution (weight) to the score is inversely proportional to the closest distance
         # between the agent and the relevant agents
         agent_to_agent_dists = scenario_features.agent_to_agent_closest_dists  # Shape (num_agents, num_agents)
-        relevant_agents = np.where(scenario.agent_relevance > 0.0)[0]
-        relevant_agents_values = scenario.agent_relevance[relevant_agents]  # Shape (num_relevant_agents)
-        relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]  # Shape (num_agents, num_relevant_agents)
+        if self.score_wrt_ego_only:
+            relevant_agents = np.array([scenario.ego_index])
+            relevant_agents_values = np.array([1.0])  # Only the ego agent is relevant
+        else:
+            relevant_agents = np.where(scenario.agent_relevance > 0.0)[0]
+            relevant_agents_values = scenario.agent_relevance[relevant_agents]  # Shape (num_relevant_agents)
 
+        relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]  # Shape (num_agents, num_relevant_agents)
         min_dist = relevant_agents_dists.min(axis=1) + EPS  # Avoid division by zero
         argmin_dist = relevant_agents_dists.argmin(axis=1)
 
@@ -79,4 +84,3 @@ class BaseScorer(ABC):
         Returns:
             ScenarioScores: An object containing computed scenario scores.
         """
-        pass

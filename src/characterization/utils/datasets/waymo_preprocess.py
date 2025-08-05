@@ -11,7 +11,7 @@ import sys
 
 import numpy as np
 import tensorflow as tf
-from tqdm import tqdm
+from rich.progress import track
 from waymo_open_dataset.protos import scenario_pb2
 
 object_type = {0: "TYPE_UNSET", 1: "TYPE_VEHICLE", 2: "TYPE_PEDESTRIAN", 3: "TYPE_CYCLIST", 4: "TYPE_OTHER"}
@@ -196,7 +196,8 @@ def decode_map_features_from_proto(map_features):
 
             global_type = polyline_type[cur_info["type"]]
             cur_polyline = np.stack(
-                [np.array([point.x, point.y, point.z, global_type]) for point in cur_data.lane.polyline], axis=0
+                [np.array([point.x, point.y, point.z, global_type]) for point in cur_data.lane.polyline],
+                axis=0,
             )
             cur_polyline_dir = get_polyline_dir(cur_polyline[:, 0:3])
             cur_polyline = np.concatenate((cur_polyline[:, 0:3], cur_polyline_dir, cur_polyline[:, 3:]), axis=-1)
@@ -208,7 +209,8 @@ def decode_map_features_from_proto(map_features):
 
             global_type = polyline_type[cur_info["type"]]
             cur_polyline = np.stack(
-                [np.array([point.x, point.y, point.z, global_type]) for point in cur_data.road_line.polyline], axis=0
+                [np.array([point.x, point.y, point.z, global_type]) for point in cur_data.road_line.polyline],
+                axis=0,
             )
             cur_polyline_dir = get_polyline_dir(cur_polyline[:, 0:3])
             cur_polyline = np.concatenate((cur_polyline[:, 0:3], cur_polyline_dir, cur_polyline[:, 3:]), axis=-1)
@@ -220,7 +222,8 @@ def decode_map_features_from_proto(map_features):
 
             global_type = polyline_type[cur_info["type"]]
             cur_polyline = np.stack(
-                [np.array([point.x, point.y, point.z, global_type]) for point in cur_data.road_edge.polyline], axis=0
+                [np.array([point.x, point.y, point.z, global_type]) for point in cur_data.road_edge.polyline],
+                axis=0,
             )
             cur_polyline_dir = get_polyline_dir(cur_polyline[:, 0:3])
             cur_polyline = np.concatenate((cur_polyline[:, 0:3], cur_polyline_dir, cur_polyline[:, 3:]), axis=-1)
@@ -239,7 +242,8 @@ def decode_map_features_from_proto(map_features):
         elif cur_data.crosswalk.ByteSize() > 0:
             global_type = polyline_type["TYPE_CROSSWALK"]
             cur_polyline = np.stack(
-                [np.array([point.x, point.y, point.z, global_type]) for point in cur_data.crosswalk.polygon], axis=0
+                [np.array([point.x, point.y, point.z, global_type]) for point in cur_data.crosswalk.polygon],
+                axis=0,
             )
             cur_polyline_dir = get_polyline_dir(cur_polyline[:, 0:3])
             cur_polyline = np.concatenate((cur_polyline[:, 0:3], cur_polyline_dir, cur_polyline[:, 3:]), axis=-1)
@@ -249,7 +253,8 @@ def decode_map_features_from_proto(map_features):
         elif cur_data.speed_bump.ByteSize() > 0:
             global_type = polyline_type["TYPE_SPEED_BUMP"]
             cur_polyline = np.stack(
-                [np.array([point.x, point.y, point.z, global_type]) for point in cur_data.speed_bump.polygon], axis=0
+                [np.array([point.x, point.y, point.z, global_type]) for point in cur_data.speed_bump.polygon],
+                axis=0,
             )
             cur_polyline_dir = get_polyline_dir(cur_polyline[:, 0:3])
             cur_polyline = np.concatenate((cur_polyline[:, 0:3], cur_polyline_dir, cur_polyline[:, 3:]), axis=-1)
@@ -374,7 +379,7 @@ def get_infos_from_protos(data_path, output_path=None, num_workers=8):
 
     # func(src_files[0])
     with multiprocessing.Pool(num_workers) as p:
-        data_infos = list(tqdm(p.imap(func, src_files), total=len(src_files)))
+        data_infos = list(track(p.imap(func, src_files), total=len(src_files)))
 
     all_infos = [item for infos in data_infos for item in infos]
     return all_infos

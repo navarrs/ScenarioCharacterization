@@ -2,21 +2,20 @@ defaults:
   - _self_
   - paths: waymo
   - dataset: waymo
-  - viz: waymo
-  - processor: features
   - characterizer: individual_features
+  - debug: null
 
 seed: 42
+save: true
+
 num_scenarios: null
 num_shards: 0
 shard_index: 0
 step: 1
-
 parallel: true
 batch_size: 8
 num_workers: 10
 shuffle: false
-save: true
 
 scenario_type: 'gt'
-return_criteria: 'critical'
+return_criterion: 'critical'

@@ -30,8 +30,7 @@ def reset_infos(cfg: DictConfig) -> dict:
 
 @hydra.main(config_path="config", config_name="run_converter", version_base="1.3")
 def run(cfg: DictConfig) -> None:
-    """
-    Run the processor with the given configuration.
+    """Run the processor with the given configuration.
 
     Args:
         cfg (DictConfig): Configuration dictionary.
@@ -48,7 +47,7 @@ def run(cfg: DictConfig) -> None:
     if set(features_files) != set(scores_files):
         raise AssertionError(
             "Feature files and score files must match. "
-            f"Found {len(features_files)} feature files and {len(scores_files)} score files."
+            f"Found {len(features_files)} feature files and {len(scores_files)} score files.",
         )
 
     logger.info(f"Loading input features from: {features_path}")
@@ -64,7 +63,7 @@ def run(cfg: DictConfig) -> None:
     n_per_shard = math.ceil(len(features_files) / cfg.num_shards)
 
     logger.info(f"Creating {cfg.num_shards} shards with {n_per_shard} scenarios each.")
-    for n, (feature_file, score_file) in enumerate(zip(features_files, scores_files)):
+    for n, (feature_file, score_file) in enumerate(zip(features_files, scores_files, strict=False)):
         # logger.info(f"Processing {feature_file} and {score_file}")
 
         infos["scenario_id"].append(feature_file.split("/")[-1].split(".")[0])
@@ -87,7 +86,7 @@ def run(cfg: DictConfig) -> None:
             infos[agent_scores].append(scores[score]["agent_scores"])
             infos[scene_scores].append(scores[score]["scene_score"])
 
-        if (n + 1) % n_per_shard == 0 and n > 0 or n == len(features_files) - 1:
+        if ((n + 1) % n_per_shard == 0 and n > 0) or n == len(features_files) - 1:
             # Convert to DataFrame
             df = pd.DataFrame(infos)
 

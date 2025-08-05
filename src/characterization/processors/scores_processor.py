@@ -1,8 +1,8 @@
 import os
 
 from omegaconf import DictConfig
+from rich.progress import track
 from torch.utils.data import Dataset
-from tqdm import tqdm
 
 from characterization.features import SUPPORTED_FEATURES
 from characterization.features.base_feature import BaseFeature
@@ -37,7 +37,7 @@ class ScoresProcessor(BaseProcessor):
         super(ScoresProcessor, self).__init__(config, dataset, characterizer)
         if not self.characterizer.characterizer_type == "score":
             raise AssertionError(
-                f"Expected characterizer of type 'score', got {self.characterizer.characterizer_type}."
+                f"Expected characterizer of type 'score', got {self.characterizer.characterizer_type}.",
             )
 
         self.features = config.get("features", None)
@@ -51,8 +51,7 @@ class ScoresProcessor(BaseProcessor):
         self.feature_path = config.get("feature_path", None)
         if not self.feature_path:
             raise ValueError("Feature paths must be specified in the configuration.")
-        else:
-            logger.info(f"Features will be loaded from {self.feature_path}")
+        logger.info(f"Features will be loaded from {self.feature_path}")
 
     def run(self):
         """Runs the score processing on the dataset.
@@ -63,12 +62,11 @@ class ScoresProcessor(BaseProcessor):
         Returns:
             None
         """
-        logger.info(f"Processing {self.features} {self.characterizer.name} scores for {self.dataset.name}.")
+        logger.info(f"Processing {self.features} {self.characterizer.name} for {self.dataset.name}.")
 
         # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop.
-        for scenario_batch in tqdm(self.dataloader, desc="Processing scenarios"):
+        for scenario_batch in track(self.dataloader, total=len(self.dataloader), description="Processing scores..."):
             for scenario in scenario_batch["scenario"]:
-
                 scenario_id = scenario.scenario_id
                 scenario_feature_file = os.path.join(self.feature_path, f"{scenario_id}.pkl")
                 scenario_features = from_pickle(scenario_feature_file)
@@ -85,7 +83,8 @@ class ScoresProcessor(BaseProcessor):
                     )
 
                 scores: ScenarioScores = self.characterizer.compute(
-                    scenario=scenario, scenario_features=scenario_features
+                    scenario=scenario,
+                    scenario_features=scenario_features,  # pyright: ignore[reportCallIssue]
                 )
 
                 if self.save:

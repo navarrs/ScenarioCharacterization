@@ -46,19 +46,18 @@ class BaseProcessor(ABC):
         if self.save:
             if self.output_path is None:
                 raise ValueError("Output path must be specified in the configuration.")
-            else:
-                logger.info(f"Features {self.characterizer.name} will be saved to {self.output_path}")
+            logger.info(f"Features {self.characterizer.name} will be saved to {self.output_path}")
 
         self.dataloader = DataLoader(
             dataset,
             batch_size=self.batch_size,
             shuffle=self.shuffle,
             num_workers=self.num_workers,
-            collate_fn=self.dataset.collate_batch,
+            collate_fn=self.dataset.collate_batch,  # pyright: ignore[reportAttributeAccessIssue]
         )
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Returns the name of the processor class.
 
         Returns:
@@ -75,4 +74,3 @@ class BaseProcessor(ABC):
         Raises:
             NotImplementedError: If the method is not implemented in the subclass.
         """
-        pass

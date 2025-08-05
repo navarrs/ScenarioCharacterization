@@ -1,46 +1,60 @@
-_target_: characterization.scorer.safeshift_scorer.SafeShiftScorer
-config:
-  return_criteria: ${return_criteria} # Can be 'critical', 'average', or 'none'
+# @package _global_
+defaults:
+  - scores.yaml
 
-  features:
-    - speed
-    - acceleration
-    - deceleration
-    - jerk
-    - waiting_period
-    - waiting_interval
-    - waiting_distance
-    - separation
-    - intersection
-    - collision
-    - mttcp
+characterizer:
+  _target_: characterization.scorer.safeshift_scorer.SafeShiftScorer
+  config:
+    return_criterion: ${return_criterion} # Can be 'critical', 'average', or 'none'
 
-  individual_score_function: simple
-  interaction_score_function: simple
+    features:
+      - speed
+      - acceleration
+      - deceleration
+      - jerk
+      - waiting_period
+      - waiting_interval
+      - waiting_distance
+      - separation
+      - intersection
+      - collision
+      - mttcp
+      - thw
+      - ttc
+      - drac
 
-  score_clip:
-    min: 0.0
-    max: 150.0
+    individual_score_function: simple
+    interaction_score_function: simple
 
-  weights:
-    speed: 0.1
-    acceleration: 1.0
-    deceleration: 1.0
-    jerk: 1.0
-    waiting_period: 1.0
-    waiting_intervals: 1.0
-    waiting_distances: 1.0
+    score_clip:
+      min: 0.0
+      max: 150.0
 
-    collision: 2.0
-    mttcp: 2.0
+    weights:
+      speed: 0.1
+      acceleration: 1.0
+      deceleration: 1.0
+      jerk: 1.0
+      waiting_period: 1.0
+      waiting_intervals: 1.0
+      waiting_distances: 1.0
 
-  detections:
-    speed: 10
-    acceleration: 10
-    deceleration: 10
-    jerk: 10
-    waiting_period: 8
-    waiting_intervals: 8
-    waiting_distances: 8
+      collision: 2.0
+      mttcp: 2.0
+      thw: 1.0
+      ttc: 1.0
+      drac: 0.2
 
-    mttcp: 4
+    detections:
+      speed: 10
+      acceleration: 10
+      deceleration: 10
+      jerk: 10
+      waiting_period: 8
+      waiting_intervals: 8
+      waiting_distances: 8
+
+      mttcp: 4
+      thw: 4
+      ttc: 4
+      drac: 2
