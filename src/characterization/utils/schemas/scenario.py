@@ -29,7 +29,7 @@ class AgentData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     agent_ids: list[NonNegativeInt]
     agent_types: list[AgentType]
     agent_trajectories: Float32NDArray3D
-    agent_valid: BooleanNDArray2D
+    agent_valid: Float32NDArray2D
 
     agent_positions: Float32NDArray3D
     agent_velocities: Float32NDArray3D
