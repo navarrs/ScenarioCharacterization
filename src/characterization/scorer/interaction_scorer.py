@@ -5,7 +5,9 @@ from characterization.features.interaction_features import InteractionStatus
 from characterization.scorer import INTERACTION_SCORE_FUNCTIONS
 from characterization.scorer.base_scorer import BaseScorer
 from characterization.utils.common import get_logger
-from characterization.utils.schemas import Scenario, ScenarioFeatures, ScenarioScores
+from characterization.utils.schemas.scenario import Scenario
+from characterization.utils.schemas.scenario_features import ScenarioFeatures
+from characterization.utils.schemas.scenario_scores import ScenarioScores, Score
 
 logger = get_logger(__name__)
 
@@ -55,12 +57,12 @@ class InteractionScorer(BaseScorer):
 
         # Get the agent weights
         weights = self.get_weights(scenario, scenario_features)
-        scores = np.zeros(shape=(scenario.num_agents,), dtype=np.float32)
+        scores = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
 
         interaction_agent_indices = scenario_features.interaction_agent_indices
         if self.score_wrt_ego_only:
             interaction_agent_indices = [
-                (i, j) for i, j in interaction_agent_indices if i == scenario.ego_index or j == scenario.ego_index
+                (i, j) for i, j in interaction_agent_indices if i == scenario.metadata.ego_vehicle_index or j == scenario.metadata.ego_vehicle_index
             ]
         for n, (i, j) in enumerate(interaction_agent_indices):
             status = scenario_features.interaction_status[n]
@@ -91,8 +93,6 @@ class InteractionScorer(BaseScorer):
         denom = max(np.where(scores > 0.0)[0].shape[0], 1)
         scene_score = np.clip(scores.sum() / denom, a_min=self.score_clip.min, a_max=self.score_clip.max)
         return ScenarioScores(
-            scenario_id=scenario.scenario_id,
-            num_agents=scenario.num_agents,
-            interaction_agent_scores=scores,
-            interaction_scene_score=scene_score,
+            metadata=scenario.metadata,
+            interaction=Score(agent_scores=scores, scene_score=scene_score)
         )

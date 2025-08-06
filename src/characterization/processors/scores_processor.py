@@ -1,16 +1,17 @@
 import os
 
 from omegaconf import DictConfig
-from rich.progress import track
+# from rich.progress import track
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 from characterization.features import SUPPORTED_FEATURES
 from characterization.features.base_feature import BaseFeature
 from characterization.processors.base_processor import BaseProcessor
 from characterization.scorer.base_scorer import BaseScorer
 from characterization.utils.common import from_pickle, get_logger, to_pickle
-from characterization.utils.schemas import ScenarioFeatures, ScenarioScores
-
+from characterization.utils.schemas.scenario_features import ScenarioFeatures
+from characterization.utils.schemas.scenario_scores import ScenarioScores
 logger = get_logger(__name__)
 
 
@@ -65,9 +66,10 @@ class ScoresProcessor(BaseProcessor):
         logger.info(f"Processing {self.features} {self.characterizer.name} for {self.dataset.name}.")
 
         # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop.
-        for scenario_batch in track(self.dataloader, total=len(self.dataloader), description="Processing scores..."):
+        # for scenario_batch in track(self.dataloader, total=len(self.dataloader), description="Processing scores..."):
+        for scenario_batch in tqdm(self.dataloader, total=len(self.dataloader), desc="Processing scores..."):
             for scenario in scenario_batch["scenario"]:
-                scenario_id = scenario.scenario_id
+                scenario_id = scenario.metadata.scenario_id
                 scenario_feature_file = os.path.join(self.feature_path, f"{scenario_id}.pkl")
                 scenario_features = from_pickle(scenario_feature_file)
 
@@ -76,11 +78,6 @@ class ScoresProcessor(BaseProcessor):
                 if missing_features:
                     raise ValueError(f"Scenario {scenario_id} is missing features: {missing_features}")
                 scenario_features = ScenarioFeatures.model_validate(scenario_features)
-                if scenario_features.num_agents != scenario.num_agents:
-                    raise ValueError(
-                        f"Scenario {scenario_id} has {scenario.num_agents} agents",
-                        f"but features indicate {scenario_features.num_agents}.",
-                    )
 
                 scores: ScenarioScores = self.characterizer.compute(
                     scenario=scenario,

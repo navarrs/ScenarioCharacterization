@@ -50,7 +50,7 @@ def find_valid_headings(
     return valid_headings
 
 
-def find_leading_agent(agent_i: InteractionAgent, agent_j: InteractionAgent, mask: np.ndarray | None = None) -> int:
+def find_leading_agent(agent_i: InteractionAgent, agent_j: InteractionAgent, mask: np.ndarray | None = None) -> np.ndarray:
     """Determines which agent is leading based on their positions and headings.
 
     Args:
@@ -63,6 +63,9 @@ def find_leading_agent(agent_i: InteractionAgent, agent_j: InteractionAgent, mas
     """
     position_i, position_j = agent_i.position, agent_j.position
     heading_i = agent_i.heading
+    if heading_i is None:
+        raise ValueError("Agent i must have a heading.")
+
     if mask is not None:
         position_i = position_i[mask]
         position_j = position_j[mask]
@@ -115,7 +118,7 @@ def compute_intersections(agent_i: InteractionAgent, agent_j: InteractionAgent) 
     """
     position_i, position_j = agent_i.position, agent_j.position
     if position_i.shape[0] < 2 or position_j.shape[0] < 2:
-        return np.zeros((position_i.shape[0],), dtype=np.bool)
+        return np.zeros((position_i.shape[0],), dtype=bool)
 
     segments_i = np.stack([position_i[:-1], position_i[1:]], axis=1)
     segments_j = np.stack([position_j[:-1], position_j[1:]], axis=1)
@@ -124,7 +127,7 @@ def compute_intersections(agent_i: InteractionAgent, agent_j: InteractionAgent) 
 
     intersections = [x.intersects(y) for x, y in zip(segments_i, segments_j, strict=False)]
     # Make it consistent with the number of timesteps
-    return np.array([intersections[0]] + intersections, dtype=np.bool)
+    return np.array([intersections[0]] + intersections, dtype=bool)
 
 
 def compute_mttcp(

@@ -1,0 +1,192 @@
+from typing import TypeVar
+
+import numpy as np
+from pydantic import BaseModel, NonNegativeInt, computed_field
+
+from characterization.utils.schemas.types import *
+
+DType = TypeVar("DType", bound=np.generic)
+
+class AgentData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+    """Encapsulates the data for agents in a scenario, including their identifiers, types, and trajectories.
+
+    Attributes:
+        agent_ids (list[NonNegativeInt]): list of all agent identifiers in the scenario, including the ego agent.
+        agent_types (list[str]): list of types for each agent, e.g., "vehicle", "pedestrian", etc.
+        agent_trajectories (Float32NDArray3D): 3D array of shape(num_agents, total_timesteps, 2) representing each
+            agent's (x, y) trajectories at each timestep.
+        agent_valid (BooleanNDArray3D): 3D boolean array of shape(num_agents, total_timesteps, 1) indicating whether an
+            agent's information at a given timestep is valid.
+        agent_positions (Float32NDArray3D): 3D array of shape(num_agents, total_timesteps, 3) representing each agent's
+            (x, y, z) positions at each timestep.
+        agent_velocities (Float32NDArray3D): 3D array of shape(num_agents, total_timesteps, 2) representing each agent's
+          (Vx, Vy) velocities at each timestep.
+        agent_dimensions (Float32NDArray3D): 3D array of shape(num_agents, total_timesteps, 3) representing each agent's
+            dimensions (length, width, height) at each timestep.
+        agent_headings (Float32NDArray3D): 3D array of shape(num_agents, total_timesteps, 1) representing each agent's
+            headings (in radians) at each timestep.
+    """
+    agent_ids: list[NonNegativeInt]
+    agent_types: list[AgentType]
+    agent_trajectories: Float32NDArray3D
+    agent_valid: BooleanNDArray2D
+
+    agent_positions: Float32NDArray3D
+    agent_velocities: Float32NDArray3D
+    agent_dimensions: Float32NDArray3D
+    agent_headings: Float32NDArray2D
+    agent_relevance: Float32NDArray2D | None = None  # Optional relevance scores for agents
+
+    # To allow numpy and other arbitrary types in the model
+    model_config = {"arbitrary_types_allowed": True}
+
+    @computed_field
+    @property
+    def num_agents(self) -> int:
+        """Returns the number of agents in the scenario."""
+        return len(self.agent_ids)
+
+class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+    """Encapsulates metadata for a scenario, including its ID, type, and timing information.
+
+    Attributes:
+        scenario_id (str): Unique identifier for the scenario.
+        timestamps_seconds (list[float]): List of timestamps in seconds for each timestep in the scenario.
+        current_time_index (int): Current index in the timestamps list.
+        ego_vehicle_id (int): Unique identifier for the ego vehicle in the scenario.
+        ego_vehicle_index (int): Index of the ego vehicle in the scenario.
+        objects_of_interest (list): List of objects of interest in the scenario.
+        track_length (int): Length of the track in the scenario.
+        dataset (str): Name of the dataset from which the scenario is derived.
+        stationary_speed (float | None): Speed threshold below which an agent is considered stationary.
+        agent_to_agent_max_distance (float | None): Maximum distance between agents to consider them for interaction.
+        agent_to_conflict_point_max_distance (float | None): Maximum distance from an agent to a conflict point to
+            consider it relevant.
+        agent_to_agent_distance_breach (float | None): Distance threshold for considering an agent's distance to another
+            agent as a breach / close-call.
+        heading_threshold (float | None): Threshold for the heading difference between agents.
+    """
+    scenario_id: str
+    timestamps_seconds: list[float]
+    current_time_index: int
+    ego_vehicle_id: int
+    ego_vehicle_index: int
+    objects_of_interest: list[int]
+    track_length: int
+    dataset: str
+
+    # Thresholds
+    stationary_speed: float = 0.25 # m/s
+    agent_to_agent_max_distance: float = 50.0  # meters
+    agent_to_conflict_point_max_distance: float = 2.0 # meters
+    agent_to_agent_distance_breach: float = 1.0  # meters
+    heading_threshold: float = 45.0  # degrees
+
+    # To allow numpy and other arbitrary types in the model
+    model_config = {"arbitrary_types_allowed": True}
+
+class TracksToPredict(BaseModel): # pyright: ignore[reportUntypedBaseClass]
+    """Encapsulates the tracks to predict in a scenario, including the ego vehicle and other agents.
+
+    Attributes:
+        track_index (list[NonNegativeInt]): List of indices for the tracks.
+        difficulty (list[NonNegativeInt]): List of difficulty levels for the tracks.
+        object_type (list[AgentType]): List of types for each track, e.g., "vehicle", "pedestrian", etc.
+    """
+    track_index: list[NonNegativeInt]
+    difficulty: list[NonNegativeInt]
+    object_type: list[AgentType]
+
+    # To allow numpy and other arbitrary types in the model
+    model_config = {"arbitrary_types_allowed": True}
+
+class StaticMapData(BaseModel): # pyright: ignore[reportUntypedBaseClass]
+    """Encapsulates static map data for a scenario, including polylines and conflict points.
+
+    Attributes:
+        num_conflict_points (NonNegativeInt): Number of conflict points in the map.
+        map_conflict_points (Float32NDArray2D | None): 2D array of shape(num_conflict_points, 3) representing the
+            (x, y, z) positions for each conflict point in the map.
+        num_polylines (NonNegativeInt): Number of polylines in the map.
+        map_polylines (Float32NDArray2D | None): 2D array of shape(num_polylines, 7) representing the polylines in the
+            map.
+    """
+    map_polylines: Float32NDArray2D | None = None
+    lane_ids: Int32NDArray1D | None = None
+    lane_speed_limits_mph: Float32NDArray1D | None = None
+    lane_polyline_idxs: Int32NDArray2D | None = None
+    road_line_ids: Int32NDArray1D | None = None
+    road_line_polyline_idxs: Int32NDArray2D | None = None
+    road_edge_ids: Int32NDArray1D | None = None
+    road_edge_polyline_idxs: Int32NDArray2D | None = None
+    crosswalk_ids: Int32NDArray1D | None = None
+    crosswalk_polyline_idxs: Int32NDArray2D | None = None
+    speed_bump_ids: Int32NDArray1D | None = None
+    speed_bump_polyline_idxs: Int32NDArray2D | None = None
+    stop_sign_ids: Int32NDArray1D | None = None
+    stop_sign_polyline_idxs: Int32NDArray2D | None = None
+    stop_sign_lane_ids: list[list[int]] | None = None
+
+    # Optional information that can be derived from existing map information
+    map_conflict_points: Float32NDArray2D | None = None
+    agent_distances_to_conflict_points: Float32NDArray3D | None = None
+
+    # To allow numpy and other arbitrary types in the model
+    model_config = {"arbitrary_types_allowed": True}
+
+    @computed_field
+    @property
+    def num_polylines(self) -> int:
+        """Returns the number of polylines in the map."""
+        return 0 if self.map_polylines is None else len(self.map_polylines)
+
+    @computed_field
+    @property
+    def num_conflict_points(self) -> int:
+        """Returns the number of conflict points in the map."""
+        return 0 if self.map_conflict_points is None else len(self.map_conflict_points)
+
+class DynamicMapData(BaseModel): # pyright: ignore[reportUntypedBaseClass]
+    """Encapsulates dynamic map data for a scenario, including dynamic stop points.
+
+    Attributes:
+        num_dynamic_stop_points (NonNegativeInt): Number of dynamic stop points in the map.
+        dynamic_stop_points (Float32NDArray2D | None): 2D array of shape(num_dynamic_stop_points, 3) representing the
+            (x, y, z) positions for each dynamic stop point in the map.
+        dynamic_stop_points_lane_ids (Int32NDArray1D | None): 1D array of shape(num_dynamic_stop_points) representing
+            the lane IDs for each dynamic stop point.
+    """
+    stop_points: list[Any] | None = None
+    lane_ids: list[Any] | None = None
+    states: list[Any] | None = None  # Placeholder for state information, can be more specific if needed
+
+    # To allow numpy and other arbitrary types in the model
+    model_config = {"arbitrary_types_allowed": True}
+
+    @computed_field
+    @property
+    def num_stop_points(self) -> int:
+        """Returns the number of dynamic stop points in the map."""
+        return 0 if self.stop_points is None else len(self.stop_points)
+
+class Scenario(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+    """Represents a scenario containing information about agents, their trajectories, and the environment.
+    This class is used to encapsulate all relevant data for a scenario, including agent states, map information,
+    and scenario metadata. It is designed to be used in the context of autonomous driving or similar.
+
+    Attributes:
+        metadata (ScenarioMetadata): Metadata for the scenario, including IDs, timestamps, and thresholds.
+        agent_data (AgentData): Data for agents in the scenario, including their trajectories, positions, and types.
+        tracks_to_predict (TracksToPredict | None): Optional data for tracks to predict in the scenario.
+        static_map_data (StaticMapData | None): Optional static map data for the scenario.
+        dynamic_map_data (DynamicMapData | None): Optional dynamic map data for the scenario.
+    """
+
+    metadata: ScenarioMetadata
+    agent_data: AgentData
+    tracks_to_predict: TracksToPredict | None = None
+    static_map_data: StaticMapData | None = None
+    dynamic_map_data: DynamicMapData | None = None
+
+    # To allow numpy and other arbitrary types in the model
+    model_config = {"arbitrary_types_allowed": True}

@@ -6,7 +6,8 @@ from omegaconf import DictConfig
 import characterization.features.interaction_utils as interaction
 from characterization.features.base_feature import BaseFeature
 from characterization.utils.common import EPS, InteractionStatus, get_logger
-from characterization.utils.schemas import Scenario, ScenarioFeatures
+from characterization.utils.schemas.scenario import Scenario
+from characterization.utils.schemas.scenario_features import ScenarioFeatures
 
 logger = get_logger(__name__)
 
@@ -43,28 +44,34 @@ class InteractionFeatures(BaseFeature):
         Raises:
             ValueError: If no agent combinations are found (i.e., less than two agents in the scenario).
         """
-        agent_combinations = list(itertools.combinations(range(scenario.num_agents), 2))
+        metadata = scenario.metadata
+        agent_data = scenario.agent_data
+        map_data = scenario.static_map_data
+
+        agent_combinations = list(itertools.combinations(range(agent_data.num_agents), 2))
         if len(agent_combinations) == 0:
             raise ValueError("No agent combinations found. Ensure that the scenario has at least two agents.")
 
-        agent_types = scenario.agent_types
-        agent_masks = scenario.agent_valid
-        agent_positions = scenario.agent_positions
-        agent_lengths = scenario.agent_lengths
-        agent_widths = scenario.agent_widths
-        agent_heights = scenario.agent_heights
+        agent_types = agent_data.agent_types
+        agent_masks = agent_data.agent_valid
+        agent_positions = agent_data.agent_positions
+        agent_dimensions = agent_data.agent_dimensions
+        agent_lengths = agent_dimensions[..., 0]
+        agent_widths = agent_dimensions[..., 1]
+        agent_heights = agent_dimensions[..., 2]
+
         # NOTE: this is also computed as a feature in the individual features.
-        agent_velocities = np.linalg.norm(scenario.agent_velocities, axis=-1) + EPS
-        agent_headings = np.rad2deg(scenario.agent_headings)
-        conflict_points = scenario.map_conflict_points
-        dists_to_conflict_points = scenario.agent_distances_to_conflict_points
+        agent_velocities = np.linalg.norm(agent_data.agent_velocities, axis=-1) + EPS
+        agent_headings = np.rad2deg(agent_data.agent_headings)
+        conflict_points = map_data.map_conflict_points
+        dists_to_conflict_points = map_data.agent_distances_to_conflict_points
 
         # TODO: Figure out where's best place to get these from
-        stationary_speed = scenario.stationary_speed
-        agent_to_agent_max_distance = scenario.agent_to_agent_max_distance
-        agent_to_conflict_point_max_distance = scenario.agent_to_conflict_point_max_distance
-        agent_to_agent_distance_breach = scenario.agent_to_agent_distance_breach
-        heading_threshold = scenario.heading_threshold
+        stationary_speed = metadata.stationary_speed
+        agent_to_agent_max_distance = metadata.agent_to_agent_max_distance
+        agent_to_conflict_point_max_distance = metadata.agent_to_conflict_point_max_distance
+        agent_to_agent_distance_breach = metadata.agent_to_agent_distance_breach
+        heading_threshold = metadata.heading_threshold
 
         # Meta information to be included in ScenarioFeatures Valid interactions will be added 'agent_pair_indeces' and
         # 'interaction_status'
@@ -186,9 +193,8 @@ class InteractionFeatures(BaseFeature):
             scenario_dracs[n] = drac
 
         return ScenarioFeatures(
-            num_agents=scenario.num_agents,
-            scenario_id=scenario.scenario_id,
-            agent_types=scenario.agent_types,
+            metadata=metadata,
+            agent_types=agent_data.agent_types,
             separation=scenario_separations,
             intersection=scenario_intersections,
             collision=scenario_collisions,

@@ -5,7 +5,9 @@ import numpy as np
 from omegaconf import DictConfig
 
 from characterization.utils.common import EPS
-from characterization.utils.schemas import Scenario, ScenarioFeatures, ScenarioScores
+from characterization.utils.schemas.scenario import Scenario
+from characterization.utils.schemas.scenario_features import ScenarioFeatures
+from characterization.utils.schemas.scenario_scores import ScenarioScores
 
 
 class BaseScorer(ABC):
@@ -58,11 +60,11 @@ class BaseScorer(ABC):
         # between the agent and the relevant agents
         agent_to_agent_dists = scenario_features.agent_to_agent_closest_dists  # Shape (num_agents, num_agents)
         if self.score_wrt_ego_only:
-            relevant_agents = np.array([scenario.ego_index])
+            relevant_agents = np.array([scenario.metadata.ego_vehicle_index])
             relevant_agents_values = np.array([1.0])  # Only the ego agent is relevant
         else:
-            relevant_agents = np.where(scenario.agent_relevance > 0.0)[0]
-            relevant_agents_values = scenario.agent_relevance[relevant_agents]  # Shape (num_relevant_agents)
+            relevant_agents = np.where(scenario.agent_data.agent_relevance > 0.0)[0]
+            relevant_agents_values = scenario.agent_data.agent_relevance[relevant_agents]  # Shape (num_relevant_agents)
 
         relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]  # Shape (num_agents, num_relevant_agents)
         min_dist = relevant_agents_dists.min(axis=1) + EPS  # Avoid division by zero

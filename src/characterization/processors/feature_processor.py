@@ -6,7 +6,7 @@ from characterization.features.base_feature import BaseFeature
 from characterization.processors.base_processor import BaseProcessor
 from characterization.scorer.base_scorer import BaseScorer
 from characterization.utils.common import get_logger, to_pickle
-from characterization.utils.schemas import ScenarioFeatures
+from characterization.utils.schemas.scenario_features import ScenarioFeatures
 
 logger = get_logger(__name__)
 
@@ -54,6 +54,6 @@ class FeatureProcessor(BaseProcessor):
                 features: ScenarioFeatures = self.characterizer.compute(scenario)  # pyright: ignore[reportCallIssue]
 
                 if self.save:
-                    to_pickle(self.output_path, features.model_dump(), scenario.scenario_id)
+                    to_pickle(self.output_path, features.model_dump(), scenario.metadata.scenario_id)
 
         logger.info(f"Finished processing {self.characterizer.name} features for {self.dataset.name}.")

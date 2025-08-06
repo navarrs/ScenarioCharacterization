@@ -8,7 +8,7 @@ from rich.progress import track
 
 from characterization.scorer import SUPPORTED_SCORERS
 from characterization.utils.common import from_pickle, get_logger
-from characterization.utils.schemas import ScenarioScores
+from characterization.utils.schemas.schemas import ScenarioScores
 
 logger = get_logger(__name__)
 
