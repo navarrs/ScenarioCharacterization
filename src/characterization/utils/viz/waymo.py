@@ -4,7 +4,7 @@ from matplotlib.axes import Axes
 from omegaconf import DictConfig
 
 from characterization.utils.common import get_logger
-from characterization.utils.schemas import Scenario
+from characterization.utils.schemas.schemas import Scenario
 from characterization.utils.viz.visualizer import BaseVisualizer
 
 # from matplotlib.patches import Rectangle

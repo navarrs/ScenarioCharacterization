@@ -7,13 +7,12 @@ from typing import Any
 import numpy as np
 from natsort import natsorted
 from omegaconf import DictConfig
-from pydantic import ValidationError
 from rich.progress import track
 from scipy.signal import resample
 
 from characterization.utils.common import compute_dists_to_conflict_points, get_logger
 from characterization.utils.datasets.dataset import BaseDataset
-from characterization.utils.schemas import Scenario
+from characterization.utils.schemas.scenario import Scenario, AgentData, AgentType, ScenarioMetadata, StaticMapData, DynamicMapData
 
 logger = get_logger(__name__)
 
@@ -66,14 +65,6 @@ class WaymoData(BaseDataset):
             "ho": self.HIST_TIMESTEP,
         }
 
-        self.STATIONARY_SPEED = 0.25  # m/s
-        self.AGENT_TO_AGENT_MAX_DISTANCE = 50.0  # meters
-        self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE = 2.0  # meters
-        self.AGENT_TO_AGENT_DISTANCE_BREACH = 1.0  # meters
-        self.HEADING_THRESHOLD = 45  # degrees
-
-        self.AGENT_TO_AGENT_MAX_HEADING = 45.0  # degrees
-
         self.load = config.get("load", True)
         if self.load:
             try:
@@ -115,182 +106,186 @@ class WaymoData(BaseDataset):
                 f"Number of scenarios ({num_scenarios}) != number of conflict points ({num_conflict_points}).",
             )
 
-    def transform_scenario_data(
-        self,
-        scenario_data: dict[str, Any],
-        conflict_points_data: dict[str, Any] | None = None,
-    ) -> Scenario:
-        """Transforms the scene data into a format suitable for processing.
+
+    def repack_agent_data(self, agent_data: dict[str, Any]) -> AgentData:
+        """Packs agent information from Waymo format to AgentData format.
 
         Args:
-            scenario_data (dict): The raw scenario data.
-            conflict_points (dict or None): The conflict points for the scenario.
+            agent_data (dict): dictionary containing Waymo actor data:
+                'object_id': indicating each agent IDs
+                'object_type': indicating each agent type
+                'trajs': tensor(num_agents, num_timesteps, num_features) containing each agent's kinematic information.
 
         Returns:
-            dict: The transformed scenario data, including agent and map information.
+            AgentData: pydantic validator encapsulating agent information.
         """
-
-        def get_polyline_ids(polyline: dict[str, Any], key: str) -> np.ndarray:
-            """Extracts polyline indices from the polyline dictionary."""
-            return np.array([value["id"] for value in polyline[key]], dtype=np.int32)
-
-        def get_speed_limit_mph(polyline: dict[str, Any], key: str) -> np.ndarray:
-            """Extracts speed limit in mph from the polyline dictionary."""
-            speed_limit_mph = np.array([value["speed_limit_mph"] for value in polyline[key]], dtype=np.float32)
-            # if speed_limit_mph.shape[0] == 0:
-            #     return np.empty((0,), dtype=np.float32)
-            return speed_limit_mph
-
-        def get_polyline_idxs(polyline: dict[str, Any], key: str) -> np.ndarray | None:
-            polyline_idxs = np.array(
-                [[value["polyline_index"][0], value["polyline_index"][1]] for value in polyline[key]],
-                dtype=np.int32,
-            )
-            if polyline_idxs.shape[0] == 0:
-                return None
-            return polyline_idxs
-
-        sdc_index = scenario_data["sdc_track_index"]
-        trajs = scenario_data["track_infos"]["trajs"]
-        num_agents, num_timesteps, _ = trajs.shape
+        trajs = agent_data["trajs"]  # shape: [num_agents, num_timesteps, num_features]
+        _, num_timesteps, _ = trajs.shape
 
         T_last = self.LAST_TIMESTEP_TO_CONSIDER[self.scenario_type]
         if num_timesteps < T_last:
             raise AssertionError(
-                f"Scenario {scenario_data['scenario_id']} has only {num_timesteps} timesteps, "
-                f"but expected at least {T_last} timesteps.",
+                f"Scenario has only {num_timesteps} timesteps, but expected at least {T_last} timesteps.",
             )
         trajs = trajs[:, :T_last, :]  # shape: [num_agents, T_last, dim]
+        self.total_steps = T_last
+        object_types = [AgentType[n] for n in agent_data["object_type"]]
+        return AgentData(
+            agent_ids=agent_data["object_id"],
+            agent_types=object_types,
+            agent_valid=trajs[..., self.AGENT_VALID].astype(np.bool_).squeeze(axis=-1),
+            agent_trajectories=trajs,
+            agent_positions=trajs[..., self.POS_XYZ_IDX],
+            agent_velocities=trajs[..., self.VEL_XY_IDX],
+            agent_dimensions=trajs[..., self.AGENT_DIMS],
+            agent_headings=trajs[..., self.HEADING_IDX].squeeze(axis=-1),
+        )
 
+    @staticmethod
+    def get_polyline_ids(polyline: dict[str, Any], key: str) -> np.ndarray:
+        """Extracts polyline indices from the polyline dictionary."""
+        return np.array([value["id"] for value in polyline[key]], dtype=np.int32)
+
+    @staticmethod
+    def get_speed_limit_mph(polyline: dict[str, Any], key: str) -> np.ndarray:
+        """Extracts speed limit in mph from the polyline dictionary."""
+        return np.array([value["speed_limit_mph"] for value in polyline[key]], dtype=np.float32)
+
+    @staticmethod
+    def get_polyline_idxs(polyline: dict[str, Any], key: str) -> np.ndarray | None:
+        polyline_idxs = np.array(
+            [[value["polyline_index"][0], value["polyline_index"][1]] for value in polyline[key]],
+            dtype=np.int32,
+        )
+
+        if polyline_idxs.shape[0] == 0:
+            return None
+        return polyline_idxs
+
+    def repack_static_map_data(self, static_map_data: dict[str, Any] | None) -> StaticMapData | None:
+        """Packs static map information from Waymo format to StaticMapData format.
+
+        Args:
+            static_map_data (dict): dictionary containing Waymo static scenario data:
+                'all_polylines': all road data in the form of polylines
+                mapped by type to specific road types ('lane', 'road_line', 'road_edge', 'crosswalk', 'speed_bump', 'stop_sign')
+
+        Returns:
+            StaticMapData: pydantic validator encapsulating static map information.
+        """
+        if static_map_data is None:
+            return None
+
+        map_polylines = static_map_data["all_polylines"].astype(np.float32)  # shape: [N, 3] or [N, 3, 2]
+
+        return StaticMapData(
+            map_polylines=map_polylines,
+            lane_ids=WaymoData.get_polyline_ids(static_map_data, "lane") if "lane" in static_map_data else None,
+            lane_speed_limits_mph=WaymoData.get_speed_limit_mph(static_map_data, "lane") if "lane" in static_map_data else None,
+            lane_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "lane") if "lane" in static_map_data else None,
+            road_line_ids=WaymoData.get_polyline_ids(static_map_data, "road_line") if "road_line" in static_map_data else None,
+            road_line_polyline_idxs= WaymoData.get_polyline_idxs(static_map_data, "road_line") if "road_line" in static_map_data else None,
+            road_edge_ids=WaymoData.get_polyline_ids(static_map_data, "road_edge") if "road_edge" in static_map_data else None,
+            road_edge_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "road_edge") if "road_edge" in static_map_data else None,
+            crosswalk_ids=WaymoData.get_polyline_ids(static_map_data, "crosswalk") if "crosswalk" in static_map_data else None,
+            crosswalk_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "crosswalk") if "crosswalk" in static_map_data else None,
+            speed_bump_ids=WaymoData.get_polyline_ids(static_map_data, "speed_bump") if "speed_bump" in static_map_data else None,
+            speed_bump_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "speed_bump") if "speed_bump" in static_map_data else None,
+            stop_sign_ids=WaymoData.get_polyline_ids(static_map_data, "stop_sign") if "stop_sign" in static_map_data else None,
+            stop_sign_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "stop_sign") if "stop_sign" in static_map_data else None,
+            stop_sign_lane_ids=[stop_sign["lane_ids"] for stop_sign in static_map_data.get("stop_sign", {"lane_ids": []})],
+        )
+
+    def repack_dynamic_map_data(self, dynamic_map_data: dict[str, Any]) -> DynamicMapData:
+        """Packs dynamic map information from Waymo format to DynamicMapData format.
+
+        Args:
+            dynamic_map_data (dict): dictionary containing Waymo dynamic scenario data:
+                'stop_points': traffic light stopping points.
+                'lane_id': IDs of the lanes where the traffic light is.
+                'state': state of the traffic light (e.g., red, etc).
+
+        Returns:
+            DynamicMapData: pydantic validator encapsulating static map information.
+        """
+        stop_points = dynamic_map_data["stop_point"][: self.total_steps]
+        lane_id = [lid.astype(np.int64) for lid in dynamic_map_data["lane_id"][: self.total_steps]]
+        states = dynamic_map_data["state"][: self.total_steps]
+        num_dynamic_stop_points = len(stop_points)
+
+        if num_dynamic_stop_points == 0:
+            stop_points = None
+            lane_id = None
+            states = None
+
+        return DynamicMapData(stop_points=stop_points, lane_ids=lane_id, states=states)
+
+
+    def transform_scenario_data(
+        self,
+        scenario_data: dict[str, Any],
+        conflict_points_data: dict[str, Any] | None = None
+    ) -> Scenario:
+        # Repack agent information from input scenario
+        agent_data = self.repack_agent_data(scenario_data["track_infos"])
+        # Repack static map information from input scenario
+        static_map_data = self.repack_static_map_data(scenario_data["map_infos"])
+
+        # Add conflict point information
         agent_distances_to_conflict_points = None
         conflict_points = None
         if conflict_points_data is not None:
             agent_distances_to_conflict_points = (
                 None
                 if conflict_points_data["agent_distances_to_conflict_points"] is None
-                else conflict_points_data["agent_distances_to_conflict_points"][:, :T_last, :]
+                else conflict_points_data["agent_distances_to_conflict_points"][:, :self.total_steps, :]
             )
             conflict_points = (
                 None
                 if conflict_points_data["all_conflict_points"] is None
                 else conflict_points_data["all_conflict_points"]
             )
-        timestamps = np.asarray(scenario_data["timestamps_seconds"], dtype=np.float32)[:T_last]
-        num_conflict_points = 0 if conflict_points is None else conflict_points.shape[0]
+        static_map_data.map_conflict_points = conflict_points
+        static_map_data.agent_distances_to_conflict_points = agent_distances_to_conflict_points
 
-        # TODO: improve this relevance criteria
-        agent_relevance = np.zeros(num_agents, dtype=np.float32)
+        # TODO: refactor dynamic map data schema.
+        # Repack dynamic map information
+        dynamic_map_data = self.repack_dynamic_map_data(scenario_data["dynamic_map_infos"])
+
+        timestamps = scenario_data["timestamps_seconds"][: self.total_steps]
+
+        # Select tracks to predict
+        ego_vehicle_index = scenario_data["sdc_track_index"]
+
+        agent_relevance = np.zeros(agent_data.num_agents, dtype=np.float32)
         tracks_to_predict = scenario_data["tracks_to_predict"]
-        tracks_to_predict_index = np.asarray(tracks_to_predict["track_index"] + [sdc_index])
+        tracks_to_predict_index = np.asarray(tracks_to_predict["track_index"] + [ego_vehicle_index])
         tracks_to_predict_difficulty = np.asarray(tracks_to_predict["difficulty"] + [2.0])
 
         # Set agent_relevance for tracks_to_predict_index based on tracks_to_predict_difficulty
         for idx, difficulty in zip(tracks_to_predict_index, tracks_to_predict_difficulty, strict=False):
             agent_relevance[idx] = self.DIFFICULTY_WEIGHTS.get(difficulty, 0.0)
+        agent_data.agent_relevance = agent_relevance
 
-        # Extract static map information
-        map_infos = scenario_data.get("map_infos")
-        num_polylines, map_polylines = 0, None
-        if map_infos is not None:
-            map_polylines = map_infos["all_polylines"].astype(np.float32)  # shape: [N, 3] or [N, 3, 2]
-            num_polylines = map_polylines.shape[0]
-            lane_ids = get_polyline_ids(map_infos, "lane") if "lane" in map_infos else None
-            lane_speed_limits_mph = get_speed_limit_mph(map_infos, "lane") if "lane" in map_infos else None
-            lane_polyline_idxs = get_polyline_idxs(map_infos, "lane") if "lane" in map_infos else None
-            road_line_ids = get_polyline_ids(map_infos, "road_line") if "road_line" in map_infos else None
-            road_line_polyline_idxs = get_polyline_idxs(map_infos, "road_line") if "road_line" in map_infos else None
-            road_edge_ids = get_polyline_ids(map_infos, "road_edge") if "road_edge" in map_infos else None
-            road_edge_polyline_idxs = get_polyline_idxs(map_infos, "road_edge") if "road_edge" in map_infos else None
-            crosswalk_ids = get_polyline_ids(map_infos, "crosswalk") if "crosswalk" in map_infos else None
-            crosswalk_polyline_idxs = get_polyline_idxs(map_infos, "crosswalk") if "crosswalk" in map_infos else None
-            speed_bump_ids = get_polyline_ids(map_infos, "speed_bump") if "speed_bump" in map_infos else None
-            speed_bump_polyline_idxs = get_polyline_idxs(map_infos, "speed_bump") if "speed_bump" in map_infos else None
-            stop_sign_ids = get_polyline_ids(map_infos, "stop_sign") if "stop_sign" in map_infos else None
-            stop_sign_polyline_idxs = get_polyline_idxs(map_infos, "stop_sign") if "stop_sign" in map_infos else None
-            stop_sign_lane_ids = [stop_sign["lane_ids"] for stop_sign in map_infos.get("stop_sign", {"lane_ids": []})]
-        else:
-            lane_ids = None
-            lane_speed_limits_mph = None
-            lane_polyline_idxs = None
-            road_line_ids = None
-            road_line_polyline_idxs = None
-            road_edge_ids = None
-            road_edge_polyline_idxs = None
-            crosswalk_ids = None
-            crosswalk_polyline_idxs = None
-            speed_bump_ids = None
-            speed_bump_polyline_idxs = None
-            stop_sign_ids = None
-            stop_sign_polyline_idxs = None
-            stop_sign_lane_ids = []
+        # Repack meta information
+        metadata = ScenarioMetadata(
+            scenario_id=scenario_data["scenario_id"],
+            timestamps_seconds=timestamps,
+            current_time_index=scenario_data["current_time_index"],
+            ego_vehicle_id=agent_data.agent_ids[ego_vehicle_index],
+            ego_vehicle_index=ego_vehicle_index,
+            track_length=self.total_steps,
+            objects_of_interest=scenario_data["objects_of_interest"],
+            dataset="waymo"
+        )
 
-        # Extract static and dynamic map information
-        dynamic_map_infos = scenario_data.get("dynamic_map_infos")
-        num_dynamic_stop_points = 0
-        dynamic_stop_points = None
-        dynamic_stop_points_lane_ids = None
-        if dynamic_map_infos is not None:
-            # For dynamic map information, we only need stop points for conflict points
-            if "stop_point" in dynamic_map_infos and len(dynamic_map_infos["stop_point"]) > 0:
-                dynamic_stop_points = dynamic_map_infos["stop_point"]  # shape: [N, 3] or [N, 3, 2]
-                num_dynamic_stop_points = len(dynamic_stop_points)
-                if num_dynamic_stop_points > 0 and len(dynamic_stop_points[0]) > 0:
-                    dynamic_stop_points = dynamic_stop_points[0].astype(np.float32).squeeze(axis=0)  # shape: [N, 3]
-                    dynamic_stop_points_lane_ids = dynamic_map_infos["lane_id"][0].astype(np.int32).squeeze(axis=0)
-
-        try:
-            # TODO: add type of lane, road, etc
-            scenario = Scenario(
-                num_agents=num_agents,
-                scenario_id=scenario_data["scenario_id"],
-                scenario_type=self.scenario_type,
-                ego_index=sdc_index,
-                ego_id=scenario_data["track_infos"]["object_id"][sdc_index],
-                agent_ids=scenario_data["track_infos"]["object_id"],
-                agent_types=scenario_data["track_infos"]["object_type"],
-                agent_valid=trajs[..., self.AGENT_VALID].astype(np.bool_).squeeze(axis=-1),
-                agent_positions=trajs[..., self.POS_XYZ_IDX],
-                agent_velocities=trajs[..., self.VEL_XY_IDX],
-                agent_lengths=trajs[..., self.AGENT_LENGTHS].squeeze(axis=-1),
-                agent_widths=trajs[..., self.AGENT_WIDTHS].squeeze(axis=-1),
-                agent_heights=trajs[..., self.AGENT_HEIGHTS].squeeze(axis=-1),
-                agent_headings=trajs[..., self.HEADING_IDX].squeeze(axis=-1),
-                agent_relevance=agent_relevance,
-                last_observed_timestep=scenario_data["current_time_index"],
-                total_timesteps=self.LAST_TIMESTEP,
-                last_timestep_to_consider=T_last,
-                stationary_speed=self.STATIONARY_SPEED,
-                agent_to_agent_max_distance=self.AGENT_TO_AGENT_MAX_DISTANCE,
-                agent_to_conflict_point_max_distance=self.AGENT_TO_CONFLICT_POINT_MAX_DISTANCE,
-                agent_to_agent_distance_breach=self.AGENT_TO_AGENT_DISTANCE_BREACH,
-                heading_threshold=self.HEADING_THRESHOLD,
-                timestamps=timestamps,
-                num_conflict_points=num_conflict_points,
-                map_conflict_points=conflict_points,
-                agent_distances_to_conflict_points=agent_distances_to_conflict_points,
-                num_polylines=num_polylines,
-                map_polylines=map_polylines,
-                lane_ids=lane_ids,
-                lane_speed_limits_mph=lane_speed_limits_mph,
-                lane_polyline_idxs=lane_polyline_idxs,
-                road_line_ids=road_line_ids,
-                road_line_polyline_idxs=road_line_polyline_idxs,
-                road_edge_ids=road_edge_ids,
-                road_edge_polyline_idxs=road_edge_polyline_idxs,
-                crosswalk_ids=crosswalk_ids,
-                crosswalk_polyline_idxs=crosswalk_polyline_idxs,
-                speed_bump_ids=speed_bump_ids,
-                speed_bump_polyline_idxs=speed_bump_polyline_idxs,
-                stop_sign_ids=stop_sign_ids,
-                stop_sign_polyline_idxs=stop_sign_polyline_idxs,
-                stop_sign_lane_ids=stop_sign_lane_ids,
-                num_dynamic_stop_points=num_dynamic_stop_points,
-                dynamic_stop_points=dynamic_stop_points,
-                dynamic_stop_points_lane_ids=dynamic_stop_points_lane_ids,
-            )
-        except (ValidationError, TypeError) as e:
-            raise e
-        return scenario
+        return Scenario(
+            metadata=metadata,
+            agent_data=agent_data,
+            static_map_data=static_map_data,
+            # NOTE: the model is not currently using dynamic map data.
+            dynamic_map_data=dynamic_map_data,
+        )
 
     def check_conflict_points(self):
         """Checks if conflict points are already computed for each scenario.

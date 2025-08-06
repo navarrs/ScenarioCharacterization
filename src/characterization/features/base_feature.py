@@ -3,7 +3,8 @@ from abc import ABC, abstractmethod
 
 from omegaconf import DictConfig
 
-from characterization.utils.schemas import Scenario, ScenarioFeatures
+from characterization.utils.schemas.scenario import Scenario
+from characterization.utils.schemas.scenario_features import ScenarioFeatures
 
 
 class BaseFeature(ABC):

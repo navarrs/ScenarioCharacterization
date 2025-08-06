@@ -4,7 +4,9 @@ from omegaconf import DictConfig
 from characterization.scorer import INDIVIDUAL_SCORE_FUNCTIONS
 from characterization.scorer.base_scorer import BaseScorer
 from characterization.utils.common import get_logger
-from characterization.utils.schemas import Scenario, ScenarioFeatures, ScenarioScores
+from characterization.utils.schemas.scenario import Scenario
+from characterization.utils.schemas.scenario_features import ScenarioFeatures
+from characterization.utils.schemas.scenario_scores import ScenarioScores, Score
 
 logger = get_logger(__name__)
 
@@ -55,7 +57,7 @@ class IndividualScorer(BaseScorer):
 
         # Get the agent weights
         weights = self.get_weights(scenario, scenario_features)
-        scores = np.zeros(shape=(scenario.num_agents,), dtype=np.float32)
+        scores = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
 
         valid_idxs = scenario_features.valid_idxs
         N = valid_idxs.shape[0]
@@ -84,8 +86,6 @@ class IndividualScorer(BaseScorer):
         denom = max(np.where(scores > 0.0)[0].shape[0], 1)
         scene_score = np.clip(scores.sum() / denom, a_min=self.score_clip.min, a_max=self.score_clip.max)
         return ScenarioScores(
-            scenario_id=scenario.scenario_id,
-            num_agents=scenario.num_agents,
-            individual_agent_scores=scores,
-            individual_scene_score=scene_score,
+            metadata=scenario.metadata,
+            individual=Score(agent_scores=scores, scene_score=scene_score),
         )

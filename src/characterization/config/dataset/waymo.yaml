@@ -10,6 +10,7 @@ config:
   num_workers: ${num_workers}
   num_shards: ${num_shards}
   shard_index: ${shard_index}
+  step: ${step}
 
   scenario_base_path: ${paths.scenario_base_path}
   scenario_meta_path: ${paths.scenario_meta_path}

@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
 from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
-from characterization.utils.schemas import Scenario
+from characterization.utils.schemas.scenario import Scenario
 
 logger = get_logger(__name__)
 
@@ -46,6 +46,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         self.num_workers = config.get("num_workers", 0)
         self.num_shards = config.get("num_shards", 1)
         self.shard_index = config.get("shard_index", 0)
+        self.config = config
 
         self.data = DictConfig(
             {

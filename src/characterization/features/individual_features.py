@@ -4,7 +4,8 @@ from omegaconf import DictConfig
 import characterization.features.individual_utils as individual
 from characterization.features.base_feature import BaseFeature
 from characterization.utils.common import get_logger
-from characterization.utils.schemas import Scenario, ScenarioFeatures
+from characterization.utils.schemas.scenario import Scenario
+from characterization.utils.schemas.scenario_features import ScenarioFeatures
 
 logger = get_logger(__name__)
 
@@ -38,12 +39,18 @@ class IndividualFeatures(BaseFeature):
         Raises:
             ValueError: If an unknown return criteria is provided in the configuration.
         """
-        agent_positions = scenario.agent_positions
-        agent_velocities = scenario.agent_velocities
-        agent_valid = scenario.agent_valid
-        scenario_timestamps = scenario.timestamps
-        conflict_points = scenario.map_conflict_points
-        stationary_speed = scenario.stationary_speed
+        # Unpack senario fields
+        agent_data = scenario.agent_data
+        agent_positions = agent_data.agent_positions
+        agent_velocities = agent_data.agent_velocities
+        agent_valid = agent_data.agent_valid
+
+        metadata = scenario.metadata
+        scenario_timestamps = metadata.timestamps_seconds
+        stationary_speed = metadata.stationary_speed
+
+        map_data = scenario.static_map_data
+        conflict_points = map_data.map_conflict_points
 
         # Meta information to be included within ScenarioFeatures. For an agent to be valid it needs to have at least
         # two valid timestamps. The indeces of such agents will be added to `valid_idxs` list.
@@ -61,14 +68,14 @@ class IndividualFeatures(BaseFeature):
 
         # NOTE: Handling sequentially since each agent may have different valid masks which will
         # result in trajectories of different lengths.
-        for n in range(scenario.num_agents):
-            mask = agent_valid[n].squeeze(-1)
+        for n in range(agent_data.num_agents):
+            mask = agent_valid[n]
             if not mask.any() or mask.sum() < 2:
                 continue
 
             velocities = agent_velocities[n][mask, :]
             positions = agent_positions[n][mask, :]
-            timestamps = scenario_timestamps[mask]
+            timestamps = np.asarray(scenario_timestamps)[mask]
 
             # Compute agent features
 
@@ -92,7 +99,7 @@ class IndividualFeatures(BaseFeature):
                 speeds,
                 timestamps,
                 conflict_points,
-                stationary_speed,
+                stationary_speed if stationary_speed is not None else 0.0,
             )
 
             if self.return_criterion == "critical":
@@ -136,9 +143,8 @@ class IndividualFeatures(BaseFeature):
         )
 
         return ScenarioFeatures(
-            num_agents=scenario.num_agents,
-            scenario_id=scenario.scenario_id,
-            agent_types=scenario.agent_types,
+            metadata=metadata,
+            agent_types=agent_data.agent_types,
             valid_idxs=np.array(scenario_valid_idxs, dtype=np.int32) if scenario_valid_idxs else None,
             speed=np.array(scenario_speeds, dtype=np.float32) if scenario_speeds else None,
             speed_limit_diff=(

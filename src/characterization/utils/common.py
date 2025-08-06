@@ -6,6 +6,7 @@ from enum import Enum
 import colorlog
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
+from characterization.utils.schemas.types import AgentType
 
 EPS = 1e-6
 SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
@@ -145,19 +146,19 @@ class InteractionAgent:
             self._height = None
 
     @property
-    def agent_type(self) -> str | None:
+    def agent_type(self) -> AgentType | None:
         """str: The type of the agent."""
         return self._agent_type
 
     @agent_type.setter
-    def agent_type(self, value: str | None) -> None:
+    def agent_type(self, value: AgentType | None) -> None:
         """Sets the type of the agent.
 
         Args:
             value (str): The type of the agent.
         """
         if value is not None:
-            self._agent_type = str(value)
+            self._agent_type = value
         else:
             self._agent_type = None
 

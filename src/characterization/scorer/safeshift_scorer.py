@@ -8,8 +8,9 @@ from characterization.scorer import (
 )
 from characterization.scorer.base_scorer import BaseScorer
 from characterization.utils.common import get_logger
-from characterization.utils.schemas import Scenario, ScenarioFeatures, ScenarioScores
-
+from characterization.utils.schemas.scenario import Scenario
+from characterization.utils.schemas.scenario_features import ScenarioFeatures
+from characterization.utils.schemas.scenario_scores import ScenarioScores, Score
 logger = get_logger(__name__)
 
 
@@ -79,7 +80,7 @@ class SafeShiftScorer(BaseScorer):
         weights = self.get_weights(scenario, scenario_features)
 
         # Compute the individual scores
-        scores_ind = np.zeros(shape=(scenario.num_agents,), dtype=np.float32)
+        scores_ind = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
         valid_idxs = scenario_features.valid_idxs
         N = valid_idxs.shape[0]
         for n in range(N):
@@ -105,11 +106,11 @@ class SafeShiftScorer(BaseScorer):
         denom_ind = max(np.where(scores_ind > 0.0)[0].shape[0], 1)
 
         # Compute the interaction scores
-        scores_int = np.zeros(shape=(scenario.num_agents,), dtype=np.float32)
+        scores_int = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
         interaction_agent_indices = scenario_features.interaction_agent_indices
         if self.score_wrt_ego_only:
             interaction_agent_indices = [
-                (i, j) for i, j in interaction_agent_indices if i == scenario.ego_index or j == scenario.ego_index
+                (i, j) for i, j in interaction_agent_indices if i == scenario.metadata.ego_vehicle_index or j == scenario.metadata.ego_vehicle_index
             ]
         for n, (i, j) in enumerate(interaction_agent_indices):
             status = scenario_features.interaction_status[n]
@@ -144,8 +145,6 @@ class SafeShiftScorer(BaseScorer):
         scene_score = scene_score_int.copy() + scene_score_ind.copy()
         scene_score = np.clip(scene_score, a_min=self.score_clip.min, a_max=self.score_clip.max)
         return ScenarioScores(
-            scenario_id=scenario.scenario_id,
-            num_agents=scenario.num_agents,
-            safeshift_agent_scores=scores,
-            safeshift_scene_score=scene_score,
+            metadata=scenario.metadata,
+            safeshift=Score(agent_scores=scores, scene_score=scene_score),
         )
