@@ -5,10 +5,7 @@ import numpy as np
 from omegaconf import DictConfig
 
 from characterization.utils.common import EPS
-from characterization.utils.schemas.scenario import Scenario
-from characterization.utils.schemas.scenario_features import ScenarioFeatures
-from characterization.utils.schemas.scenario_scores import ScenarioScores
-
+from characterization.schemas import ScenarioScores, ScenarioFeatures, Scenario
 
 class BaseScorer(ABC):
     def __init__(self, config: DictConfig) -> None:

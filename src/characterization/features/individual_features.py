@@ -3,41 +3,66 @@ from omegaconf import DictConfig
 
 import characterization.features.individual_utils as individual
 from characterization.features.base_feature import BaseFeature
-from characterization.utils.common import get_logger
-from characterization.utils.schemas.scenario import Scenario
-from characterization.utils.schemas.scenario_features import ScenarioFeatures
+from characterization.utils.common import get_logger, ReturnCriterion
+from characterization.schemas import Scenario, ScenarioFeatures, Individual
 
 logger = get_logger(__name__)
 
 
 class IndividualFeatures(BaseFeature):
+    """Computes individual agent features from scenario data.
+
+    Attributes:
+        config (DictConfig): Configuration parameters for feature computation.
+        features (Any): Feature-specific configuration extracted from config.
+        characterizer_type (str): Type identifier, always "feature".
+        return_criterion (ReturnCriterion): Criterion for returning results (CRITICAL or AVERAGE).
+    """
+
     def __init__(self, config: DictConfig) -> None:
-        """Initializes the IndividualFeatures class.
+        """Initialize the IndividualFeatures extractor.
 
         Args:
-            config (DictConfig): Configuration for the feature. Expected to contain key-value pairs
-                relevant to feature computation, such as thresholds or parameters. Must include
-                'return_criterion' (str), which determines whether to return 'critical' or 'average'
-                statistics for each feature.
+            config (DictConfig): Configuration dictionary containing feature parameters.
+                Expected keys:
+                - return_criterion (str, optional): Determines whether to return 'critical'
+                  (max/min values) or 'average' statistics for each feature. Defaults to 'critical'.
+                - features (optional): Feature-specific configuration parameters.
+
+        Note:
+            The return_criterion is automatically converted to uppercase and mapped to
+            the ReturnCriterion enum during initialization.
         """
         super(IndividualFeatures, self).__init__(config)
 
-        self.return_criterion = config.get("return_criterion", "critical")
-
-    def compute(self, scenario: Scenario) -> ScenarioFeatures:
-        """Computes features for each agent in the scenario.
+    @staticmethod
+    def compute_individual_features(scenario: Scenario, return_criterion: ReturnCriterion) -> Individual:
+        """Compute individual motion features for all valid agents in a scenario.
 
         Args:
-            scenario (Scenario): Scenario object containing agent positions, velocities, validity masks,
-                timestamps, map conflict points, stationary speed, and other scenario-level information.
+            scenario (Scenario): Complete scenario data containing:
+                - agent_data: Agent positions, velocities, validity masks, and types
+                - metadata: Timestamps, stationary speed threshold, and other parameters
+                - static_map_data: Map conflict points for waiting behavior analysis
+            return_criterion (ReturnCriterion): Determines feature aggregation method:
+                - CRITICAL: Returns maximum values for most features, minimum for waiting_distance
+                - AVERAGE: Returns mean values for all features
 
         Returns:
-            ScenarioFeatures: An object containing computed features for each valid agent, including
-                speed, speed limit difference, acceleration, deceleration, jerk, waiting period,
-                waiting interval, waiting distance, and agent-to-agent closest distances.
+            Individual: Structured object containing computed features for valid agents:
+                - valid_idxs: Indices of agents with sufficient valid data
+                - agent_types: Agent type classifications (if available)
+                - speed: Maximum/average speed values per agent
+                - speed_limit_diff: Speed limit difference values per agent
+                - acceleration: Maximum/average acceleration values per agent
+                - deceleration: Maximum/average deceleration values per agent
+                - jerk: Maximum/average jerk values per agent
+                - waiting_period: Maximum/average waiting periods near conflict points
+                - waiting_interval: Maximum/average waiting intervals between movements
+                - waiting_distance: Minimum/average distances during waiting periods
 
         Raises:
-            ValueError: If an unknown return criteria is provided in the configuration.
+            ValueError: If an unknown return_criterion is provided.
         """
         # Unpack senario fields
         agent_data = scenario.agent_data
@@ -99,31 +124,30 @@ class IndividualFeatures(BaseFeature):
                 speeds,
                 timestamps,
                 conflict_points,
-                stationary_speed if stationary_speed is not None else 0.0,
+                stationary_speed,
             )
 
-            if self.return_criterion == "critical":
-                speed = speeds.max()
-                speed_limit_diff = speed_limit_diffs.max()
-                acceleration = accelerations.max()
-                deceleration = decelerations.max()
-                jerk = jerks.max()
-                waiting_period = waiting_periods.max()
-                waiting_interval = waiting_intervals.max()
-                waiting_distance = waiting_distances.min()
-
-            elif self.return_criterion == "average":
-                speed = speeds.mean()
-                speed_limit_diff = speed_limit_diffs.mean()
-                acceleration = accelerations.mean()
-                deceleration = decelerations.mean()
-                jerk = jerks.mean()
-                waiting_period = waiting_periods.mean()
-                waiting_interval = waiting_intervals.mean()
-                waiting_distance = waiting_distances.mean()
-
-            else:
-                raise ValueError(f"Unknown return criteria: {self.return_criterion}")
+            match return_criterion:
+                case ReturnCriterion.CRITICAL:
+                    speed = speeds.max()
+                    speed_limit_diff = speed_limit_diffs.max()
+                    acceleration = accelerations.max()
+                    deceleration = decelerations.max()
+                    jerk = jerks.max()
+                    waiting_period = waiting_periods.max()
+                    waiting_interval = waiting_intervals.max()
+                    waiting_distance = waiting_distances.min()
+                case ReturnCriterion.AVERAGE:
+                    speed = speeds.mean()
+                    speed_limit_diff = speed_limit_diffs.mean()
+                    acceleration = accelerations.mean()
+                    deceleration = decelerations.mean()
+                    jerk = jerks.mean()
+                    waiting_period = waiting_periods.mean()
+                    waiting_interval = waiting_intervals.mean()
+                    waiting_distance = waiting_distances.mean()
+                case _:
+                    raise ValueError(f"Unknown return criteria: {return_criterion}")
 
             scenario_valid_idxs.append(n)
             scenario_speeds.append(speed)
@@ -135,17 +159,9 @@ class IndividualFeatures(BaseFeature):
             scenario_waiting_intervals.append(waiting_interval)
             scenario_waiting_distances.append(waiting_distance)
 
-        # NOTE: this is not really an individual feature and would be useful for interactive features.
-        agent_to_agent_closest_dists = (
-            np.linalg.norm(agent_positions[:, np.newaxis, :] - agent_positions[np.newaxis, :, :], axis=-1)
-            .min(axis=-1)
-            .astype(np.float32)
-        )
-
-        return ScenarioFeatures(
-            metadata=metadata,
-            agent_types=agent_data.agent_types,
+        return Individual(
             valid_idxs=np.array(scenario_valid_idxs, dtype=np.int32) if scenario_valid_idxs else None,
+            agent_types=agent_data.agent_types if agent_data.agent_types else None,
             speed=np.array(scenario_speeds, dtype=np.float32) if scenario_speeds else None,
             speed_limit_diff=(
                 np.array(scenario_speed_limit_diffs, dtype=np.float32) if scenario_speed_limit_diffs else None
@@ -160,5 +176,44 @@ class IndividualFeatures(BaseFeature):
             waiting_distance=(
                 np.array(scenario_waiting_distances, dtype=np.float32) if scenario_waiting_distances else None
             ),
+        )
+
+    def compute(self, scenario: Scenario) -> ScenarioFeatures:
+        """Compute comprehensive scenario features including individual agent features.
+
+        Args:
+            scenario (Scenario): Complete scenario data containing:
+                - agent_data: Agent positions, velocities, validity masks, and type information
+                - metadata: Scenario timestamps, stationary speed thresholds, and other parameters
+                - static_map_data: Map conflict points and road geometry information
+
+        Returns:
+            ScenarioFeatures: Comprehensive feature object containing:
+                - metadata: Original scenario metadata for reference
+                - individual_features: Individual agent motion features (speed, acceleration,
+                  deceleration, jerk, waiting behaviors) computed using the configured
+                  return criterion (critical or average values)
+                - agent_to_agent_closest_dists: Minimum pairwise distances between all
+                  agent pairs at their closest approach points
+
+        Raises:
+            ValueError: If an unknown return criterion is specified in the configuration.
+        """
+        # Unpack senario fields
+        agent_data = scenario.agent_data
+        agent_positions = agent_data.agent_positions
+
+        metadata = scenario.metadata
+
+        # NOTE: this is not really an individual feature and would be useful for interactive features.
+        agent_to_agent_closest_dists = (
+            np.linalg.norm(agent_positions[:, np.newaxis, :] - agent_positions[np.newaxis, :, :], axis=-1)
+            .min(axis=-1)
+            .astype(np.float32)
+        )
+
+        return ScenarioFeatures(
+            metadata=metadata,
+            individual_features=IndividualFeatures.compute_individual_features(scenario, self.return_criterion),
             agent_to_agent_closest_dists=agent_to_agent_closest_dists,
         )

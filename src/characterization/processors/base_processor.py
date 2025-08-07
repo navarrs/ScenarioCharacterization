@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader, Dataset
 
-from characterization.features.base_feature import BaseFeature
-from characterization.scorer.base_scorer import BaseScorer
+from characterization.features import BaseFeature
+from characterization.scorer import BaseScorer
 from characterization.utils.common import get_logger
 
 logger = get_logger(__name__)

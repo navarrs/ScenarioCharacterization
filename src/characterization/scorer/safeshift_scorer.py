@@ -2,15 +2,10 @@ import numpy as np
 from omegaconf import DictConfig
 
 from characterization.features.interaction_features import InteractionStatus
-from characterization.scorer import (
-    INDIVIDUAL_SCORE_FUNCTIONS,
-    INTERACTION_SCORE_FUNCTIONS,
-)
+from .score_utils import INDIVIDUAL_SCORE_FUNCTIONS, INTERACTION_SCORE_FUNCTIONS
 from characterization.scorer.base_scorer import BaseScorer
 from characterization.utils.common import get_logger
-from characterization.utils.schemas.scenario import Scenario
-from characterization.utils.schemas.scenario_features import ScenarioFeatures
-from characterization.utils.schemas.scenario_scores import ScenarioScores, Score
+from characterization.schemas import ScenarioScores, ScenarioFeatures, Scenario, Score
 logger = get_logger(__name__)
 
 

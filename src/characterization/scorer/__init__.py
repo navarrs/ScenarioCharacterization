@@ -1,13 +1,16 @@
-from characterization.scorer.score_utils import (
-    simple_individual_score,
-    simple_interaction_score,
-)
+from .base_scorer import BaseScorer
+from .individual_scorer import IndividualScorer
+from .interaction_scorer import InteractionScorer
+from .safeshift_scorer import SafeShiftScorer
 
-SUPPORTED_SCORERS = ["individual", "interaction", "safeshift"]
+from .score_utils import INDIVIDUAL_SCORE_FUNCTIONS,INTERACTION_SCORE_FUNCTIONS, SUPPORTED_SCORERS
 
-INDIVIDUAL_SCORE_FUNCTIONS = {
-    "simple": simple_individual_score,
-}
-INTERACTION_SCORE_FUNCTIONS = {
-    "simple": simple_interaction_score,
-}
+__all__ = [
+    "BaseScorer",
+    "IndividualScorer",
+    "InteractionScorer",
+    "SafeShiftScorer",
+    "INDIVIDUAL_SCORE_FUNCTIONS",
+    "INTERACTION_SCORE_FUNCTIONS",
+    "SUPPORTED_SCORERS",
+]

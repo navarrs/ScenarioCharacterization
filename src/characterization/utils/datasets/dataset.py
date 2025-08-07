@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
 from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
-from characterization.utils.schemas.scenario import Scenario
+from characterization.schemas import Scenario
 
 logger = get_logger(__name__)
 

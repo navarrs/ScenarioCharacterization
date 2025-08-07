@@ -1,16 +1,57 @@
 import logging
 import os
 import pickle  # nosec B403
-from enum import Enum
 
 import colorlog
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
-from characterization.utils.schemas.types import AgentType
 
 EPS = 1e-6
 SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
 
+from collections.abc import Callable
+from typing import Annotated, Any
+from enum import Enum
+
+import numpy as np
+from numpy.typing import NDArray
+from pydantic import BeforeValidator
+
+# Validator factory
+def validate_array(
+    expected_dtype: Any,
+    expected_ndim: int,
+) -> Callable[[Any], NDArray]:  # pyright: ignore[reportMissingTypeArgument]
+    def _validator(v: Any) -> NDArray:  # pyright: ignore[reportMissingTypeArgument]
+        if not isinstance(v, np.ndarray):
+            raise TypeError("Expected a numpy.ndarray")
+        if v.dtype != expected_dtype:
+            raise TypeError(f"Expected dtype {expected_dtype}, got {v.dtype}")
+        if v.ndim != expected_ndim:
+            raise ValueError(f"Expected {expected_ndim}D array, got {v.ndim}D")
+        return v
+
+    return _validator
+
+
+# Reusable types
+BooleanNDArray2D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 2))]
+BooleanNDArray3D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 3))]
+Float64NDArray3D = Annotated[NDArray[np.float64], BeforeValidator(validate_array(np.float64, 3))]
+Float32NDArray3D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 3))]
+Float32NDArray2D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 2))]
+Float32NDArray1D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 1))]
+Int32NDArray1D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.int32, 1))]
+Int32NDArray2D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.int32, 2))]
+Int64NDArray2D = Annotated[NDArray[np.int64], BeforeValidator(validate_array(np.int64, 2))]
+
+
+class AgentType(Enum):
+    TYPE_UNSET = 0
+    TYPE_VEHICLE = 1
+    TYPE_PEDESTRIAN = 2
+    TYPE_CYCLIST = 3
+    TYPE_OTHER = 4
 
 class InteractionStatus(Enum):
     UNKNOWN = -1
@@ -19,6 +60,11 @@ class InteractionStatus(Enum):
     MASK_NOT_VALID = 2
     DISTANCE_TOO_FAR = 3
     STATIONARY = 4
+
+class ReturnCriterion(Enum):
+    CRITICAL = 0
+    AVERAGE = 1
+    UNSET = -1
 
 
 def compute_dists_to_conflict_points(conflict_points: np.ndarray, trajectories: np.ndarray) -> np.ndarray:
