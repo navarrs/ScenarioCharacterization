@@ -2,7 +2,6 @@ import os
 
 from omegaconf import DictConfig
 # from rich.progress import track
-from torch.utils.data import Dataset
 from tqdm import tqdm
 
 from characterization.features import SUPPORTED_FEATURES, BaseFeature
@@ -10,6 +9,7 @@ from characterization.processors.base_processor import BaseProcessor
 from characterization.scorer import BaseScorer
 from characterization.utils.common import from_pickle, get_logger, to_pickle
 from characterization.schemas import ScenarioFeatures, ScenarioScores
+from characterization.utils.datasets import BaseDataset
 logger = get_logger(__name__)
 
 
@@ -17,7 +17,7 @@ class ScoresProcessor(BaseProcessor):
     def __init__(
         self,
         config: DictConfig,
-        dataset: Dataset,
+        dataset: BaseDataset,
         characterizer: BaseFeature | BaseScorer,
     ) -> None:
         """Initializes the ScoresProcessor with configuration, dataset, and scorer.
@@ -72,9 +72,6 @@ class ScoresProcessor(BaseProcessor):
                 scenario_features = from_pickle(scenario_feature_file)
 
                 # TODO: pre-check that features have been computed
-                missing_features = [f for f in self.features if f not in scenario_features]
-                if missing_features:
-                    raise ValueError(f"Scenario {scenario_id} is missing features: {missing_features}")
                 scenario_features = ScenarioFeatures.model_validate(scenario_features)
 
                 scores: ScenarioScores = self.characterizer.compute(

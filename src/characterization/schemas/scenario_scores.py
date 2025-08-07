@@ -39,13 +39,13 @@ class ScenarioScores(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     metadata: ScenarioMetadata
 
     # Individual Scores
-    individual: Score | None = None
+    individual_scores: Score | None = None
 
     # Interaction Scores
-    interaction: Score | None = None
+    interaction_scores: Score | None = None
 
     # Combined Scores
-    safeshift: Score | None = None
+    safeshift_scores: Score | None = None
 
     model_config = {"arbitrary_types_allowed": True}
 
