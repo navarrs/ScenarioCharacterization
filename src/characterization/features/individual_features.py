@@ -3,7 +3,8 @@ from omegaconf import DictConfig
 
 import characterization.features.individual_utils as individual
 from characterization.features.base_feature import BaseFeature
-from characterization.utils.common import get_logger, ReturnCriterion
+from characterization.utils.io_utils import get_logger
+from characterization.utils.common import ReturnCriterion, AgentTrajectoryMasker
 from characterization.schemas import Scenario, ScenarioFeatures, Individual
 
 logger = get_logger(__name__)
@@ -66,9 +67,11 @@ class IndividualFeatures(BaseFeature):
         """
         # Unpack senario fields
         agent_data = scenario.agent_data
-        agent_positions = agent_data.agent_positions
-        agent_velocities = agent_data.agent_velocities
-        agent_valid = agent_data.agent_valid
+        agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
+
+        agent_positions = agent_trajectories.agent_xyz_pos
+        agent_velocities = agent_trajectories.agent_xy_vel
+        agent_valid = agent_trajectories.agent_valid.squeeze(-1).astype(bool)
 
         metadata = scenario.metadata
         scenario_timestamps = metadata.timestamps_seconds
@@ -201,7 +204,8 @@ class IndividualFeatures(BaseFeature):
         """
         # Unpack senario fields
         agent_data = scenario.agent_data
-        agent_positions = agent_data.agent_positions
+        agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
+        agent_positions = agent_trajectories.agent_xyz_pos
 
         metadata = scenario.metadata
 

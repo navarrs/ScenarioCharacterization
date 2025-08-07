@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from characterization.features import BaseFeature
 from characterization.scorer import BaseScorer
-from characterization.utils.common import get_logger
+from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
 

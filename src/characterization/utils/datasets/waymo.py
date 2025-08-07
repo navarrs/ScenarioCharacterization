@@ -10,7 +10,8 @@ from omegaconf import DictConfig
 from rich.progress import track
 from scipy.signal import resample
 
-from characterization.utils.common import compute_dists_to_conflict_points, get_logger
+from characterization.utils.geometric_utils import compute_dists_to_conflict_points
+from characterization.utils.io_utils import get_logger
 from characterization.utils.datasets.dataset import BaseDataset
 from characterization.schemas.scenario import Scenario, AgentData, AgentType, ScenarioMetadata, StaticMapData, DynamicMapData
 
@@ -20,29 +21,6 @@ logger = get_logger(__name__)
 class WaymoData(BaseDataset):
     def __init__(self, config: DictConfig) -> None:
         super(WaymoData, self).__init__(config=config)
-
-        # Waymo dataset masks
-        # center_x, center_y, center_z, length, width, height, heading, velocity_x, velocity_y, valid
-        # center_x, center_y, center_z -> coordinates fo the object's BBox center
-        # length, width, height -> dimensions of the object's BBox in meters
-        # heading -> yaw angle in radians of the forward direction of the the BBox
-        # velocity_x, velocity_y -> x and y components of the object's velocity in m/s
-        self.AGENT_DIMS = [False, False, False, True, True, True, False, False, False, False]
-        self.AGENT_LENGTHS = [False, False, False, True, False, False, False, False, False, False]
-        self.AGENT_WIDTHS = [False, False, False, False, True, False, False, False, False, False]
-        self.AGENT_HEIGHTS = [False, False, False, False, False, True, False, False, False, False]
-        self.HEADING_IDX = [False, False, False, False, False, False, True, False, False, False]
-        self.POS_XY_IDX = [True, True, False, False, False, False, False, False, False, False]
-        self.POS_XYZ_IDX = [True, True, True, False, False, False, False, False, False, False]
-        self.VEL_XY_IDX = [False, False, False, False, False, False, False, True, True, False]
-        self.AGENT_VALID = [False, False, False, False, False, False, False, False, False, True]
-
-        # Interpolated stuff
-        self.IPOS_XY_IDX = [True, True, False, False, False, False, False]
-        self.IPOS_SDZ_IDX = [False, False, True, True, True, False, False]
-        self.IPOS_SD_IDX = [False, False, False, True, True, False, False]
-        self.ILANE_IDX = [False, False, False, False, False, True, False]
-        self.IVALID_IDX = [False, False, False, False, False, False, True]
 
         self.AGENT_TYPE_MAP = {
             "TYPE_VEHICLE": 0,
@@ -119,27 +97,18 @@ class WaymoData(BaseDataset):
         Returns:
             AgentData: pydantic validator encapsulating agent information.
         """
-        trajs = agent_data["trajs"]  # shape: [num_agents, num_timesteps, num_features]
-        _, num_timesteps, _ = trajs.shape
+        trajectories = agent_data["trajs"]  # shape: [num_agents, num_timesteps, num_features]
+        _, num_timesteps, _ = trajectories.shape
 
         T_last = self.LAST_TIMESTEP_TO_CONSIDER[self.scenario_type]
         if num_timesteps < T_last:
             raise AssertionError(
                 f"Scenario has only {num_timesteps} timesteps, but expected at least {T_last} timesteps.",
             )
-        trajs = trajs[:, :T_last, :]  # shape: [num_agents, T_last, dim]
+        trajectories = trajectories[:, :T_last, :]  # shape: [num_agents, T_last, dim]
         self.total_steps = T_last
         object_types = [AgentType[n] for n in agent_data["object_type"]]
-        return AgentData(
-            agent_ids=agent_data["object_id"],
-            agent_types=object_types,
-            agent_valid=trajs[..., self.AGENT_VALID].astype(np.bool_).squeeze(axis=-1),
-            agent_trajectories=trajs,
-            agent_positions=trajs[..., self.POS_XYZ_IDX],
-            agent_velocities=trajs[..., self.VEL_XY_IDX],
-            agent_dimensions=trajs[..., self.AGENT_DIMS],
-            agent_headings=trajs[..., self.HEADING_IDX].squeeze(axis=-1),
-        )
+        return AgentData(agent_ids=agent_data["object_id"], agent_types=object_types, agent_trajectories=trajectories)
 
     @staticmethod
     def get_polyline_ids(polyline: dict[str, Any], key: str) -> np.ndarray:

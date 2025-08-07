@@ -1,24 +1,17 @@
-import logging
-import os
-import pickle  # nosec B403
-
-import colorlog
 import numpy as np
-from omegaconf import DictConfig, OmegaConf
+from typing import ClassVar, Any, Annotated
+
+from collections.abc import Callable
+from enum import Enum
+
+from numpy.typing import NDArray
+from pydantic import BeforeValidator
 
 EPS = 1e-6
 SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
 
-from collections.abc import Callable
-from typing import Annotated, Any
-from enum import Enum
-
-import numpy as np
-from numpy.typing import NDArray
-from pydantic import BeforeValidator
-
 # Validator factory
-def validate_array(
+def validate_agent_trajectoryay(
     expected_dtype: Any,
     expected_ndim: int,
 ) -> Callable[[Any], NDArray]:  # pyright: ignore[reportMissingTypeArgument]
@@ -33,17 +26,16 @@ def validate_array(
 
     return _validator
 
-
 # Reusable types
-BooleanNDArray2D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 2))]
-BooleanNDArray3D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 3))]
-Float64NDArray3D = Annotated[NDArray[np.float64], BeforeValidator(validate_array(np.float64, 3))]
-Float32NDArray3D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 3))]
-Float32NDArray2D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 2))]
-Float32NDArray1D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 1))]
-Int32NDArray1D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.int32, 1))]
-Int32NDArray2D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.int32, 2))]
-Int64NDArray2D = Annotated[NDArray[np.int64], BeforeValidator(validate_array(np.int64, 2))]
+BooleanNDArray2D = Annotated[NDArray[np.bool_], BeforeValidator(validate_agent_trajectoryay(np.bool_, 2))]
+BooleanNDArray3D = Annotated[NDArray[np.bool_], BeforeValidator(validate_agent_trajectoryay(np.bool_, 3))]
+Float64NDArray3D = Annotated[NDArray[np.float64], BeforeValidator(validate_agent_trajectoryay(np.float64, 3))]
+Float32NDArray3D = Annotated[NDArray[np.float32], BeforeValidator(validate_agent_trajectoryay(np.float32, 3))]
+Float32NDArray2D = Annotated[NDArray[np.float32], BeforeValidator(validate_agent_trajectoryay(np.float32, 2))]
+Float32NDArray1D = Annotated[NDArray[np.float32], BeforeValidator(validate_agent_trajectoryay(np.float32, 1))]
+Int32NDArray1D = Annotated[NDArray[np.int32], BeforeValidator(validate_agent_trajectoryay(np.int32, 1))]
+Int32NDArray2D = Annotated[NDArray[np.int32], BeforeValidator(validate_agent_trajectoryay(np.int32, 2))]
+Int64NDArray2D = Annotated[NDArray[np.int64], BeforeValidator(validate_agent_trajectoryay(np.int64, 2))]
 
 
 class AgentType(Enum):
@@ -66,20 +58,113 @@ class ReturnCriterion(Enum):
     AVERAGE = 1
     UNSET = -1
 
+class AgentTrajectoryMasker:
+    """ Masks for indexing trajectory data from the reformatted by the dataloader classes.
 
-def compute_dists_to_conflict_points(conflict_points: np.ndarray, trajectories: np.ndarray) -> np.ndarray:
-    """Computes distances from agent trajectories to conflict points.
-
-    Args:
-        conflict_points (np.ndarray): Array of conflict points (shape: [num_conflict_points, 3]).
-        trajectories (np.ndarray): Array of agent trajectories (shape: [num_agents, num_time_steps, 3]).
-
-    Returns:
-        np.ndarray: Distances from each agent at each timestep to each conflict point
-            (shape: [num_agents, num_time_steps, num_conflict_points]).
+    The class expects an input of type (N, T, D=10) or (T, D=10) where N is the number of agents, T is the number of
+    timesteps and D is the number of features per trajectory point, organized as follows:
+        idx 0 to 2: the agent's (x, y, z) center coordinates.
+        idx 3 to 5: the agent's length, width and height in meters.
+        idx 6: the agent's angle (heading) of the forward direction in radians
+        idx 7 to 8: the agent's (x, y) velocity in meters/second
+        idx 9: a flag indicating if the information is valid
     """
-    diff = conflict_points[None, None, :] - trajectories[:, :, None, :]
-    return np.linalg.norm(diff, axis=-1)  # shape (num_agents, num_time_steps, num_conflict_points)
+
+    # Agent position masks
+    _TRAJECTORY_XYZ_POS: ClassVar[list[bool]] = [True, True, True, False, False, False, False, False, False, False]
+    _TRAJECTORY_XY_POS: ClassVar[list[bool]] = [True, True, False, False, False, False, False, False, False, False]
+
+    # Agent dimensions masks
+    _TRAJECTORY_DIMS: ClassVar[list[bool]] = [False, False, False, True, True, True, False, False, False, False]
+    _TRAJECTORY_LENGTHS: ClassVar[list[bool]] = [False, False, False, True, False, False, False, False, False, False]
+    _TRAJECTORY_WIDTHS: ClassVar[list[bool]] = [False, False, False, False, True, False, False, False, False, False]
+    _TRAJECTORY_HEIGHTS: ClassVar[list[bool]] = [False, False, False, False, False, True, False, False, False, False]
+
+    # Agent heading mask
+    _TRAJECTORY_HEADING: ClassVar[list[bool]] = [False, False, False, False, False, False, True, False, False, False]
+
+    # Agent velocity masks
+    _TRAJECTORY_XY_VEL: ClassVar[list[bool]] = [False, False, False, False, False, False, False, True, True, False]
+    _TRAJECTORY_X_VEL: ClassVar[list[bool]] = [False, False, False, False, False, False, False, True, False, False]
+    _TRAJECTORY_Y_VEL: ClassVar[list[bool]] = [False, False, False, False, False, False, False, False, True, False]
+
+    # Agent state, all features except valid mask
+    _TRAJECTORY_STATE: ClassVar[list[bool]] = [True, True, True, True, True, True, True, True, True, False]
+
+    # Agent valid mask
+    _TRAJECTORY_VALID: ClassVar[list[bool]] = [False, False, False, False, False, False, False, False, False, True]
+
+    _agent_trajectory: np.ndarray
+
+    def __init__(self, trajectory: np.ndarray) -> None:
+        """Initializes the AgentTrajectoryMasker with trajectory data.
+
+        Args:
+            trajectory (np.ndarray): The trajectory data of shape (N, T, D=10) or (T, D=10).
+        """
+        self._agent_trajectory = trajectory
+
+    # Mask accessors
+    @property
+    def xyz_pos_mask(self) -> list[bool]:
+        return self._TRAJECTORY_XYZ_POS
+
+    @property
+    def xy_pos_mask(self) -> list[bool]:
+        return self._TRAJECTORY_XY_POS
+
+    @property
+    def xy_vel_mask(self) -> list[bool]:
+        return self._TRAJECTORY_XY_VEL
+
+    @property
+    def heading_mask(self) -> list[bool]:
+        return self._TRAJECTORY_HEADING
+
+    # Trajectory accessors
+    @property
+    def agent_trajectories(self) -> np.ndarray:
+        return self._agent_trajectory
+
+    @property
+    def agent_dims(self) -> np.ndarray:
+        return self._agent_trajectory[..., self._TRAJECTORY_DIMS]
+
+    @property
+    def agent_lengths(self) -> np.ndarray:
+        return self._agent_trajectory[..., self._TRAJECTORY_LENGTHS]
+
+    @property
+    def agent_widths(self) -> np.ndarray:
+        return self._agent_trajectory[..., self._TRAJECTORY_WIDTHS]
+
+    @property
+    def agent_heights(self) -> np.ndarray:
+        return self._agent_trajectory[..., self._TRAJECTORY_HEIGHTS]
+
+    @property
+    def agent_headings(self) -> np.ndarray:
+        return self._agent_trajectory[..., self._TRAJECTORY_HEADING]
+
+    @property
+    def agent_xyz_pos(self) -> np.ndarray:
+        return self._agent_trajectory[..., self._TRAJECTORY_XYZ_POS]
+
+    @property
+    def agent_xy_pos(self) -> np.ndarray:
+        return self._agent_trajectory[..., self._TRAJECTORY_XY_POS]
+
+    @property
+    def agent_xy_vel(self) -> np.ndarray:
+        return self._agent_trajectory[..., self._TRAJECTORY_XY_VEL]
+
+    @property
+    def agent_valid(self) -> np.ndarray:
+        return self._agent_trajectory[..., self._TRAJECTORY_VALID]
+
+    @property
+    def agent_state(self) -> np.ndarray:
+        return self._agent_trajectory[..., self._TRAJECTORY_STATE]
 
 
 class InteractionAgent:
@@ -309,122 +394,3 @@ class InteractionAgent:
         self._width = None
         self._height = None
         self._agent_type = None
-
-
-def make_output_paths(cfg: DictConfig) -> None:
-    """Creates output directories as specified in the configuration.
-
-    Args:
-        cfg (DictConfig): Configuration dictionary containing output paths.
-
-    Returns:
-        None
-    """
-    os.makedirs(cfg.paths.cache_path, exist_ok=True)
-
-    for path in cfg.paths.output_paths.values():
-        os.makedirs(path, exist_ok=True)
-
-
-def get_logger(name: str = __name__) -> logging.Logger:
-    """Creates a logger with colorized output for better readability.
-
-    Args:
-        name (str, optional): Name of the logger. Defaults to the module's name.
-
-    Returns:
-        logging.Logger: Configured logger instance.
-    """
-    handler = colorlog.StreamHandler()
-    handler.setFormatter(
-        colorlog.ColoredFormatter(
-            "%(log_color)s[%(levelname)s]%(reset)s %(name)s (%(filename)s:%(lineno)d): %(message)s",
-            log_colors={
-                "DEBUG": "cyan",
-                "INFO": "green",
-                "WARNING": "yellow",
-                "ERROR": "red",
-                "CRITICAL": "bold_red",
-            },
-        ),
-    )
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
-    if not logger.handlers:
-        logger.addHandler(handler)
-        logger.propagate = False
-
-    return logger
-
-
-def from_pickle(data_file: str) -> dict:  # pyright: ignore[reportMissingTypeArgument]
-    """Loads data from a pickle file.
-
-    Args:
-        data_file (str): The path to the pickle file.
-
-    Returns:
-        dict: The loaded data.
-
-    Raises:
-        FileNotFoundError: If the data file does not exist.
-    """
-    if not os.path.exists(data_file):
-        raise FileNotFoundError(f"Data file {data_file} does not exist.")
-
-    with open(data_file, "rb") as f:
-        data = pickle.load(f)  # nosec B301
-
-    return data
-
-
-def to_pickle(output_path: str, input_data: dict, tag: str) -> None:  # pyright: ignore[reportMissingTypeArgument]
-    """Saves data to a pickle file, merging with existing data if present.
-
-    Args:
-        output_path (str): Directory where the pickle file will be saved.
-        input_data (dict): The data to save.
-        tag (str): The tag to use for the output file name.
-
-    Returns:
-        None
-    """
-    data = {}
-    data_file = os.path.join(output_path, f"{tag}.pkl")
-    if os.path.exists(data_file):
-        with open(data_file, "rb") as f:
-            data = pickle.load(f)  # nosec B301
-
-    scenario_id_data = data.get("scenario_id", None)
-    if scenario_id_data is not None and scenario_id_data != input_data["scenario_id"]:
-        raise AttributeError("Mismatched scenario IDs when merging pickle data.")
-
-    # NOTE: with current ScenarioScores and ScenarioFeatures implementation, computing interaction and individual
-    # features will cause overrides. Need to address this better in the future.
-    for key, value in input_data.items():
-        if value is None:
-            continue
-        # if key in data and data[key] is not None:
-        #     continue
-        data[key] = value
-
-    with open(data_file, "wb") as f:
-        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-def print_config(cfg: DictConfig, theme: str = "monokai") -> None:
-    """Prints the configuration in a readable format.
-
-    Args:
-        cfg (DictConfig): Configuration dictionary to print.
-
-    Returns:
-        None
-    """
-    from rich.console import Console
-    from rich.syntax import Syntax
-
-    yaml_str = OmegaConf.to_yaml(cfg, resolve=True)
-    console = Console()
-    syntax = Syntax(yaml_str, "yaml", theme=theme, word_wrap=True)
-    console.print(syntax)

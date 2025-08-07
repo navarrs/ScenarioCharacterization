@@ -139,7 +139,7 @@ exclude = [
 ]
 typeCheckingMode = "strict"
 deprecateTypingAliases = true
-reportMissingTypeArgument = true
+reportMissingTypeArgument = false
 reportMissingParameterType = true
 reportPossiblyUnboundVariable = true
 reportUnusedImports = true

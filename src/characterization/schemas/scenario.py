@@ -5,7 +5,6 @@ from pydantic import BaseModel, NonNegativeInt, computed_field
 
 from characterization.utils.common import (
     AgentType,
-    BooleanNDArray2D,
     Float32NDArray1D,
     Float32NDArray2D,
     Float32NDArray3D,
@@ -22,29 +21,22 @@ class AgentData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     Attributes:
         agent_ids (list[NonNegativeInt]): list of all agent identifiers in the scenario, including the ego agent.
         agent_types (list[str]): list of types for each agent, e.g., "vehicle", "pedestrian", etc.
-        agent_trajectories (Float32NDArray3D): 3D array of shape(num_agents, total_timesteps, 2) representing each
-            agent's (x, y) trajectories at each timestep.
-        agent_valid (BooleanNDArray3D): 3D boolean array of shape(num_agents, total_timesteps, 1) indicating whether an
-            agent's information at a given timestep is valid.
-        agent_positions (Float32NDArray3D): 3D array of shape(num_agents, total_timesteps, 3) representing each agent's
-            (x, y, z) positions at each timestep.
-        agent_velocities (Float32NDArray3D): 3D array of shape(num_agents, total_timesteps, 2) representing each agent's
-          (Vx, Vy) velocities at each timestep.
-        agent_dimensions (Float32NDArray3D): 3D array of shape(num_agents, total_timesteps, 3) representing each agent's
-            dimensions (length, width, height) at each timestep.
-        agent_headings (Float32NDArray3D): 3D array of shape(num_agents, total_timesteps, 1) representing each agent's
-            headings (in radians) at each timestep.
+        agent_trajectories (Float32NDArray3D): 3D array of shape (N, T, D=10) where N is the number of agents, T is the
+            number of timesteps and D is the number of features per trajectory point, organized as follows:
+                idx 0 to 2: the agent's (x, y, z) center coordinates.
+                idx 3 to 5: the agent's length, width and height in meters.
+                idx 6: the agent's angle (heading) of the forward direction in radians
+                idx 7 to 8: the agent's (x, y) velocity in meters/second
+                idx 9: a flag indicating if the information is valid
+            NOTE: For convenient masking see 'AgentTrajectoryMasker' in utils/common.py
+        agent_relevance (Float32NDArray2D | None): Optional 2D array of shape (N, T) representing relevance scores for
+            each agent at each timestep. Higher values indicate greater relevance, while NaN or negative values indicate
+            irrelevance. If None, all agents are considered equally relevant.
     """
 
     agent_ids: list[NonNegativeInt]
     agent_types: list[AgentType]
     agent_trajectories: Float32NDArray3D
-    agent_valid: BooleanNDArray2D
-
-    agent_positions: Float32NDArray3D
-    agent_velocities: Float32NDArray3D
-    agent_dimensions: Float32NDArray3D
-    agent_headings: Float32NDArray2D
     agent_relevance: Float32NDArray2D | None = None  # Optional relevance scores for agents
 
     # To allow numpy and other arbitrary types in the model

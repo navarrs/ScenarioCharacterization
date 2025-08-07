@@ -7,7 +7,7 @@ from tqdm import tqdm
 from characterization.features import SUPPORTED_FEATURES, BaseFeature
 from characterization.processors.base_processor import BaseProcessor
 from characterization.scorer import BaseScorer
-from characterization.utils.common import from_pickle, get_logger, to_pickle
+from characterization.utils.io_utils import from_pickle, get_logger, to_pickle
 from characterization.schemas import ScenarioFeatures, ScenarioScores
 from characterization.utils.datasets import BaseDataset
 logger = get_logger(__name__)

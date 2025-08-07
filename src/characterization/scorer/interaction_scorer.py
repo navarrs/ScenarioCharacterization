@@ -4,7 +4,7 @@ from omegaconf import DictConfig
 from characterization.features.interaction_features import InteractionStatus
 from .score_utils import INTERACTION_SCORE_FUNCTIONS
 from characterization.scorer.base_scorer import BaseScorer
-from characterization.utils.common import get_logger
+from characterization.utils.io_utils import get_logger
 from characterization.schemas import ScenarioScores, ScenarioFeatures, Scenario, Score
 
 logger = get_logger(__name__)

@@ -1,7 +1,8 @@
 import numpy as np
 from shapely import LineString
 
-from characterization.utils.common import EPS, InteractionAgent, get_logger
+from characterization.utils.common import EPS, InteractionAgent
+from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
 

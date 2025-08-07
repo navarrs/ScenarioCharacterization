@@ -4,8 +4,8 @@ from omegaconf import DictConfig
 from characterization.features.base_feature import BaseFeature
 from characterization.processors.base_processor import BaseProcessor
 from characterization.scorer.base_scorer import BaseScorer
-from characterization.utils.common import get_logger, make_output_paths, print_config
 from characterization.utils.datasets import BaseDataset
+from characterization.utils.io_utils import get_logger, make_output_paths, print_config
 
 logger = get_logger(__name__)
 

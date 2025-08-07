@@ -8,7 +8,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from natsort import natsorted
 from omegaconf import DictConfig
-from utils.common import get_logger, make_output_paths
+from characterization.utils.io_utils import get_logger, make_output_paths
 
 logger = get_logger(__name__)
 
