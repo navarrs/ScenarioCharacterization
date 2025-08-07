@@ -3,43 +3,51 @@ from abc import ABC, abstractmethod
 
 from omegaconf import DictConfig
 
-from characterization.utils.schemas.scenario import Scenario
-from characterization.utils.schemas.scenario_features import ScenarioFeatures
-
+from characterization.schemas import Scenario, ScenarioFeatures
+from characterization.utils.common import ReturnCriterion
 
 class BaseFeature(ABC):
+    """Abstract base class for scenario feature computation.
+
+    Attributes:
+        config (DictConfig): Configuration parameters for the feature extractor.
+        features (Any): Feature configuration extracted from the config, if available.
+        characterizer_type (str): Type identifier for the characterizer, always "feature".
+        return_criterion (ReturnCriterion): Criterion determining when to return results.
+    """
+
     def __init__(self, config: DictConfig) -> None:
-        """Initializes the BaseFeature with a configuration.
+        """Initialize the BaseFeature with configuration parameters.
 
         Args:
-            config (DictConfig): Configuration for the feature.
+            config (DictConfig): Configuration dictionary containing feature parameters.
         """
         self.config = config
         self.features = config.get("features", None)
         self.characterizer_type = "feature"
+        self.return_criterion = ReturnCriterion[config.get("return_criterion", "critical").upper()]
 
     @property
     def name(self) -> str:
-        """Gets the class name formatted as a lowercase string with spaces.
+        """Get the class name formatted as lowercase with spaces.
 
         Returns:
-            str: The formatted class name (e.g., 'base feature').
+            str: The formatted class name with spaces separating words.
         """
         # Get the class name and add a space before each capital letter (except the first)
         return re.sub(r"(?<!^)([A-Z])", r" \1", self.__class__.__name__).lower()
 
     @abstractmethod
     def compute(self, scenario: Scenario) -> ScenarioFeatures:
-        """Computes features for a given scenario.
-
-        This method should be overridden by subclasses to compute actual features.
+        """Compute features for a given scenario.
 
         Args:
-            scenario (Scenario): Scenario data to compute features for.
+            scenario (Scenario): The scenario data containing trajectories, road geometry, and metadata.
 
         Returns:
             ScenarioFeatures: Computed features for the scenario.
 
         Raises:
-            ValueError: If the scenario does not contain the required information.
+            ValueError: If the scenario lacks required information.
+            NotImplementedError: If not implemented by subclass.
         """

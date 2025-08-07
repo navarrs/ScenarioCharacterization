@@ -1,3 +1,8 @@
+from .base_feature import BaseFeature
+from .individual_features import IndividualFeatures
+from .interaction_features import InteractionFeatures
+from .safeshift_features import SafeShiftFeatures
+
 SUPPORTED_FEATURES = [
     "random_feature",
     "speed",
@@ -14,4 +19,12 @@ SUPPORTED_FEATURES = [
     "thw",
     "ttc",
     "drac",
+]
+
+__all__ = [
+    "BaseFeature",
+    "IndividualFeatures",
+    "InteractionFeatures",
+    "SafeShiftFeatures",
+    "SUPPORTED_FEATURES",
 ]

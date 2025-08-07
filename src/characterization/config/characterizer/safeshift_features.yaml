@@ -1,0 +1,23 @@
+# @package _global_
+defaults:
+  - features.yaml
+
+characterizer:
+  _target_: characterization.features.safeshift_features.SafeShiftFeatures
+  config:
+    return_criterion: ${return_criterion} # Can be 'critical', 'average', or 'none'
+    features:
+      - speed
+      - acceleration
+      - deceleration
+      - jerk
+      - waiting_period
+      - waiting_interval
+      - waiting_distance
+      - separation
+      - intersection
+      - collision
+      - mttcp
+      - thw
+      - ttc
+      - drac

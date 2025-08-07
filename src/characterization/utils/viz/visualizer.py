@@ -4,7 +4,7 @@ import numpy as np
 from omegaconf import DictConfig
 
 from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, get_logger
-from characterization.utils.schemas.schemas import Scenario
+from characterization.schemas import Scenario
 
 logger = get_logger(__name__)
 

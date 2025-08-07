@@ -12,7 +12,7 @@ from scipy.signal import resample
 
 from characterization.utils.common import compute_dists_to_conflict_points, get_logger
 from characterization.utils.datasets.dataset import BaseDataset
-from characterization.utils.schemas.scenario import Scenario, AgentData, AgentType, ScenarioMetadata, StaticMapData, DynamicMapData
+from characterization.schemas.scenario import Scenario, AgentData, AgentType, ScenarioMetadata, StaticMapData, DynamicMapData
 
 logger = get_logger(__name__)
 

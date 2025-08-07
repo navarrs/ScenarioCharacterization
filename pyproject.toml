@@ -83,12 +83,14 @@ fix = true
 lint.ignore = [
     # keep-sorted start
     "C901",             # too complex
+    "COM812",           #
     "D100",             # missing docstring in public module
     "D104",             # missing docstring in public package
     "ERA001",           # eradicate: remove commented-out code
     "PLR0915",          # too many statements
     "TC001",            # move application import into a type-checking block
     "TC002",            # move import into a type-checking block
+    "W293",             # blank line contains whitespace
     # keep-sorted end
 ]
 lint.select = ["ALL"]

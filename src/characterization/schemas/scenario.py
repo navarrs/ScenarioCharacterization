@@ -1,11 +1,20 @@
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import numpy as np
 from pydantic import BaseModel, NonNegativeInt, computed_field
 
-from characterization.utils.schemas.types import *
+from characterization.utils.common import (
+    AgentType,
+    BooleanNDArray2D,
+    Float32NDArray1D,
+    Float32NDArray2D,
+    Float32NDArray3D,
+    Int32NDArray1D,
+    Int32NDArray2D,
+)
 
 DType = TypeVar("DType", bound=np.generic)
+
 
 class AgentData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     """Encapsulates the data for agents in a scenario, including their identifiers, types, and trajectories.
@@ -26,6 +35,7 @@ class AgentData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         agent_headings (Float32NDArray3D): 3D array of shape(num_agents, total_timesteps, 1) representing each agent's
             headings (in radians) at each timestep.
     """
+
     agent_ids: list[NonNegativeInt]
     agent_types: list[AgentType]
     agent_trajectories: Float32NDArray3D
@@ -45,6 +55,7 @@ class AgentData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     def num_agents(self) -> int:
         """Returns the number of agents in the scenario."""
         return len(self.agent_ids)
+
 
 class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     """Encapsulates metadata for a scenario, including its ID, type, and timing information.
@@ -66,6 +77,7 @@ class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
             agent as a breach / close-call.
         heading_threshold (float | None): Threshold for the heading difference between agents.
     """
+
     scenario_id: str
     timestamps_seconds: list[float]
     current_time_index: int
@@ -76,16 +88,17 @@ class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     dataset: str
 
     # Thresholds
-    stationary_speed: float = 0.25 # m/s
+    stationary_speed: float = 0.25  # m/s
     agent_to_agent_max_distance: float = 50.0  # meters
-    agent_to_conflict_point_max_distance: float = 2.0 # meters
+    agent_to_conflict_point_max_distance: float = 2.0  # meters
     agent_to_agent_distance_breach: float = 1.0  # meters
     heading_threshold: float = 45.0  # degrees
 
     # To allow numpy and other arbitrary types in the model
     model_config = {"arbitrary_types_allowed": True}
 
-class TracksToPredict(BaseModel): # pyright: ignore[reportUntypedBaseClass]
+
+class TracksToPredict(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     """Encapsulates the tracks to predict in a scenario, including the ego vehicle and other agents.
 
     Attributes:
@@ -93,6 +106,7 @@ class TracksToPredict(BaseModel): # pyright: ignore[reportUntypedBaseClass]
         difficulty (list[NonNegativeInt]): List of difficulty levels for the tracks.
         object_type (list[AgentType]): List of types for each track, e.g., "vehicle", "pedestrian", etc.
     """
+
     track_index: list[NonNegativeInt]
     difficulty: list[NonNegativeInt]
     object_type: list[AgentType]
@@ -100,7 +114,8 @@ class TracksToPredict(BaseModel): # pyright: ignore[reportUntypedBaseClass]
     # To allow numpy and other arbitrary types in the model
     model_config = {"arbitrary_types_allowed": True}
 
-class StaticMapData(BaseModel): # pyright: ignore[reportUntypedBaseClass]
+
+class StaticMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     """Encapsulates static map data for a scenario, including polylines and conflict points.
 
     Attributes:
@@ -111,6 +126,7 @@ class StaticMapData(BaseModel): # pyright: ignore[reportUntypedBaseClass]
         map_polylines (Float32NDArray2D | None): 2D array of shape(num_polylines, 7) representing the polylines in the
             map.
     """
+
     map_polylines: Float32NDArray2D | None = None
     lane_ids: Int32NDArray1D | None = None
     lane_speed_limits_mph: Float32NDArray1D | None = None
@@ -146,7 +162,8 @@ class StaticMapData(BaseModel): # pyright: ignore[reportUntypedBaseClass]
         """Returns the number of conflict points in the map."""
         return 0 if self.map_conflict_points is None else len(self.map_conflict_points)
 
-class DynamicMapData(BaseModel): # pyright: ignore[reportUntypedBaseClass]
+
+class DynamicMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     """Encapsulates dynamic map data for a scenario, including dynamic stop points.
 
     Attributes:
@@ -156,6 +173,7 @@ class DynamicMapData(BaseModel): # pyright: ignore[reportUntypedBaseClass]
         dynamic_stop_points_lane_ids (Int32NDArray1D | None): 1D array of shape(num_dynamic_stop_points) representing
             the lane IDs for each dynamic stop point.
     """
+
     stop_points: list[Any] | None = None
     lane_ids: list[Any] | None = None
     states: list[Any] | None = None  # Placeholder for state information, can be more specific if needed
@@ -169,8 +187,10 @@ class DynamicMapData(BaseModel): # pyright: ignore[reportUntypedBaseClass]
         """Returns the number of dynamic stop points in the map."""
         return 0 if self.stop_points is None else len(self.stop_points)
 
+
 class Scenario(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     """Represents a scenario containing information about agents, their trajectories, and the environment.
+
     This class is used to encapsulate all relevant data for a scenario, including agent states, map information,
     and scenario metadata. It is designed to be used in the context of autonomous driving or similar.
 
