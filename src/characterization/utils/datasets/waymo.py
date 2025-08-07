@@ -14,6 +14,7 @@ from characterization.utils.geometric_utils import compute_dists_to_conflict_poi
 from characterization.utils.io_utils import get_logger
 from characterization.utils.datasets.dataset import BaseDataset
 from characterization.schemas.scenario import Scenario, AgentData, AgentType, ScenarioMetadata, StaticMapData, DynamicMapData
+from characterization.utils.common import AgentTrajectoryMasker
 
 logger = get_logger(__name__)
 
@@ -280,7 +281,8 @@ class WaymoData(BaseDataset):
 
             static_map_infos = scenario["map_infos"]
             dynamic_map_infos = scenario["dynamic_map_infos"]
-            agent_positions = scenario["track_infos"]["trajs"][:, :, self.POS_XYZ_IDX]
+            agent_trajectories = AgentTrajectoryMasker(scenario["track_infos"]["trajs"])
+            agent_positions = agent_trajectories.agent_xyz_pos
             conflict_points = self.find_conflict_points(static_map_infos, dynamic_map_infos, agent_positions)
 
             with open(conflict_points_filepath, "wb") as f:
