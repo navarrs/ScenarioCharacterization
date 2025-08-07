@@ -4,8 +4,8 @@ from omegaconf import DictConfig
 from characterization.features.base_feature import BaseFeature
 from characterization.features.individual_features import IndividualFeatures
 from characterization.features.interaction_features import InteractionFeatures
-
-from characterization.utils.common import get_logger
+from characterization.utils.common import AgentTrajectoryMasker
+from characterization.utils.io_utils import get_logger
 from characterization.schemas import Scenario, ScenarioFeatures
 
 logger = get_logger(__name__)
@@ -69,7 +69,9 @@ class SafeShiftFeatures(BaseFeature):
         """
         # Unpack senario fields
         agent_data = scenario.agent_data
-        agent_positions = agent_data.agent_positions
+        agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
+
+        agent_positions = agent_trajectories.agent_xyz_pos
 
         metadata = scenario.metadata
 

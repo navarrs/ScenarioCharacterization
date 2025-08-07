@@ -1,6 +1,7 @@
 import numpy as np
 
-from characterization.utils.common import EPS, get_logger
+from characterization.utils.common import EPS
+from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
 

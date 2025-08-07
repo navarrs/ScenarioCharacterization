@@ -5,7 +5,8 @@ from omegaconf import DictConfig
 
 import characterization.features.interaction_utils as interaction
 from characterization.features.base_feature import BaseFeature
-from characterization.utils.common import EPS, InteractionStatus, get_logger, ReturnCriterion
+from characterization.utils.common import EPS, InteractionStatus, ReturnCriterion, AgentTrajectoryMasker
+from characterization.utils.io_utils import get_logger
 from characterization.schemas import Scenario, ScenarioFeatures, Interaction
 
 logger = get_logger(__name__)
@@ -71,6 +72,7 @@ class InteractionFeatures(BaseFeature):
         agent_data = scenario.agent_data
         map_data = scenario.static_map_data
 
+        # TODO: Refactor method to use AgentTrajectoryMasker instead of InteractionAgent
         agent_i = interaction.InteractionAgent()
         agent_j = interaction.InteractionAgent()
 
@@ -78,21 +80,21 @@ class InteractionFeatures(BaseFeature):
         if len(agent_combinations) == 0:
             raise ValueError("No agent combinations found. Ensure that the scenario has at least two agents.")
 
+        agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
         agent_types = agent_data.agent_types
-        agent_masks = agent_data.agent_valid
-        agent_positions = agent_data.agent_positions
-        agent_dimensions = agent_data.agent_dimensions
-        agent_lengths = agent_dimensions[..., 0]
-        agent_widths = agent_dimensions[..., 1]
-        agent_heights = agent_dimensions[..., 2]
+        agent_masks = agent_trajectories.agent_valid.squeeze(-1).astype(bool)
+        agent_positions = agent_trajectories.agent_xyz_pos
+        agent_lengths = agent_trajectories.agent_lengths.squeeze(-1)
+        agent_widths = agent_trajectories.agent_widths.squeeze(-1)
+        agent_heights = agent_trajectories.agent_heights.squeeze(-1)
 
         # NOTE: this is also computed as a feature in the individual features.
-        agent_velocities = np.linalg.norm(agent_data.agent_velocities, axis=-1) + EPS
-        agent_headings = np.rad2deg(agent_data.agent_headings)
+        agent_velocities = np.linalg.norm(agent_trajectories.agent_xy_vel, axis=-1) + EPS
+        agent_headings = np.rad2deg(agent_trajectories.agent_headings)
         conflict_points = map_data.map_conflict_points
         dists_to_conflict_points = map_data.agent_distances_to_conflict_points
 
-        # TODO: Figure out where's best place to get these from
+        # Meta information
         stationary_speed = metadata.stationary_speed
         agent_to_agent_max_distance = metadata.agent_to_agent_max_distance
         agent_to_conflict_point_max_distance = metadata.agent_to_conflict_point_max_distance
@@ -120,7 +122,7 @@ class InteractionFeatures(BaseFeature):
             agent_i.reset()
             agent_j.reset()
 
-            # There should be at leat two valid timestaps for the combined agents masks
+            # There should be at least two valid timestamps for the combined agents masks
             mask_i, mask_j = agent_masks[i], agent_masks[j]
             mask = np.where(mask_i & mask_j)[0]
             if not mask.sum():
@@ -128,6 +130,7 @@ class InteractionFeatures(BaseFeature):
                 scenario_interaction_statuses[n] = InteractionStatus.MASK_NOT_VALID
                 continue
 
+            # TODO: Refactor to use AgentMasker since this is doing redundant stuff that the masker already does.
             agent_i.position, agent_j.position = agent_positions[i][mask], agent_positions[j][mask]
             agent_i.speed, agent_j.speed = agent_velocities[i][mask], agent_velocities[j][mask]
             agent_i.heading, agent_j.heading = agent_headings[i][mask], agent_headings[j][mask]
