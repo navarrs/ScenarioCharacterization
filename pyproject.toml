@@ -132,8 +132,6 @@ DEP002 = [
 pythonVersion = "3.12"
 include = ["src"]
 exclude = [
-    "**/__pycache__",
-    "tmp",
     "src/scripts",
     "src/characterization/utils/datasets/waymo_preprocess.py"
 ]

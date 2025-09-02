@@ -14,14 +14,11 @@ repos:
       - id: ruff-format
 
   # Pyright
-  - repo: local
+  - repo: https://github.com/ComPWA/pyright-pre-commit/
+    rev: v1.1.365 # Use a specific version
     hooks:
       - id: pyright
-        name: pyright type check
-        entry: pyright
-        language: python
-        types: [python]
-        pass_filenames: false
+        args: ["--project", "."]
 
   # Scans staged files for hardcoded passwords, tokens, and keys
   - repo: https://github.com/Yelp/detect-secrets
