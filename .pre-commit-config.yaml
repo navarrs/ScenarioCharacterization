@@ -14,14 +14,17 @@ repos:
       - id: ruff-format
 
   # Pyright
-  # - repo: local
-  #   hooks:
-  #     - id: pyright
-  #       name: pyright type check
-  #       entry: pyright
-  #       language: python
-  #       types: [python]
-  #       pass_filenames: false
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright type check
+        entry: pyright
+        language: python
+        types: [python]
+        additional_dependencies: ["pyright==1.1.379"]
+        args: ["--project", "pyproject.toml", "src"]
+        pass_filenames: false
+        always_run: true
 
   # Scans staged files for hardcoded passwords, tokens, and keys
   - repo: https://github.com/Yelp/detect-secrets

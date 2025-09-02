@@ -78,7 +78,7 @@ class IndividualFeatures(BaseFeature):
         stationary_speed = metadata.stationary_speed
 
         map_data = scenario.static_map_data
-        conflict_points = map_data.map_conflict_points
+        conflict_points = map_data.map_conflict_points if map_data is not None else None
 
         # Meta information to be included within ScenarioFeatures. For an agent to be valid it needs to have at least
         # two valid timestamps. The indeces of such agents will be added to `valid_idxs` list.
