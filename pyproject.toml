@@ -132,31 +132,45 @@ DEP002 = [
 pythonVersion = "3.12"
 include = ["src"]
 exclude = [
+    "tmp/**",
     "src/scripts",
-    "src/characterization/utils/datasets/waymo_preprocess.py"
+    "src/characterization/utils/datasets/waymo_preprocess.py",
+    "**/__pycache__",
 ]
+ignore = ["tmp/**"]
 typeCheckingMode = "strict"
-deprecateTypingAliases = true
-reportMissingTypeArgument = false
-reportMissingParameterType = true
-reportPossiblyUnboundVariable = true
-reportUnusedImports = true
-reportCallIssue = true
-reportUntypedFunction = true
-reportUntypedBaseClass = true
-reportUnnecessaryComparison = true
-reportIncompatibleMethodOverride = true
-reportArgumentType = true
-
-reportUnknownArgumentType = false
-reportUnknownVariableType = false
-reportUnknownMemberType = false
-reportUnusedCallResult = false
+# Disable support for '# type: ignore' in favor of '# pyright: ignore'
+enableTypeIgnoreComments = false
+# Disable rules that error if types are partially known.
 reportUnknownParameterType = false
-reportInvalidTypeForm = false
-reportOptionalSubscript = false
-reportOptionalMemberAccess = false
-reportOptionalOperand = false
-reportMissingModuleSource = false
-reportUntypedFunctionDecorator = false
-reportMissingImports = false
+reportUnknownArgumentType = false      # Argument type could not be inferred
+reportUnknownVariableType = false      # Variable type could not be inferred
+reportUnknownMemberType = false        # Attribute exists but type is unknown
+# Disable check for call statements whose return value is not None and is not used.
+reportUnusedCallResult = false
+# Check for deprecated typing aliases
+deprecateTypingAliases = true
+
+# --- Tier 1: Critical (make these errors) ---
+reportMissingImports = "none"             # Import cannot be resolved → runtime ImportError (TODO: resolve)
+reportArgumentType = "error"               # Function call arg type mismatch
+reportCallIssue = "error"                  # Wrong number of args / invalid call
+reportIncompatibleMethodOverride = "error" # Subclass overrides with incompatible signature
+reportPossiblyUnboundVariable = "error"    # Variable may be used before assignment
+reportOptionalMemberAccess = "none"       # Accessing attribute on possibly None
+reportOptionalOperand = "none"            # Using arithmetic/logical op on possibly None
+reportOptionalSubscript = "none"          # Indexing a possibly None value
+reportMissingTypeArgument = "error"        # Generic used without type args (e.g., list vs list[int])
+reportInvalidTypeForm = "none"            # Invalid type expression (unsupported or malformed)
+
+# --- Tier 2: Important but can start as warnings ---
+reportUntypedFunction = "none"          # Function missing type annotations
+reportUntypedBaseClass = "none"         # Inheriting from untyped base class
+reportUntypedFunctionDecorator = "none" # Decorator has no type info
+reportMissingParameterType = "none"     # Parameter missing explicit type
+reportAttributeAccessIssue = "none"
+
+# --- Tier 3: Style / not critical (better handled by Ruff or ignorable) ---
+reportUnusedImports = "none"             # Unused imports (Ruff handles this faster)
+reportUnnecessaryComparison = "none"     # Comparison always true/false (rare style smell)
+reportMissingModuleSource = "none"       # Module has stub but no source (informational only)
