@@ -11,19 +11,22 @@ logger = get_logger(__name__)
 
 
 class IndividualScorer(BaseScorer):
+    """Class to compute individual agent scores and a scene-level score from scenario features."""
+
     def __init__(self, config: DictConfig) -> None:
         """Initializes the IndividualScorer with a configuration.
 
         Args:
             config (DictConfig): Configuration for the scorer.
         """
-        super(IndividualScorer, self).__init__(config)
+        super().__init__(config)
 
         if self.config.individual_score_function not in INDIVIDUAL_SCORE_FUNCTIONS:
-            raise ValueError(
+            error_message = (
                 f"Score function {self.config.individual_score_function} not supported. "
-                f"Supported functions are: {list(INDIVIDUAL_SCORE_FUNCTIONS.keys())}",
+                f"Supported functions are: {list(INDIVIDUAL_SCORE_FUNCTIONS.keys())}"
             )
+            raise ValueError(error_message)
         self.score_function = INDIVIDUAL_SCORE_FUNCTIONS[self.config.individual_score_function]
 
     def compute_individual_score(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> Score:
@@ -43,27 +46,26 @@ class IndividualScorer(BaseScorer):
         # TODO: avoid the overhead of these checks.
         individual_features = scenario_features.individual_features
         if individual_features is None:
-            raise ValueError("individual_features must not be None")
+            raise ValueError("individual_features must not be None")  # noqa: EM101, TRY003
         if individual_features.valid_idxs is None:
-            raise ValueError("valid_idxs must not be None")
+            raise ValueError("valid_idxs must not be None")  # noqa: EM101, TRY003
         if individual_features.speed is None:
-            raise ValueError("speed must not be None")
+            raise ValueError("speed must not be None")  # noqa: EM101, TRY003
         if individual_features.acceleration is None:
-            raise ValueError("acceleration must not be None")
+            raise ValueError("acceleration must not be None")  # noqa: EM101, TRY003
         if individual_features.deceleration is None:
-            raise ValueError("deceleration must not be None")
+            raise ValueError("deceleration must not be None")  # noqa: EM101, TRY003
         if individual_features.jerk is None:
-            raise ValueError("jerk must not be None")
+            raise ValueError("jerk must not be None")  # noqa: EM101, TRY003
         if individual_features.waiting_period is None:
-            raise ValueError("waiting_period must not be None")
+            raise ValueError("waiting_period must not be None")  # noqa: EM101, TRY003
 
         # Get the agent weights
         weights = self.get_weights(scenario, scenario_features)
         scores = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
 
         valid_idxs = individual_features.valid_idxs
-        N = valid_idxs.shape[0]
-        for n in range(N):
+        for n in range(valid_idxs.shape[0]):
             # TODO: fix this indexing issue.
             valid_idx = valid_idxs[n]
             scores[valid_idx] = weights[valid_idx] * self.score_function(

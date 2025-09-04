@@ -12,19 +12,22 @@ logger = get_logger(__name__)
 
 
 class InteractionScorer(BaseScorer):
+    """Class to compute interaction scores for agent pairs and a scene-level score from scenario features."""
+
     def __init__(self, config: DictConfig) -> None:
         """Initializes the InteractionScorer with a configuration.
 
         Args:
             config (DictConfig): Configuration for the scorer.
         """
-        super(InteractionScorer, self).__init__(config)
+        super().__init__(config)
 
         if self.config.interaction_score_function not in INTERACTION_SCORE_FUNCTIONS:
-            raise ValueError(
+            error_message = (
                 f"Score function {self.config.interaction_score_function} not supported. "
-                f"Supported functions are: {list(INTERACTION_SCORE_FUNCTIONS.keys())}",
+                f"Supported functions are: {list(INTERACTION_SCORE_FUNCTIONS.keys())}"
             )
+            raise ValueError(error_message)
         self.score_function = INTERACTION_SCORE_FUNCTIONS[self.config.interaction_score_function]
 
     def compute_interaction_score(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> Score:
@@ -45,17 +48,17 @@ class InteractionScorer(BaseScorer):
         # TODO: avoid these checks.
         interaction_features = scenario_features.interaction_features
         if scenario_features.agent_to_agent_closest_dists is None:
-            raise ValueError("agent_to_agent_closest_dists must not be None")
+            raise ValueError("agent_to_agent_closest_dists must not be None")  # noqa: EM101, TRY003
         if interaction_features is None:
-            raise ValueError("interaction_features must not be None")
+            raise ValueError("interaction_features must not be None")  # noqa: EM101, TRY003
         if interaction_features.interaction_agent_indices is None:
-            raise ValueError("interaction_agent_indices must not be None")
+            raise ValueError("interaction_agent_indices must not be None")  # noqa: EM101, TRY003
         if interaction_features.interaction_status is None:
-            raise ValueError("interaction_status must not be None")
+            raise ValueError("interaction_status must not be None")  # noqa: EM101, TRY003
         if interaction_features.collision is None:
-            raise ValueError("collision must not be None")
+            raise ValueError("collision must not be None")  # noqa: EM101, TRY003
         if interaction_features.mttcp is None:
-            raise ValueError("mttcp must not be None")
+            raise ValueError("mttcp must not be None")  # noqa: EM101, TRY003
 
         # Get the agent weights
         weights = self.get_weights(scenario, scenario_features)
@@ -64,9 +67,7 @@ class InteractionScorer(BaseScorer):
         interaction_agent_indices = interaction_features.interaction_agent_indices
         if self.score_wrt_ego_only:
             interaction_agent_indices = [
-                (i, j)
-                for i, j in interaction_agent_indices
-                if i == scenario.metadata.ego_vehicle_index or j == scenario.metadata.ego_vehicle_index
+                (i, j) for i, j in interaction_agent_indices if scenario.metadata.ego_vehicle_index in (i, j)
             ]
         for n, (i, j) in enumerate(interaction_agent_indices):
             status = interaction_features.interaction_status[n]
