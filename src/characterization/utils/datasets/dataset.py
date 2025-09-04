@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, reportUntypedBaseClass]
     """Base class for datasets that handle scenario data."""
 
-    def __init__(self, config: DictConfig):
+    def __init__(self, config: DictConfig) -> None:
         """Initializes the BaseDataset with configuration.
 
         Args:
@@ -26,13 +26,14 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
             ValueError: If the scenario type is not supported.
             Exception: If loading scenario information fails.
         """
-        super(BaseDataset, self).__init__()
+        super().__init__()
 
         self.scenario_type = config.scenario_type
         if self.scenario_type not in SUPPORTED_SCENARIO_TYPES:
-            raise ValueError(
-                f"Scenario type {self.scenario_type} not supported. Supported types are: {SUPPORTED_SCENARIO_TYPES}",
+            error_message = (
+                f"Scenario type {self.scenario_type} not supported. Supported types are: {SUPPORTED_SCENARIO_TYPES}"
             )
+            raise ValueError(error_message)
 
         self.scenario_base_path = config.scenario_base_path
         self.scenario_meta_path = config.scenario_meta_path
@@ -87,7 +88,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
             self.data.scenarios = self.data.scenarios[: self.num_scenarios]
             self.data.scenarios_ids = self.data.scenarios_ids[: self.num_scenarios]
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Returns the number of scenarios in the dataset.
 
         Returns:
@@ -96,14 +97,14 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         return len(self.data.scenarios)
 
     @abstractmethod
-    def load_data(self):
+    def load_data(self) -> None:
         """Loads the dataset and populates the data attribute.
 
         This method should be implemented by subclasses to load all required data.
         """
 
     @abstractmethod
-    def collate_batch(self, batch_data) -> dict[str, dict[str, Any]]:  # pyright: ignore[reportMissingParameterType]
+    def collate_batch(self, batch_data: dict[str, Any]) -> dict[str, dict[str, Any]]:  # pyright: ignore[reportMissingParameterType]
         """Collates a batch of data into a single dictionary.
 
         Args:
@@ -133,8 +134,8 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         """Transforms scenario data and conflict points into a model-ready format.
 
         Args:
-            scenario (dict): The scenario data to transform.
-            conflict_points (dict): Conflict points associated with the scenario.
+            scenario_data (dict): The scenario data to transform.
+            conflict_points_data (dict): Conflict points associated with the scenario.
 
         Returns:
             dict: Transformed scenario data.
@@ -155,8 +156,8 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         scenario_information = self.load_scenario_information(index)
         scenario = scenario_information.get("scenario", None)
         if scenario is None:
-            raise ValueError(f"Scenario information for index {index} is missing or invalid.")
+            error_message = f"Scenario information for index {index} is missing or invalid."
+            raise ValueError(error_message)
 
         conflict_points = scenario_information.get("conflict_points", None)
-        scenario = self.transform_scenario_data(scenario, conflict_points)
-        return scenario
+        return self.transform_scenario_data(scenario, conflict_points)
