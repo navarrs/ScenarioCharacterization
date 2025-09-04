@@ -3,15 +3,17 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 
 from characterization.features import BaseFeature
+from characterization.processors.base_processor import BaseProcessor
+from characterization.schemas import ScenarioFeatures
 from characterization.scorer.base_scorer import BaseScorer
 from characterization.utils.io_utils import get_logger, to_pickle
-from characterization.schemas import ScenarioFeatures
-from characterization.processors.base_processor import BaseProcessor
 
 logger = get_logger(__name__)
 
 
 class FeatureProcessor(BaseProcessor):
+    """Processor for computing and saving features from a dataset using a feature characterizer."""
+
     def __init__(
         self,
         config: DictConfig,
@@ -30,13 +32,12 @@ class FeatureProcessor(BaseProcessor):
         Raises:
             AssertionError: If the characterizer is not of type 'feature'.
         """
-        super(FeatureProcessor, self).__init__(config, dataset, characterizer)
-        if not self.characterizer.characterizer_type == "feature":
-            raise AssertionError(
-                f"Expected characterizer of type 'feature', got {self.characterizer.characterizer_type}.",
-            )
+        super().__init__(config, dataset, characterizer)
+        if self.characterizer.characterizer_type != "feature":
+            error_message = f"Expected characterizer of type 'feature', got {self.characterizer.characterizer_type}."
+            raise AssertionError(error_message)
 
-    def run(self):
+    def run(self) -> None:
         """Runs the feature processing on the dataset.
 
         Iterates over the dataset and computes features for each scenario using the characterizer.
@@ -45,7 +46,7 @@ class FeatureProcessor(BaseProcessor):
         Returns:
             None
         """
-        logger.info(f"Processing {self.characterizer.name} for {self.dataset.name}.")
+        logger.info("Processing %s %s for %s", self.dataset.name, self.characterizer.name, self.scenario_type)
 
         # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop.
         # for scenario_batch in track(self.dataloader, total=len(self.dataloader), description="Processing features"):
@@ -56,4 +57,4 @@ class FeatureProcessor(BaseProcessor):
                 if self.save:
                     to_pickle(self.output_path, features.model_dump(), scenario.metadata.scenario_id)
 
-        logger.info(f"Finished processing {self.characterizer.name} features for {self.dataset.name}.")
+        logger.info("Finished processing %s features for %s.", self.characterizer.name, self.dataset.name)

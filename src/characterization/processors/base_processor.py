@@ -11,6 +11,8 @@ logger = get_logger(__name__)
 
 
 class BaseProcessor(ABC):
+    """Base class for processing datasets with a characterizer."""
+
     def __init__(
         self,
         config: DictConfig,
@@ -30,7 +32,7 @@ class BaseProcessor(ABC):
         Raises:
             ValueError: If saving is enabled but no output path is specified in the configuration.
         """
-        super(BaseProcessor, self).__init__()
+        super().__init__()
 
         self.scenario_type = config.scenario_type if "scenario_type" in config else "gt"
         self.dataset = dataset
@@ -45,8 +47,9 @@ class BaseProcessor(ABC):
         self.output_path = config.get("output_path", None)
         if self.save:
             if self.output_path is None:
-                raise ValueError("Output path must be specified in the configuration.")
-            logger.info(f"Features {self.characterizer.name} will be saved to {self.output_path}")
+                error_message = "Output path must be specified in the configuration."
+                raise ValueError(error_message)
+            logger.info("Features %s will be saved to %s", self.characterizer.name, self.output_path)
 
         self.dataloader = DataLoader(
             dataset,
@@ -66,7 +69,7 @@ class BaseProcessor(ABC):
         return f"{self.__class__.__name__}"
 
     @abstractmethod
-    def run(self):
+    def run(self) -> None:
         """Runs the processor on the dataset.
 
         This method must be implemented by subclasses to define the processing logic.

@@ -1,19 +1,21 @@
 import os
 
 from omegaconf import DictConfig
-# from rich.progress import track
 from tqdm import tqdm
 
 from characterization.features import SUPPORTED_FEATURES, BaseFeature
 from characterization.processors.base_processor import BaseProcessor
-from characterization.scorer import BaseScorer
-from characterization.utils.io_utils import from_pickle, get_logger, to_pickle
 from characterization.schemas import ScenarioFeatures, ScenarioScores
+from characterization.scorer import BaseScorer
 from characterization.utils.datasets import BaseDataset
+from characterization.utils.io_utils import from_pickle, get_logger, to_pickle
+
 logger = get_logger(__name__)
 
 
 class ScoresProcessor(BaseProcessor):
+    """Processor for computing and saving scores from a dataset using a scoring characterizer."""
+
     def __init__(
         self,
         config: DictConfig,
@@ -33,26 +35,28 @@ class ScoresProcessor(BaseProcessor):
             ValueError: If features or feature paths are not specified, or if unsupported features are requested.
             AssertionError: If the characterizer is not of type 'score'.
         """
-        super(ScoresProcessor, self).__init__(config, dataset, characterizer)
-        if not self.characterizer.characterizer_type == "score":
-            raise AssertionError(
-                f"Expected characterizer of type 'score', got {self.characterizer.characterizer_type}.",
-            )
+        super().__init__(config, dataset, characterizer)
+        if self.characterizer.characterizer_type != "score":
+            error_message = f"Expected characterizer of type 'score', got {self.characterizer.characterizer_type}."
+            raise AssertionError(error_message)
 
         self.features = config.get("features", None)
         if self.features is None:
-            raise ValueError("Features must be specified in the configuration.")
+            error_message = "Features must be specified in the configuration."
+            raise ValueError(error_message)
 
         unsupported = [f for f in self.features if f not in SUPPORTED_FEATURES]
         if unsupported:
-            raise ValueError(f"Features {unsupported} not in supported list {SUPPORTED_FEATURES}")
+            error_message = f"Features {unsupported} not in supported list {SUPPORTED_FEATURES}"
+            raise ValueError(error_message)
 
         self.feature_path = config.get("feature_path", None)
         if not self.feature_path:
-            raise ValueError("Feature paths must be specified in the configuration.")
-        logger.info(f"Features will be loaded from {self.feature_path}")
+            error_message = "Feature paths must be specified in the configuration."
+            raise ValueError(error_message)
+        logger.info("Features will be loaded from %s", self.feature_path)
 
-    def run(self):
+    def run(self) -> None:
         """Runs the score processing on the dataset.
 
         Iterates over the dataset, loads features for each scenario, checks for missing features,
@@ -61,7 +65,7 @@ class ScoresProcessor(BaseProcessor):
         Returns:
             None
         """
-        logger.info(f"Processing {self.features} {self.characterizer.name} for {self.dataset.name}.")
+        logger.info("Processing %s %s for %s.", self.features, self.characterizer.name, self.dataset.name)
 
         # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop.
         # for scenario_batch in track(self.dataloader, total=len(self.dataloader), description="Processing scores..."):

@@ -1,20 +1,23 @@
 import numpy as np
 from omegaconf import DictConfig
 
+from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores, Score
 from characterization.scorer import BaseScorer, IndividualScorer, InteractionScorer
 from characterization.utils.io_utils import get_logger
-from characterization.schemas import ScenarioScores, ScenarioFeatures, Scenario, Score
+
 logger = get_logger(__name__)
 
 
 class SafeShiftScorer(BaseScorer):
+    """Scorer that computes interaction scores for agent pairs and a scene-level score from scenario features."""
+
     def __init__(self, config: DictConfig) -> None:
         """Initializes the SafeShiftScorer with a configuration.
 
         Args:
             config (DictConfig): Configuration for the scorer.
         """
-        super(SafeShiftScorer, self).__init__(config)
+        super().__init__(config)
 
         self.interaction_scorer = InteractionScorer(config)
         self.individual_scorer = IndividualScorer(config)

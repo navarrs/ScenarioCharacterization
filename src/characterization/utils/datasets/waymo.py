@@ -10,11 +10,18 @@ from omegaconf import DictConfig
 from rich.progress import track
 from scipy.signal import resample
 
+from characterization.schemas.scenario import (
+    AgentData,
+    AgentType,
+    DynamicMapData,
+    Scenario,
+    ScenarioMetadata,
+    StaticMapData,
+)
+from characterization.utils.common import AgentTrajectoryMasker
+from characterization.utils.datasets.dataset import BaseDataset
 from characterization.utils.geometric_utils import compute_dists_to_conflict_points
 from characterization.utils.io_utils import get_logger
-from characterization.utils.datasets.dataset import BaseDataset
-from characterization.schemas.scenario import Scenario, AgentData, AgentType, ScenarioMetadata, StaticMapData, DynamicMapData
-from characterization.utils.common import AgentTrajectoryMasker
 
 logger = get_logger(__name__)
 
@@ -85,7 +92,6 @@ class WaymoData(BaseDataset):
                 f"Number of scenarios ({num_scenarios}) != number of conflict points ({num_conflict_points}).",
             )
 
-
     def repack_agent_data(self, agent_data: dict[str, Any]) -> AgentData:
         """Packs agent information from Waymo format to AgentData format.
 
@@ -151,19 +157,45 @@ class WaymoData(BaseDataset):
         return StaticMapData(
             map_polylines=map_polylines,
             lane_ids=WaymoData.get_polyline_ids(static_map_data, "lane") if "lane" in static_map_data else None,
-            lane_speed_limits_mph=WaymoData.get_speed_limit_mph(static_map_data, "lane") if "lane" in static_map_data else None,
-            lane_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "lane") if "lane" in static_map_data else None,
-            road_line_ids=WaymoData.get_polyline_ids(static_map_data, "road_line") if "road_line" in static_map_data else None,
-            road_line_polyline_idxs= WaymoData.get_polyline_idxs(static_map_data, "road_line") if "road_line" in static_map_data else None,
-            road_edge_ids=WaymoData.get_polyline_ids(static_map_data, "road_edge") if "road_edge" in static_map_data else None,
-            road_edge_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "road_edge") if "road_edge" in static_map_data else None,
-            crosswalk_ids=WaymoData.get_polyline_ids(static_map_data, "crosswalk") if "crosswalk" in static_map_data else None,
-            crosswalk_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "crosswalk") if "crosswalk" in static_map_data else None,
-            speed_bump_ids=WaymoData.get_polyline_ids(static_map_data, "speed_bump") if "speed_bump" in static_map_data else None,
-            speed_bump_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "speed_bump") if "speed_bump" in static_map_data else None,
-            stop_sign_ids=WaymoData.get_polyline_ids(static_map_data, "stop_sign") if "stop_sign" in static_map_data else None,
-            stop_sign_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "stop_sign") if "stop_sign" in static_map_data else None,
-            stop_sign_lane_ids=[stop_sign["lane_ids"] for stop_sign in static_map_data.get("stop_sign", {"lane_ids": []})],
+            lane_speed_limits_mph=WaymoData.get_speed_limit_mph(static_map_data, "lane")
+            if "lane" in static_map_data
+            else None,
+            lane_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "lane")
+            if "lane" in static_map_data
+            else None,
+            road_line_ids=WaymoData.get_polyline_ids(static_map_data, "road_line")
+            if "road_line" in static_map_data
+            else None,
+            road_line_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "road_line")
+            if "road_line" in static_map_data
+            else None,
+            road_edge_ids=WaymoData.get_polyline_ids(static_map_data, "road_edge")
+            if "road_edge" in static_map_data
+            else None,
+            road_edge_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "road_edge")
+            if "road_edge" in static_map_data
+            else None,
+            crosswalk_ids=WaymoData.get_polyline_ids(static_map_data, "crosswalk")
+            if "crosswalk" in static_map_data
+            else None,
+            crosswalk_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "crosswalk")
+            if "crosswalk" in static_map_data
+            else None,
+            speed_bump_ids=WaymoData.get_polyline_ids(static_map_data, "speed_bump")
+            if "speed_bump" in static_map_data
+            else None,
+            speed_bump_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "speed_bump")
+            if "speed_bump" in static_map_data
+            else None,
+            stop_sign_ids=WaymoData.get_polyline_ids(static_map_data, "stop_sign")
+            if "stop_sign" in static_map_data
+            else None,
+            stop_sign_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "stop_sign")
+            if "stop_sign" in static_map_data
+            else None,
+            stop_sign_lane_ids=[
+                stop_sign["lane_ids"] for stop_sign in static_map_data.get("stop_sign", {"lane_ids": []})
+            ],
         )
 
     def repack_dynamic_map_data(self, dynamic_map_data: dict[str, Any]) -> DynamicMapData:
@@ -190,11 +222,8 @@ class WaymoData(BaseDataset):
 
         return DynamicMapData(stop_points=stop_points, lane_ids=lane_id, states=states)
 
-
     def transform_scenario_data(
-        self,
-        scenario_data: dict[str, Any],
-        conflict_points_data: dict[str, Any] | None = None
+        self, scenario_data: dict[str, Any], conflict_points_data: dict[str, Any] | None = None
     ) -> Scenario:
         # Repack agent information from input scenario
         agent_data = self.repack_agent_data(scenario_data["track_infos"])
@@ -208,7 +237,7 @@ class WaymoData(BaseDataset):
             agent_distances_to_conflict_points = (
                 None
                 if conflict_points_data["agent_distances_to_conflict_points"] is None
-                else conflict_points_data["agent_distances_to_conflict_points"][:, :self.total_steps, :]
+                else conflict_points_data["agent_distances_to_conflict_points"][:, : self.total_steps, :]
             )
             conflict_points = (
                 None
@@ -247,7 +276,7 @@ class WaymoData(BaseDataset):
             ego_vehicle_index=ego_vehicle_index,
             track_length=self.total_steps,
             objects_of_interest=scenario_data["objects_of_interest"],
-            dataset="waymo"
+            dataset="waymo",
         )
 
         return Scenario(

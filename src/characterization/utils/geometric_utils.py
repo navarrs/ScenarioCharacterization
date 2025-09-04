@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def compute_dists_to_conflict_points(conflict_points: np.ndarray, trajectories: np.ndarray) -> np.ndarray:
     """Computes distances from agent trajectories to conflict points.
 

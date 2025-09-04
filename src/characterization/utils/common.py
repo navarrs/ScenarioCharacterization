@@ -1,17 +1,19 @@
-import numpy as np
-from typing import ClassVar, Any, Annotated
-
 from collections.abc import Callable
 from enum import Enum
+from typing import Annotated, Any, ClassVar
 
+import numpy as np
 from numpy.typing import NDArray
 from pydantic import BeforeValidator
+
+from characterization.utils.ad_types import AgentType
 
 EPS = 1e-6
 SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
 
+
 # Validator factory
-def validate_agent_trajectoryay(
+def validate_array(
     expected_dtype: Any,
     expected_ndim: int,
 ) -> Callable[[Any], NDArray]:  # pyright: ignore[reportMissingTypeArgument]
@@ -26,24 +28,18 @@ def validate_agent_trajectoryay(
 
     return _validator
 
+
 # Reusable types
-BooleanNDArray2D = Annotated[NDArray[np.bool_], BeforeValidator(validate_agent_trajectoryay(np.bool_, 2))]
-BooleanNDArray3D = Annotated[NDArray[np.bool_], BeforeValidator(validate_agent_trajectoryay(np.bool_, 3))]
-Float64NDArray3D = Annotated[NDArray[np.float64], BeforeValidator(validate_agent_trajectoryay(np.float64, 3))]
-Float32NDArray3D = Annotated[NDArray[np.float32], BeforeValidator(validate_agent_trajectoryay(np.float32, 3))]
-Float32NDArray2D = Annotated[NDArray[np.float32], BeforeValidator(validate_agent_trajectoryay(np.float32, 2))]
-Float32NDArray1D = Annotated[NDArray[np.float32], BeforeValidator(validate_agent_trajectoryay(np.float32, 1))]
-Int32NDArray1D = Annotated[NDArray[np.int32], BeforeValidator(validate_agent_trajectoryay(np.int32, 1))]
-Int32NDArray2D = Annotated[NDArray[np.int32], BeforeValidator(validate_agent_trajectoryay(np.int32, 2))]
-Int64NDArray2D = Annotated[NDArray[np.int64], BeforeValidator(validate_agent_trajectoryay(np.int64, 2))]
+BooleanNDArray2D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 2))]
+BooleanNDArray3D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 3))]
+Float64NDArray3D = Annotated[NDArray[np.float64], BeforeValidator(validate_array(np.float64, 3))]
+Float32NDArray3D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 3))]
+Float32NDArray2D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 2))]
+Float32NDArray1D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 1))]
+Int32NDArray1D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.int32, 1))]
+Int32NDArray2D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.int32, 2))]
+Int64NDArray2D = Annotated[NDArray[np.int64], BeforeValidator(validate_array(np.int64, 2))]
 
-
-class AgentType(Enum):
-    TYPE_UNSET = 0
-    TYPE_VEHICLE = 1
-    TYPE_PEDESTRIAN = 2
-    TYPE_CYCLIST = 3
-    TYPE_OTHER = 4
 
 class InteractionStatus(Enum):
     UNKNOWN = -1
@@ -53,13 +49,15 @@ class InteractionStatus(Enum):
     DISTANCE_TOO_FAR = 3
     STATIONARY = 4
 
+
 class ReturnCriterion(Enum):
     CRITICAL = 0
     AVERAGE = 1
     UNSET = -1
 
+
 class AgentTrajectoryMasker:
-    """ Masks for indexing trajectory data from the reformatted by the dataloader classes.
+    """Masks for indexing trajectory data from the reformatted by the dataloader classes.
 
     The class expects an input of type (N, T, D=10) or (T, D=10) where N is the number of agents, T is the number of
     timesteps and D is the number of features per trajectory point, organized as follows:

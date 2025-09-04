@@ -69,27 +69,41 @@ exclude = ["docs", "scripts", "tmp", "samples", "assets"]
 include-package-data = true
 
 [tool.ruff]
+lint.extend-select = ["I"]
+fix = true
 exclude = [
     "src/scripts",
+    "src/characterization/utils/datasets/waymo_preprocess.py",
     "src/characterization/examples",
-    "src/characterization/features",
-    "src/characterization/utils",
-    "src/characterization/scorer",
-    "src/characterization/processors",
+    # TODO: re-nable checks for files below:
+    "src/characterization/utils/datasets/waymo.py",
+    "src/characterization/utils/viz/utils.py",
+    "src/characterization/utils/viz/visualizer.py",
+    "src/characterization/utils/viz/waymo.py",
+    "src/characterization/utils/common.py",
+    "src/characterization/features/individual_utils.py",
+    "src/characterization/features/interaction_utils.py",
+    "src/characterization/features/safeshift_features.py",
 ]
 line-length = 120
 target-version = "py312"
-fix = true
 lint.ignore = [
     # keep-sorted start
     "C901",             # too complex
     "COM812",           #
     "D100",             # missing docstring in public module
     "D104",             # missing docstring in public package
+    "FIX002",           # line contains TODO
     "ERA001",           # eradicate: remove commented-out code
+    "PLR0913",          # too many arguments in function definition
     "PLR0915",          # too many statements
+    "PTH",              # use pathlib instead of os, re-enable later
+    "TD003",            # missing issue
     "TC001",            # move application import into a type-checking block
     "TC002",            # move import into a type-checking block
+    "TD",               # ignore all TODO rules, re-enable later.
+    "S101",             # use of assert detected
+    "S301",             # pickle load
     "W293",             # blank line contains whitespace
     # keep-sorted end
 ]

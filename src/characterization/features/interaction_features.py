@@ -5,9 +5,9 @@ from omegaconf import DictConfig
 
 import characterization.features.interaction_utils as interaction
 from characterization.features.base_feature import BaseFeature
-from characterization.utils.common import EPS, InteractionStatus, ReturnCriterion, AgentTrajectoryMasker
+from characterization.schemas import Interaction, Scenario, ScenarioFeatures
+from characterization.utils.common import EPS, AgentTrajectoryMasker, InteractionStatus, ReturnCriterion
 from characterization.utils.io_utils import get_logger
-from characterization.schemas import Scenario, ScenarioFeatures, Interaction
 
 logger = get_logger(__name__)
 
@@ -28,7 +28,7 @@ class InteractionFeatures(BaseFeature):
         Args:
             config (DictConfig): Configuration dictionary containing interaction feature parameters.
         """
-        super(InteractionFeatures, self).__init__(config)
+        super().__init__(config)
 
     @staticmethod
     def compute_interaction_features(scenario: Scenario, return_criterion: ReturnCriterion) -> Interaction:
@@ -78,7 +78,8 @@ class InteractionFeatures(BaseFeature):
 
         agent_combinations = list(itertools.combinations(range(agent_data.num_agents), 2))
         if len(agent_combinations) == 0:
-            raise ValueError("No agent combinations found. Ensure that the scenario has at least two agents.")
+            error_message = "No agent combinations found. Ensure that the scenario has at least two agents."
+            raise ValueError(error_message)
 
         agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
         agent_types = agent_data.agent_types
@@ -141,7 +142,6 @@ class InteractionFeatures(BaseFeature):
             agent_i.agent_type, agent_j.agent_type = agent_types[i], agent_types[j]
             agent_i.lane, agent_j.lane = None, None  # TODO: Add lane information if available
 
-            # type: ignore
             if conflict_points is not None and dists_to_conflict_points is not None:
                 agent_j.dists_to_conflict = dists_to_conflict_points[i][mask]
                 agent_j.dists_to_conflict = dists_to_conflict_points[j][mask]
@@ -173,7 +173,7 @@ class InteractionFeatures(BaseFeature):
             # To compute Time Headway (THW), Time to Collision (TTC), and Deceleration Rate to Avoid Collision (DRAC),
             # we currently assume that agents are sharing the same lane.
             valid_headings = interaction.find_valid_headings(agent_i, agent_j, heading_threshold)
-            if valid_headings.shape[0] < 2:
+            if valid_headings.shape[0] < 2:  # noqa: PLR2004
                 thw = np.full(1, np.inf, dtype=np.float32)
                 ttc = np.full(1, np.inf, dtype=np.float32)
                 drac = np.full(1, np.inf, dtype=np.float32)
@@ -201,8 +201,8 @@ class InteractionFeatures(BaseFeature):
                     thw = thw.min()
                     drac = drac.max()
                 case ReturnCriterion.AVERAGE:
-                    # NOTE: whenever there are valid values within a trajectory, this return the mean over those values and
-                    # not the entire trajectory.
+                    # NOTE: whenever there are valid values within a trajectory, this return the mean over those values
+                    # and not the entire trajectory.
                     separation = separations.mean()
                     intersection = intersections.mean()
                     collision = collisions.mean()
@@ -211,7 +211,8 @@ class InteractionFeatures(BaseFeature):
                     thw = thw.mean()
                     drac = drac.mean()
                 case _:
-                    raise ValueError(f"Criterion: {return_criterion} not supported. Expected 'critical' or 'average'.")
+                    error_message = f"Criterion: {return_criterion} not supported. Expected 'critical' or 'average'."
+                    raise ValueError(error_message)
 
             # Store computed features in the state dictionary
             scenario_separations[n] = separation
@@ -234,7 +235,6 @@ class InteractionFeatures(BaseFeature):
             interaction_agent_indices=scenario_agent_pair_indeces,
             interaction_agent_types=scenario_agents_pair_types,
         )
-
 
     def compute(self, scenario: Scenario) -> ScenarioFeatures:
         """Compute scenario features focused on agent-to-agent interactions.
@@ -260,5 +260,5 @@ class InteractionFeatures(BaseFeature):
         """
         return ScenarioFeatures(
             metadata=scenario.metadata,
-            interaction_features=InteractionFeatures.compute_interaction_features(scenario, self.return_criterion)
+            interaction_features=InteractionFeatures.compute_interaction_features(scenario, self.return_criterion),
         )

@@ -1,10 +1,12 @@
-
 import logging
 import os
 import pickle  # nosec B403
 
 import colorlog
 from omegaconf import DictConfig, OmegaConf
+from rich.console import Console
+from rich.syntax import Syntax
+
 
 def make_output_paths(cfg: DictConfig) -> None:
     """Creates output directories as specified in the configuration.
@@ -65,12 +67,11 @@ def from_pickle(data_file: str) -> dict:  # pyright: ignore[reportMissingTypeArg
         FileNotFoundError: If the data file does not exist.
     """
     if not os.path.exists(data_file):
-        raise FileNotFoundError(f"Data file {data_file} does not exist.")
+        error_message = f"Data file {data_file} does not exist."
+        raise FileNotFoundError(error_message)
 
     with open(data_file, "rb") as f:
-        data = pickle.load(f)  # nosec B301
-
-    return data
+        return pickle.load(f)  # nosec B301
 
 
 def to_pickle(output_path: str, input_data: dict, tag: str) -> None:  # pyright: ignore[reportMissingTypeArgument]
@@ -92,7 +93,8 @@ def to_pickle(output_path: str, input_data: dict, tag: str) -> None:  # pyright:
 
     scenario_id_data = data.get("scenario_id", None)
     if scenario_id_data is not None and scenario_id_data != input_data["scenario_id"]:
-        raise AttributeError("Mismatched scenario IDs when merging pickle data.")
+        error_message = "Mismatched scenario IDs when merging pickle data."
+        raise AttributeError(error_message)
 
     # NOTE: with current ScenarioScores and ScenarioFeatures implementation, computing interaction and individual
     # features will cause overrides. Need to address this better in the future.
@@ -112,13 +114,11 @@ def print_config(cfg: DictConfig, theme: str = "monokai") -> None:
 
     Args:
         cfg (DictConfig): Configuration dictionary to print.
+        theme (str, optional): Theme for syntax highlighting. Defaults to "monokai".
 
     Returns:
         None
     """
-    from rich.console import Console
-    from rich.syntax import Syntax
-
     yaml_str = OmegaConf.to_yaml(cfg, resolve=True)
     console = Console()
     syntax = Syntax(yaml_str, "yaml", theme=theme, word_wrap=True)

@@ -3,11 +3,9 @@ from abc import ABC, abstractmethod
 import numpy as np
 from omegaconf import DictConfig
 
-from characterization.utils.common import SUPPORTED_SCENARIO_TYPES
-
-from characterization.utils.io_utils import get_logger
-
 from characterization.schemas import Scenario
+from characterization.utils.common import SUPPORTED_SCENARIO_TYPES
+from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
 

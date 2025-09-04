@@ -22,9 +22,9 @@ SUPPORTED_FEATURES = [
 ]
 
 __all__ = [
+    "SUPPORTED_FEATURES",
     "BaseFeature",
     "IndividualFeatures",
     "InteractionFeatures",
     "SafeShiftFeatures",
-    "SUPPORTED_FEATURES",
 ]

@@ -3,9 +3,9 @@ from omegaconf import DictConfig
 
 import characterization.features.individual_utils as individual
 from characterization.features.base_feature import BaseFeature
+from characterization.schemas import Individual, Scenario, ScenarioFeatures
+from characterization.utils.common import AgentTrajectoryMasker, ReturnCriterion
 from characterization.utils.io_utils import get_logger
-from characterization.utils.common import ReturnCriterion, AgentTrajectoryMasker
-from characterization.schemas import Scenario, ScenarioFeatures, Individual
 
 logger = get_logger(__name__)
 
@@ -34,7 +34,7 @@ class IndividualFeatures(BaseFeature):
             The return_criterion is automatically converted to uppercase and mapped to
             the ReturnCriterion enum during initialization.
         """
-        super(IndividualFeatures, self).__init__(config)
+        super().__init__(config)
 
     @staticmethod
     def compute_individual_features(scenario: Scenario, return_criterion: ReturnCriterion) -> Individual:
@@ -98,7 +98,7 @@ class IndividualFeatures(BaseFeature):
         # result in trajectories of different lengths.
         for n in range(agent_data.num_agents):
             mask = agent_valid[n]
-            if not mask.any() or mask.sum() < 2:
+            if not mask.any() or mask.sum() < 2:  # noqa: PLR2004
                 continue
 
             velocities = agent_velocities[n][mask, :]
@@ -150,7 +150,8 @@ class IndividualFeatures(BaseFeature):
                     waiting_interval = waiting_intervals.mean()
                     waiting_distance = waiting_distances.mean()
                 case _:
-                    raise ValueError(f"Unknown return criteria: {return_criterion}")
+                    error_message = f"Unknown return criteria: {return_criterion}"
+                    raise ValueError(error_message)
 
             scenario_valid_idxs.append(n)
             scenario_speeds.append(speed)
