@@ -76,7 +76,6 @@ exclude = [
     "src/characterization/utils/datasets/waymo_preprocess.py",
     "src/characterization/examples",
     # TODO: re-nable checks for files below:
-    "src/characterization/utils/datasets/waymo.py",
     "src/characterization/utils/viz/utils.py",
     "src/characterization/utils/viz/visualizer.py",
     "src/characterization/utils/viz/waymo.py",

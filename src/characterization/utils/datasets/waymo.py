@@ -5,6 +5,7 @@ import time
 from typing import Any
 
 import numpy as np
+from joblib import Parallel, delayed
 from natsort import natsorted
 from omegaconf import DictConfig
 from rich.progress import track
@@ -27,8 +28,11 @@ logger = get_logger(__name__)
 
 
 class WaymoData(BaseDataset):
+    """Class to handle the Waymo Open Motion Dataset (WOMD)."""
+
     def __init__(self, config: DictConfig) -> None:
-        super(WaymoData, self).__init__(config=config)
+        """Initializes the Waymo Open Motion Dataset (WOMD) handler."""
+        super().__init__(config=config)
 
         self.AGENT_TYPE_MAP = {
             "TYPE_VEHICLE": 0,
@@ -56,9 +60,9 @@ class WaymoData(BaseDataset):
             try:
                 logger.info("Loading scenario infos...")
                 self.load_data()
-            except AssertionError as e:
-                logger.error("Error loading scenario infos: %s", e)
-                raise e
+            except AssertionError:
+                logger.exception("Error loading scenario infos")
+                raise
 
     def load_data(self) -> None:
         """Loads the Waymo dataset and scenario metadata.
@@ -70,14 +74,14 @@ class WaymoData(BaseDataset):
             AssertionError: If the number of scenarios and conflict points do not match.
         """
         start = time.time()
-        logger.info(f"Loading WOMD scenario base data from {self.scenario_base_path}")
+        logger.info("Loading WOMD scenario base data from %s", self.scenario_base_path)
         with open(self.scenario_meta_path, "rb") as f:
             self.data.metas = pickle.load(f)[:: self.step]  # nosec B301
         self.data.scenarios_ids = natsorted([f"sample_{x['scenario_id']}.pkl" for x in self.data.metas])
         self.data.scenarios = natsorted(
             [f"{self.scenario_base_path}/sample_{x['scenario_id']}.pkl" for x in self.data.metas],
         )
-        logger.info(f"Loading data took {time.time() - start} seconds.")
+        logger.info("Loading data took %2f seconds.", time.time() - start)
 
         # TODO: remove this
         self.shard()
@@ -87,10 +91,11 @@ class WaymoData(BaseDataset):
         # Pre-checks: conflict points
         self.check_conflict_points()
         num_conflict_points = len(self.data.conflict_points)
-        if not num_scenarios == num_conflict_points:
-            raise AssertionError(
-                f"Number of scenarios ({num_scenarios}) != number of conflict points ({num_conflict_points}).",
+        if num_scenarios != num_conflict_points:
+            error_message = (
+                f"Number of scenarios ({num_scenarios}) != number of conflict points ({num_conflict_points})."
             )
+            raise AssertionError(error_message)
 
     def repack_agent_data(self, agent_data: dict[str, Any]) -> AgentData:
         """Packs agent information from Waymo format to AgentData format.
@@ -107,13 +112,15 @@ class WaymoData(BaseDataset):
         trajectories = agent_data["trajs"]  # shape: [num_agents, num_timesteps, num_features]
         _, num_timesteps, _ = trajectories.shape
 
-        T_last = self.LAST_TIMESTEP_TO_CONSIDER[self.scenario_type]
-        if num_timesteps < T_last:
-            raise AssertionError(
-                f"Scenario has only {num_timesteps} timesteps, but expected at least {T_last} timesteps.",
+        last_timestep = self.LAST_TIMESTEP_TO_CONSIDER[self.scenario_type]
+        if num_timesteps < last_timestep:
+            error_message = (
+                f"Scenario has only {num_timesteps} timesteps, but expected at least {last_timestep} timesteps."
             )
-        trajectories = trajectories[:, :T_last, :]  # shape: [num_agents, T_last, dim]
-        self.total_steps = T_last
+            raise AssertionError(error_message)
+
+        trajectories = trajectories[:, :last_timestep, :]  # shape: [num_agents, last_timestep, dim]
+        self.total_steps = last_timestep
         object_types = [AgentType[n] for n in agent_data["object_type"]]
         return AgentData(agent_ids=agent_data["object_id"], agent_types=object_types, agent_trajectories=trajectories)
 
@@ -129,6 +136,7 @@ class WaymoData(BaseDataset):
 
     @staticmethod
     def get_polyline_idxs(polyline: dict[str, Any], key: str) -> np.ndarray | None:
+        """Extracts polyline start and end indices from the polyline dictionary."""
         polyline_idxs = np.array(
             [[value["polyline_index"][0], value["polyline_index"][1]] for value in polyline[key]],
             dtype=np.int32,
@@ -143,8 +151,7 @@ class WaymoData(BaseDataset):
 
         Args:
             static_map_data (dict): dictionary containing Waymo static scenario data:
-                'all_polylines': all road data in the form of polylines
-                mapped by type to specific road types ('lane', 'road_line', 'road_edge', 'crosswalk', 'speed_bump', 'stop_sign')
+                'all_polylines': all road data in the form of polyline mapped by type to specific road types.
 
         Returns:
             StaticMapData: pydantic validator encapsulating static map information.
@@ -225,6 +232,23 @@ class WaymoData(BaseDataset):
     def transform_scenario_data(
         self, scenario_data: dict[str, Any], conflict_points_data: dict[str, Any] | None = None
     ) -> Scenario:
+        """Transforms raw scenario data into the standardized Scenario format.
+
+        Args:
+            scenario_data (dict): Raw scenario data containing:
+                - 'track_infos': Agent trajectories and metadata.
+                - 'map_infos': Static map information.
+                - 'dynamic_map_infos': Dynamic map information.
+                - 'timestamps_seconds': Timestamps for each timestep.
+                - 'sdc_track_index': Index of the ego vehicle.
+                - 'tracks_to_predict': List of tracks to predict with their difficulty levels.
+                - 'scenario_id': Unique identifier for the scenario.
+                - 'current_time_index': Current time index in the scenario.
+                - 'objects_of_interest': List of object IDs that are of interest in the scenario.
+            conflict_points_data (dict, optional): Precomputed conflict point data containing:
+                - 'agent_distances_to_conflict_points': Distances from each agent to each conflict point.
+                - 'all_conflict_points': All conflict points in the scenario.
+        """
         # Repack agent information from input scenario
         agent_data = self.repack_agent_data(scenario_data["track_infos"])
         # Repack static map information from input scenario
@@ -287,7 +311,7 @@ class WaymoData(BaseDataset):
             dynamic_map_data=dynamic_map_data,
         )
 
-    def check_conflict_points(self):
+    def check_conflict_points(self) -> None:
         """Checks if conflict points are already computed for each scenario.
 
         If not, computes conflict points for each scenario and saves them to disk.
@@ -321,8 +345,6 @@ class WaymoData(BaseDataset):
             return conflict_points_filepath
 
         if self.parallel:
-            from joblib import Parallel, delayed
-
             outs = Parallel(n_jobs=self.num_workers, batch_size=self.batch_size)(
                 delayed(process_file)(scenario_id=scenario_id, scenario_path=scenario_path)
                 for scenario_id, scenario_path in track(zipped, total=len(self.data.scenarios_ids))
@@ -335,13 +357,15 @@ class WaymoData(BaseDataset):
 
         self.data.conflict_points = natsorted(self.data.conflict_points)
 
-        logger.info(f"Conflict points check completed in {time.time() - start:.2f} seconds.")
+        logger.info("Conflict points check completed in %.2f seconds.", time.time() - start)
 
     def find_conflict_points(
         self,
         static_map_info: dict[str, Any],
         dynamic_map_info: dict[str, Any],
         agent_positions: np.ndarray,
+        ndim: int = 3,
+        min_timesteps: int = 5,
     ) -> dict[str, Any]:
         """Finds the conflict points in the map for a scenario.
 
@@ -349,6 +373,8 @@ class WaymoData(BaseDataset):
             static_map_info (dict): The static map information.
             dynamic_map_info (dict): The dynamic map information.
             agent_positions (np.ndarray): Array of agent positions (shape: [N_agents, T, 3]).
+            ndim (int): Number of dimensions to consider (2 or 3). Defaults to 3.
+            min_timesteps (int): Minimum number of timesteps required to compute distances. Defaults to
 
         Returns:
             dict: The conflict points in the map, including:
@@ -364,22 +390,22 @@ class WaymoData(BaseDataset):
         static_conflict_points_list = []
         for conflict_point in static_map_info["crosswalk"] + static_map_info["speed_bump"]:
             start, end = conflict_point["polyline_index"]
-            points = polylines[start:end][:, :3]
+            points = polylines[start:end][:, :ndim]
             points = resample(points, points.shape[0] * self.conflict_points_cfg.resample_factor)
             static_conflict_points_list.append(points)
 
         for conflict_point in static_map_info["stop_sign"]:
             start, end = conflict_point["polyline_index"]
-            points = polylines[start:end][:, :3]
+            points = polylines[start:end][:, :ndim]
             static_conflict_points_list.append(points)
 
         static_conflict_points = (
-            np.concatenate(static_conflict_points_list) if len(static_conflict_points_list) > 0 else np.empty((0, 3))
+            np.concatenate(static_conflict_points_list) if len(static_conflict_points_list) > 0 else np.empty((0, ndim))
         )
 
         # Lane Intersections
         lane_infos = static_map_info["lane"]
-        lanes = [polylines[li["polyline_index"][0] : li["polyline_index"][1]][:, :3] for li in lane_infos]  # noqa: E203
+        lanes = [polylines[li["polyline_index"][0] : li["polyline_index"][1]][:, :ndim] for li in lane_infos]
         # lanes = []
         # for lane_info in static_map_info['lane']:
         #     start, end = lane_info['polyline_index']
@@ -393,15 +419,15 @@ class WaymoData(BaseDataset):
         for i, j in lane_combinations:
             lane_i, lane_j = lanes[i], lanes[j]
 
-            D = np.linalg.norm(lane_i[:, None] - lane_j, axis=-1)
-            i_idx, j_idx = np.where(self.conflict_points_cfg.intersection_threshold > D)
+            dists_ij = np.linalg.norm(lane_i[:, None] - lane_j, axis=-1)
+            i_idx, j_idx = np.where(self.conflict_points_cfg.intersection_threshold > dists_ij)
 
             # TODO: determine if two lanes are consecutive, but not entry/exit lanes. If this is the
             # case there'll be an intersection that is not a conflict point.
-            start_i, end_i = i_idx[:5], i_idx[-5:]
-            start_j, end_j = j_idx[:5], j_idx[-5:]
-            if (np.any(start_i < 5) and np.any(end_j > lane_j.shape[0] - 5)) or (
-                np.any(start_j < 5) and np.any(end_i > lane_i.shape[0] - 5)
+            start_i, end_i = i_idx[:min_timesteps], i_idx[-min_timesteps:]
+            start_j, end_j = j_idx[:min_timesteps], j_idx[-min_timesteps:]
+            if (np.any(start_i < min_timesteps) and np.any(end_j > lane_j.shape[0] - min_timesteps)) or (
+                np.any(start_j < min_timesteps) and np.any(end_i > lane_i.shape[0] - min_timesteps)
             ):
                 lanes_i_ee = lane_infos[i]["entry_lanes"] + lane_infos[i]["exit_lanes"]
                 lanes_j_ee = lane_infos[j]["entry_lanes"] + lane_infos[j]["exit_lanes"]
@@ -420,10 +446,9 @@ class WaymoData(BaseDataset):
 
         # Dynamic Conflict Points: Traffic Lights
         stops = dynamic_map_info["stop_point"]
-        dynamic_conflict_points = np.empty((0, 3))
-        if len(stops) > 0 and len(stops[0]) > 0:
-            if stops[0].shape[1] == 3:
-                dynamic_conflict_points = np.concatenate(stops[0])
+        dynamic_conflict_points = np.empty((0, ndim))
+        if len(stops) > 0 and len(stops[0]) > 0 and stops[0].shape[1] == ndim:
+            dynamic_conflict_points = np.concatenate(stops[0])
 
         # Concatenate all conflict points into a single array if they are not empty
         conflict_point_list = []
@@ -471,7 +496,7 @@ class WaymoData(BaseDataset):
             "conflict_points": conflict_points,
         }
 
-    def collate_batch(self, batch_data) -> dict[str, Any]:  # pyright: ignore[reportMissingParameterType]
+    def collate_batch(self, batch_data: dict[str, Any]) -> dict[str, Any]:  # pyright: ignore[reportMissingParameterType]
         """Collates a batch of scenario data for processing.
 
         Args:
