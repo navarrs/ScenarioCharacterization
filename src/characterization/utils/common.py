@@ -12,7 +12,7 @@ EPS = 1e-6
 SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
 
 # Validator factory
-def validate_agent_trajectoryay(
+def validate_array(
     expected_dtype: Any,
     expected_ndim: int,
 ) -> Callable[[Any], NDArray]:  # pyright: ignore[reportMissingTypeArgument]
@@ -28,15 +28,15 @@ def validate_agent_trajectoryay(
     return _validator
 
 # Reusable types
-BooleanNDArray2D = Annotated[NDArray[np.bool_], BeforeValidator(validate_agent_trajectoryay(np.bool_, 2))]
-BooleanNDArray3D = Annotated[NDArray[np.bool_], BeforeValidator(validate_agent_trajectoryay(np.bool_, 3))]
-Float64NDArray3D = Annotated[NDArray[np.float64], BeforeValidator(validate_agent_trajectoryay(np.float64, 3))]
-Float32NDArray3D = Annotated[NDArray[np.float32], BeforeValidator(validate_agent_trajectoryay(np.float32, 3))]
-Float32NDArray2D = Annotated[NDArray[np.float32], BeforeValidator(validate_agent_trajectoryay(np.float32, 2))]
-Float32NDArray1D = Annotated[NDArray[np.float32], BeforeValidator(validate_agent_trajectoryay(np.float32, 1))]
-Int32NDArray1D = Annotated[NDArray[np.int32], BeforeValidator(validate_agent_trajectoryay(np.int32, 1))]
-Int32NDArray2D = Annotated[NDArray[np.int32], BeforeValidator(validate_agent_trajectoryay(np.int32, 2))]
-Int64NDArray2D = Annotated[NDArray[np.int64], BeforeValidator(validate_agent_trajectoryay(np.int64, 2))]
+BooleanNDArray2D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 2))]
+BooleanNDArray3D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 3))]
+Float64NDArray3D = Annotated[NDArray[np.float64], BeforeValidator(validate_array(np.float64, 3))]
+Float32NDArray3D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 3))]
+Float32NDArray2D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 2))]
+Float32NDArray1D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 1))]
+Int32NDArray1D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.int32, 1))]
+Int32NDArray2D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.int32, 2))]
+Int64NDArray2D = Annotated[NDArray[np.int64], BeforeValidator(validate_array(np.int64, 2))]
 
 class InteractionStatus(Enum):
     UNKNOWN = -1
