@@ -20,7 +20,7 @@ def compute_speed(velocities: np.ndarray) -> tuple[np.ndarray | None, ...]:
     """
     speeds = np.linalg.norm(velocities, axis=-1)
     if np.isnan(speeds).any():
-        logger.warning(f"Nan value in agent speed: {speeds}")
+        logger.warning("Nan value in agent speed: %s", speeds)
         return None, None
 
     # -----------------------------------------------------------------------------------------
@@ -64,18 +64,19 @@ def compute_acceleration_profile(speed: np.ndarray, timestamps: np.ndarray) -> t
 
     def get_acc_sums(acc: np.ndarray, idx: np.ndarray) -> tuple[np.ndarray, list[tuple[int, int]]]:
         diff = idx[1:] - idx[:-1]
-        diff = np.array([-1] + np.where(diff > 1)[0].tolist() + [diff.shape[0]])
-        se_idxs = [(idx[s + 1], idx[e] + 1) for s, e in zip(diff[:-1], diff[1:], strict=False)]
+        diff = np.array([-1] + np.where(diff > 1)[0].tolist() + [diff.shape[0]])  # noqa: RUF005
+        se_idxs = [(idx[s + 1], idx[e] + 1) for s, e in zip(diff[:-1], diff[1:], strict=False)]  # noqa: RUF007
         sums = np.array([acc[s:e].sum() for s, e in se_idxs])
         return sums, se_idxs  # pyright: ignore[reportReturnType]
 
-    if not speed.shape == timestamps.shape:
-        raise ValueError("Speed and timestamps must have the same shape.")
+    if speed.shape != timestamps.shape:
+        error_message = "Speed and timestamps must have the same shape."
+        raise ValueError(error_message)
 
     acceleration_raw = np.gradient(speed, timestamps)  # m/s^2
 
     if np.isnan(acceleration_raw).any():
-        logger.warning(f"Nan value in agent acceleration: {acceleration_raw}")
+        logger.warning("Nan value in agent acceleration: %s", acceleration_raw)
         return None, None, None
 
     dr_idx = np.where(acceleration_raw < 0.0)[0]
@@ -111,14 +112,15 @@ def compute_jerk(speed: np.ndarray, timestamps: np.ndarray) -> np.ndarray | None
     Raises:
         ValueError: If speed and timestamps do not have the same shape.
     """
-    if not speed.shape == timestamps.shape:
-        raise ValueError("Speed and timestamps must have the same shape.")
+    if speed.shape != timestamps.shape:
+        error_message = "Speed and timestamps must have the same shape."
+        raise ValueError(error_message)
 
     acceleration = np.gradient(speed, timestamps)
     jerk = np.gradient(acceleration, timestamps)
 
     if np.isnan(jerk).any():
-        logger.warning(f"Nan value in agent jerk: {jerk}")
+        logger.warning("Nan value in agent jerk: %s", jerk)
         return None
 
     return jerk
