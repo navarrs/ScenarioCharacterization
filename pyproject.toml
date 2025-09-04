@@ -91,7 +91,6 @@ exclude = [
     "src/characterization/features/safeshift_features.py",
     "src/characterization/scorer/individual_scorer.py",
     "src/characterization/scorer/interaction_scorer.py",
-    "src/characterization/scorer/safeshift_scorer.py",
 ]
 line-length = 120
 target-version = "py312"
@@ -110,6 +109,7 @@ lint.ignore = [
     "TC001",            # move application import into a type-checking block
     "TC002",            # move import into a type-checking block
     "TD",               # ignore all TODO rules, re-enable later.
+    "S101",             # use of assert detected
     "W293",             # blank line contains whitespace
     # keep-sorted end
 ]
