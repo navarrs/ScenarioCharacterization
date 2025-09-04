@@ -69,6 +69,7 @@ exclude = ["docs", "scripts", "tmp", "samples", "assets"]
 include-package-data = true
 
 [tool.ruff]
+extend-select = ["I"]
 exclude = [
     "src/scripts",
     "src/characterization/examples",
