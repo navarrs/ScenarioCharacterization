@@ -1,13 +1,13 @@
 import numpy as np
 from shapely import LineString
 
-from characterization.utils.common import EPS, InteractionAgent
+from characterization.utils.common import EPS, MIN_VALID_POINTS, InteractionAgent
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
 
 
-def is_sharing_lane(lane_i: np.ndarray | None, lane_j: np.ndarray | None) -> bool:
+def is_sharing_lane(lane_i: np.ndarray | None, lane_j: np.ndarray | None) -> bool:  # noqa: ARG001
     """Checks if two agents are sharing the same lane.
 
     Args:
@@ -47,12 +47,12 @@ def find_valid_headings(
         return valid_headings
 
     heading_diff = np.abs((agent_j.heading - agent_i.heading + 540) % 360 - 180)
-    valid_headings = np.where(heading_diff <= heading_threshold)[0]
-    return valid_headings
+    # return valid headings
+    return np.where(heading_diff <= heading_threshold)[0]
 
 
 def find_leading_agent(
-    agent_i: InteractionAgent, agent_j: InteractionAgent, mask: np.ndarray | None = None
+    agent_i: InteractionAgent, agent_j: InteractionAgent, mask: np.ndarray | None = None, angle_threshold: float = 90
 ) -> np.ndarray:
     """Determines which agent is leading based on their positions and headings.
 
@@ -60,15 +60,13 @@ def find_leading_agent(
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
         mask (np.ndarray or None): Optional mask to filter positions.
+        angle_threshold (float): Angle threshold in degrees to determine if one agent is behind the other.
 
     Returns:
         int: 0 if agent_i is leading, 1 if agent_j is leading.
     """
     position_i, position_j = agent_i.position, agent_j.position
     heading_i = agent_i.heading
-    if heading_i is None:
-        raise ValueError("Agent i must have a heading.")
-
     if mask is not None:
         position_i = position_i[mask]
         position_j = position_j[mask]
@@ -89,7 +87,7 @@ def find_leading_agent(
     angle_ij = np.rad2deg((angle_ij + np.pi) % (2 * np.pi) - np.pi)
 
     # Check if position_j is "behind" position_i
-    leading_agent = np.abs(angle_ij) > 90
+    leading_agent = np.abs(angle_ij) > angle_threshold
     # 0 -> i is leading, 1 -> j is leading
     return (~leading_agent).astype(int)
 
@@ -120,9 +118,7 @@ def compute_intersections(agent_i: InteractionAgent, agent_j: InteractionAgent) 
             of agent_j (shape: [T,]).
     """
     position_i, position_j = agent_i.position, agent_j.position
-    assert position_i is not None and position_j is not None, "Both agents must have position data."
-
-    if position_i.shape[0] < 2 or position_j.shape[0] < 2:
+    if position_i.shape[0] < MIN_VALID_POINTS or position_j.shape[0] < MIN_VALID_POINTS:
         return np.zeros((position_i.shape[0],), dtype=bool)
 
     segments_i = np.stack([position_i[:-1], position_i[1:]], axis=1)
@@ -141,9 +137,10 @@ def compute_mttcp(
     agent_to_agent_max_distance: float = 0.5,
 ) -> np.ndarray:
     """Computes the minimum time to conflict point (mTTCP) between two agents.
-                                 | 𝚫xi(t)     𝚫xj(t)  |
-        𝚫TTCP  =       min       |------  ‒‒  ------  |
-                  t in {0, tcp}  | 𝚫vi(t)     𝚫vj(t)  |
+
+                                 |  𝚫xi(t)     𝚫xj(t) |
+        𝚫TTCP  =       min       | ------  -  ------  |
+                  t in {0, tcp}  |  𝚫vi(t)     𝚫vj(t) |
 
     The mTTCP is defined as the minimum absolute difference in time for each agent to reach a conflict point,
     for all timesteps where the agents are within a specified distance threshold.
@@ -166,8 +163,7 @@ def compute_mttcp(
     _, i_unique = np.unique(i_idx, return_index=True)
     ti = i_idx[i_unique]
     if len(ti) == 0:
-        mttcp = np.array([np.inf], dtype=np.float32)
-        return mttcp
+        return np.array([np.inf], dtype=np.float32)
 
     conflict_points = position_i[ti]
     mttcp = np.inf * np.ones(conflict_points.shape[0])
@@ -196,9 +192,10 @@ def compute_thw(
     agent_j: InteractionAgent,
     leading_agent: np.ndarray,
     valid_headings: np.ndarray | None = None,
+    *,
     return_only_finite: bool = True,
 ) -> np.ndarray:
-    """Computes the following leader-follower interaction measurements:
+    """Computes the following leader-follower interaction measurements.
 
         Time Headway (THW):
         -------------------
@@ -211,15 +208,11 @@ def compute_thw(
         agent_j (InteractionAgent): The second agent.
         leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
         valid_headings (np.ndarray | None): Optional mask to filter valid headings.
+        return_only_finite (bool): Whether to return only finite THW values.
 
     Returns:
         np.ndarray: Array of time headway values for each timestep (shape: [T,]).
     """
-    if agent_i.position is None or agent_j.position is None:
-        raise ValueError(
-            "Both agents must have position data.",
-            f"agent_i position: {agent_i.position}, agent_j position: {agent_j.position}",
-        )
     position_i, position_j = np.linalg.norm(agent_i.position, axis=-1), np.linalg.norm(agent_j.position, axis=-1)
     speed_i, speed_j = agent_i.speed, agent_j.speed
     length_i, length_j = agent_i.length, agent_j.length
@@ -258,9 +251,10 @@ def compute_ttc(
     agent_j: InteractionAgent,
     leading_agent: np.ndarray,
     valid_headings: np.ndarray | None = None,
+    *,
     return_only_finite: bool = True,
 ) -> np.ndarray:
-    """Computes the following leader-follower interaction measurement:
+    """Computes the following leader-follower interaction measurement.
 
         Time-to-Collision (TTC):
         ------------------------
@@ -276,6 +270,7 @@ def compute_ttc(
         agent_j (InteractionAgent): The second agent.
         leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
         valid_headings (np.ndarray | None): Optional mask to filter valid headings.
+        return_only_finite (bool): Whether to return only finite TTC values.
 
     Returns:
         np.ndarray: Array of time-to-collision values for each timestep (shape: [T,]).
@@ -320,9 +315,10 @@ def compute_drac(
     agent_j: InteractionAgent,
     leading_agent: np.ndarray,
     valid_headings: np.ndarray | None = None,
+    *,
     return_nonzero_only: bool = True,
 ) -> np.ndarray:
-    """Computes the following leader-follower interaction measurement:
+    """Computes the following leader-follower interaction measurement.
 
         Deceleration Rate to Avoid a Crash (DRAC):
         -----------------------------------------
@@ -337,6 +333,7 @@ def compute_drac(
         agent_j (InteractionAgent): The second agent.
         leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
         valid_headings (np.ndarray | None): Optional mask to filter valid headings.
+        return_nonzero_only (bool): Whether to return only non-zero DRAC values.
 
     Returns:
         np.ndarray: Array of time-to-collision values for each timestep (shape: [T,]).

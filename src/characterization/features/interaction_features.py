@@ -6,7 +6,13 @@ from omegaconf import DictConfig
 import characterization.features.interaction_utils as interaction
 from characterization.features.base_feature import BaseFeature
 from characterization.schemas import Interaction, Scenario, ScenarioFeatures
-from characterization.utils.common import EPS, AgentTrajectoryMasker, InteractionStatus, ReturnCriterion
+from characterization.utils.common import (
+    EPS,
+    MIN_VALID_POINTS,
+    AgentTrajectoryMasker,
+    InteractionStatus,
+    ReturnCriterion,
+)
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -173,7 +179,7 @@ class InteractionFeatures(BaseFeature):
             # To compute Time Headway (THW), Time to Collision (TTC), and Deceleration Rate to Avoid Collision (DRAC),
             # we currently assume that agents are sharing the same lane.
             valid_headings = interaction.find_valid_headings(agent_i, agent_j, heading_threshold)
-            if valid_headings.shape[0] < 2:  # noqa: PLR2004
+            if valid_headings.shape[0] < MIN_VALID_POINTS:
                 thw = np.full(1, np.inf, dtype=np.float32)
                 ttc = np.full(1, np.inf, dtype=np.float32)
                 drac = np.full(1, np.inf, dtype=np.float32)

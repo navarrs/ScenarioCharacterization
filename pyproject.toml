@@ -82,7 +82,6 @@ exclude = [
     "src/characterization/utils/viz/waymo.py",
     "src/characterization/utils/common.py",
     "src/characterization/features/individual_utils.py",
-    "src/characterization/features/interaction_utils.py",
 ]
 line-length = 120
 target-version = "py312"
@@ -98,6 +97,7 @@ lint.ignore = [
     "PLR0915",          # too many statements
     "PTH",              # use pathlib instead of os, re-enable later
     "TD003",            # missing issue
+    "RUF005",           # replace concatenation
     "TC001",            # move application import into a type-checking block
     "TC002",            # move import into a type-checking block
     "TD",               # ignore all TODO rules, re-enable later.

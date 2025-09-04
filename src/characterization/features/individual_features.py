@@ -4,7 +4,7 @@ from omegaconf import DictConfig
 import characterization.features.individual_utils as individual
 from characterization.features.base_feature import BaseFeature
 from characterization.schemas import Individual, Scenario, ScenarioFeatures
-from characterization.utils.common import AgentTrajectoryMasker, ReturnCriterion
+from characterization.utils.common import MIN_VALID_POINTS, AgentTrajectoryMasker, ReturnCriterion
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -98,7 +98,7 @@ class IndividualFeatures(BaseFeature):
         # result in trajectories of different lengths.
         for n in range(agent_data.num_agents):
             mask = agent_valid[n]
-            if not mask.any() or mask.sum() < 2:  # noqa: PLR2004
+            if not mask.any() or mask.sum() < MIN_VALID_POINTS:
                 continue
 
             velocities = agent_velocities[n][mask, :]
