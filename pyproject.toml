@@ -70,6 +70,7 @@ include-package-data = true
 
 [tool.ruff]
 extend-select = ["I"]
+fix = true
 exclude = [
     "src/scripts",
     "src/characterization/examples",
@@ -80,7 +81,6 @@ exclude = [
 ]
 line-length = 120
 target-version = "py312"
-fix = true
 lint.ignore = [
     # keep-sorted start
     "C901",             # too complex

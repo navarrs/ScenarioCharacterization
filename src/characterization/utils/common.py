@@ -2,9 +2,9 @@ import numpy as np
 from typing import ClassVar, Any, Annotated
 
 from collections.abc import Callable
-from enum import Enum
 
 from numpy.typing import NDArray
+from enum import Enum
 from pydantic import BeforeValidator
 from characterization.utils.ad_types import AgentType
 
