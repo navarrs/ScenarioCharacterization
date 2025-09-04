@@ -82,6 +82,7 @@ deactivate # if the uv environment is active
 uv python pin 3.12
 uv venv
 source .venv/bin/activate
+uv sync
 ```
 
 
