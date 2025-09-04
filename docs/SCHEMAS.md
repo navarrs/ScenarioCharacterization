@@ -10,37 +10,41 @@ This repository currently uses three main schemas:
 
 ## Scenario Schema
 
-The dataset adapter class is responsible for converting data from a dataset-specific format into a structured representation, as defined by the schema [[SOURCE](../src/characterization/utils/schemas.py#L35)] below:
+The dataset adapter class is responsible for converting data from a dataset-specific format into a structured representation.
 
+Schemas:
 ```python
-class Scenario(BaseModel):
-    # Scenario Information
+class AgentData(BaseModel):
+    agent_ids: list[NonNegativeInt]
+    agent_types: list[AgentType]
+    agent_trajectories: Float32NDArray3D
+    agent_relevance: Float32NDArray2D | None = None
+
+
+class ScenarioMetadata(BaseModel):
     scenario_id: str
-    total_timesteps: PositiveInt
-    last_observed_timestep: PositiveInt
-    timestamps: Float32NDArray1D
+    timestamps_seconds: list[float]
+    current_time_index: int
+    ego_vehicle_id: int
+    ego_vehicle_index: int
+    objects_of_interest: list[int]
+    track_length: int
+    dataset: str
 
-    # Agent Information
-    num_agents: PositiveInt
-    ego_index: NonNegativeInt
-    ego_id: PositiveInt
-    agent_ids: List[NonNegativeInt]
-    agent_types: List[str]
+    # Thresholds
+    stationary_speed: float = 0.25  # m/s
+    agent_to_agent_max_distance: float = 50.0  # meters
+    agent_to_conflict_point_max_distance: float = 2.0  # meters
+    agent_to_agent_distance_breach: float = 1.0  # meters
+    heading_threshold: float = 45.0  # degrees
 
-    agent_positions: Float32NDArray3D
-    agent_velocities: Float32NDArray3D
-    agent_lengths: Float32NDArray2D
-    agent_widths: Float32NDArray2D
-    agent_heights: Float32NDArray2D
-    agent_headings: Float32NDArray2D
-    agent_valid: BooleanNDArray2D
-    agent_relevance: Float32NDArray1D
+class TracksToPredict(BaseModel):
+    track_index: list[NonNegativeInt]
+    difficulty: list[NonNegativeInt]
+    object_type: list[AgentType]
 
-    # Map Information
-    num_conflict_points: NonNegativeInt = 0
-    map_conflict_points: Float32NDArray2D | None
-    agent_distances_to_conflict_points: Float32NDArray3D | None
-    num_polylines: NonNegativeInt = 0
+
+class StaticMapData(BaseModel):
     map_polylines: Float32NDArray2D | None = None
     lane_ids: Int32NDArray1D | None = None
     lane_speed_limits_mph: Float32NDArray1D | None = None
@@ -56,34 +60,41 @@ class Scenario(BaseModel):
     stop_sign_ids: Int32NDArray1D | None = None
     stop_sign_polyline_idxs: Int32NDArray2D | None = None
     stop_sign_lane_ids: list[list[int]] | None = None
-    num_dynamic_stop_points: NonNegativeInt = 0
-    dynamic_stop_points: Float32NDArray2D | None = None
-    dynamic_stop_points_lane_ids: Int32NDArray1D | None = None
 
-    # Thresholds
-    stationary_speed: float
-    agent_to_agent_max_distance: float
-    agent_to_conflict_point_max_distance: float
-    agent_to_agent_distance_breach: float
+    # Optional information that can be derived from existing map information
+    map_conflict_points: Float32NDArray2D | None = None
+    agent_distances_to_conflict_points: Float32NDArray3D | None = None
 
-    # To allow numpy and other arbitrary types in the model
-    model_config = {"arbitrary_types_allowed": True}
+class DynamicMapData(BaseModel):
+    stop_points: list[Any] | None = None
+    lane_ids: list[Any] | None = None
+    states: list[Any] | None = None  # Placeholder for state information, can be more specific if needed
+
+
+class Scenario(BaseModel):
+    metadata: ScenarioMetadata
+    agent_data: AgentData
+    tracks_to_predict: TracksToPredict | None = None
+    static_map_data: StaticMapData | None = None
+    dynamic_map_data: DynamicMapData | None = None
 ```
+
+See [[SOURCE](../src/characterization/schemas/scenario.py)] for more details and descriptions.
 
 ---
 
 ## Scenario Features Schema
 
-The feature processor takes a `Scenario` as input and produces `ScenarioFeatures` [[SOURCE](../src/characterization/utils/schemas.py#L164)] as output:
+The feature processor takes a `Scenario` as input and produces `ScenarioFeatures`.
 
+Schemas:
 ```python
-class ScenarioFeatures(BaseModel):
-    scenario_id: str
-    num_agents: PositiveInt
+class Individual(BaseModel):
+    # Agent meta
+    valid_idxs: Int32NDArray1D | None = None
+    agent_types: list[AgentType] | None = None
 
     # Individual Features
-    valid_idxs: Int32NDArray1D | None = None
-    agent_types: List[str] | None = None
     speed: Float32NDArray1D | None = None
     speed_limit_diff: Float32NDArray1D | None = None
     acceleration: Float32NDArray1D | None = None
@@ -93,8 +104,9 @@ class ScenarioFeatures(BaseModel):
     waiting_interval: Float32NDArray1D | None = None
     waiting_distance: Float32NDArray1D | None = None
 
+
+class Interaction(BaseModel):
     # Interaction Features
-    agent_to_agent_closest_dists: Float32NDArray2D | None = None
     separation: Float32NDArray1D | None = None
     intersection: Float32NDArray1D | None = None
     collision: Float32NDArray1D | None = None
@@ -102,33 +114,39 @@ class ScenarioFeatures(BaseModel):
     thw: Float32NDArray1D | None = None
     ttc: Float32NDArray1D | None = None
     drac: Float32NDArray1D | None = None
-    interaction_status: List[InteractionStatus] | None = None
-    interaction_agent_indices: List[tuple[int, int]] | None = None
-    interaction_agent_types: List[tuple[str, str]] | None = None
+
+    interaction_status: list[InteractionStatus] | None = None
+    interaction_agent_indices: list[tuple[int, int]] | None = None
+    interaction_agent_types: list[tuple[AgentType, AgentType]] | None = None
+
+
+class ScenarioFeatures(BaseModel):
+    metadata: ScenarioMetadata
+    individual_features: Individual | None = None
+    interaction_features: Interaction | None = None
+    agent_to_agent_closest_dists: Float32NDArray2D | None = None
+
 ```
+
+See [[SOURCE](../src/characterization/schemas/scenario_features.py)] for more details and descriptions.
 
 ---
 
 ## Scenario Scores Schema
 
-The score processor takes a `Scenario` and its corresponding `ScenarioFeatures` as input, and produces `ScenarioScores` [[SOURCE](../src/characterization/utils/schemas.py#L224)] as output:
+The score processor takes a `Scenario` and its corresponding `ScenarioFeatures` as input, and produces `ScenarioScores`.
 
+Schemas:
 ```python
-class ScenarioScores(BaseModel):
-    scenario_id: str
-    num_agents: PositiveInt
+class Score(BaseModel):
+    agent_scores: Float32NDArray1D | None = None
+    scene_score: float | None = None
 
-    # Individual Scores
-    individual_agent_scores: Float32NDArray1D | None = None
-    individual_scene_score: float | None = None
-
-    # Interaction Scores
-    interaction_agent_scores: Float32NDArray1D | None = None
-    interaction_scene_score: float | None = None
-
-    # Combined Scores
-    combined_agent_scores: Float32NDArray1D | None = None
-    combined_scene_score: float | None = None
-
-    model_config = {"arbitrary_types_allowed": True}
+class ScenarioScores(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+    metadata: ScenarioMetadata
+    individual_scores: Score | None = None
+    interaction_scores: Score | None = None
+    safeshift_scores: Score | None = None
 ```
+
+See [[SOURCE](../src/characterization/schemas/scenario_scores.py)] for more details and descriptions.
