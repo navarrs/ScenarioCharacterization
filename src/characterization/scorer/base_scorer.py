@@ -9,6 +9,8 @@ from characterization.utils.common import EPS
 
 
 class BaseScorer(ABC):
+    """Abstract base class for scenario scorers."""
+
     def __init__(self, config: DictConfig) -> None:
         """Initializes the BaseScorer with a configuration.
 
@@ -16,7 +18,7 @@ class BaseScorer(ABC):
             config (DictConfig): Configuration for the scorer, including features, detections,
                 weights, and score clipping parameters.
         """
-        super(BaseScorer, self).__init__()
+        super().__init__()
         self.config = config
         self.characterizer_type = "score"
         self.features = self.config.get("features", None)
@@ -52,7 +54,8 @@ class BaseScorer(ABC):
             ValueError: If agent_to_agent_closest_dists is None in scenario_features.
         """
         if scenario_features.agent_to_agent_closest_dists is None:
-            raise ValueError("agent_to_agent_closest_dists must not be None")
+            error_message = "agent_to_agent_closest_dists must not be None"
+            raise ValueError(error_message)
 
         # An agent's contribution (weight) to the score is inversely proportional to the closest distance
         # between the agent and the relevant agents
@@ -68,8 +71,8 @@ class BaseScorer(ABC):
         min_dist = relevant_agents_dists.min(axis=1) + EPS  # Avoid division by zero
         argmin_dist = relevant_agents_dists.argmin(axis=1)
 
-        weights = relevant_agents_values[argmin_dist] * np.minimum(1.0 / min_dist, 1.0)  # Shape (num_agents, )
-        return weights
+        # weights
+        return relevant_agents_values[argmin_dist] * np.minimum(1.0 / min_dist, 1.0)  # Shape (num_agents, )
 
     @abstractmethod
     def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> ScenarioScores:
