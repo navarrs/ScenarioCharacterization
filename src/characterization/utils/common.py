@@ -6,6 +6,7 @@ from enum import Enum
 
 from numpy.typing import NDArray
 from pydantic import BeforeValidator
+from characterization.utils.ad_types import AgentType
 
 EPS = 1e-6
 SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
@@ -36,14 +37,6 @@ Float32NDArray1D = Annotated[NDArray[np.float32], BeforeValidator(validate_agent
 Int32NDArray1D = Annotated[NDArray[np.int32], BeforeValidator(validate_agent_trajectoryay(np.int32, 1))]
 Int32NDArray2D = Annotated[NDArray[np.int32], BeforeValidator(validate_agent_trajectoryay(np.int32, 2))]
 Int64NDArray2D = Annotated[NDArray[np.int64], BeforeValidator(validate_agent_trajectoryay(np.int64, 2))]
-
-
-class AgentType(Enum):
-    TYPE_UNSET = 0
-    TYPE_VEHICLE = 1
-    TYPE_PEDESTRIAN = 2
-    TYPE_CYCLIST = 3
-    TYPE_OTHER = 4
 
 class InteractionStatus(Enum):
     UNKNOWN = -1

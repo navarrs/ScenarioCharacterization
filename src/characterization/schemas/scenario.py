@@ -3,8 +3,8 @@ from typing import Any, TypeVar
 import numpy as np
 from pydantic import BaseModel, NonNegativeInt, computed_field
 
+from characterization.utils.ad_types import AgentType
 from characterization.utils.common import (
-    AgentType,
     Float32NDArray1D,
     Float32NDArray2D,
     Float32NDArray3D,
@@ -111,12 +111,37 @@ class StaticMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     """Encapsulates static map data for a scenario, including polylines and conflict points.
 
     Attributes:
-        num_conflict_points (NonNegativeInt): Number of conflict points in the map.
-        map_conflict_points (Float32NDArray2D | None): 2D array of shape(num_conflict_points, 3) representing the
-            (x, y, z) positions for each conflict point in the map.
-        num_polylines (NonNegativeInt): Number of polylines in the map.
-        map_polylines (Float32NDArray2D | None): 2D array of shape(num_polylines, 7) representing the polylines in the
-            map.
+        map_polylines (Float32NDArray2D | None): 2D array of shape (P, 7) representing the polylines in the map, where
+            P is the number of polyline points. Each polyline point is represented by 7 features:
+                idx 0 to 2: the (x, y, z) coordinates of the polyline point.
+                idx 3 to 5: the polyline direction vector (dx, dy, dz).
+                idx 6: the polyline type (e.g., lane, road line, road edge, crosswalk, speed bump, stop sign).
+        lane_ids (Int32NDArray1D | None): 1D array of unique lane identifiers.
+        lane_speed_limits_mph (Float32NDArray1D | None): 1D array of speed limits for each lane in miles per hour (mph).
+        lane_polyline_idxs (Int32NDArray2D | None): 2D array of shape (L, 2) representing the start and end polyline
+            indices in map_polylines for each lane. L is the number of lanes.
+        road_line_ids (Int32NDArray1D | None): 1D array of unique road line identifiers.
+        road_line_polyline_idxs (Int32NDArray2D | None): 2D array of shape (R, 2) representing the start and end
+            polyline indices in map_polylines for each road line. R is the number of road lines.
+        road_edge_ids (Int32NDArray1D | None): 1D array of unique road edge identifiers.
+        road_edge_polyline_idxs (Int32NDArray2D | None): 2D array of shape (E, 2) representing the start and end
+            polyline indices in map_polylines for each road edge. E is the number of road edges.
+        crosswalk_ids (Int32NDArray1D | None): 1D array of unique crosswalk identifiers.
+        crosswalk_polyline_idxs (Int32NDArray2D | None): 2D array of shape (C, 2) representing the start and end
+            polyline indices in map_polylines for each crosswalk. C is the number of crosswalks.
+        speed_bump_ids (Int32NDArray1D | None): 1D array of unique speed bump identifiers.
+        speed_bump_polyline_idxs (Int32NDArray2D | None): 2D array of shape (S, 2) representing the start and end
+            polyline indices in map_polylines for each speed bump. S is the number of speed bumps.
+        stop_sign_ids (Int32NDArray1D | None): 1D array of unique stop sign identifiers.
+        stop_sign_polyline_idxs (Int32NDArray2D | None): 2D array of shape (G, 2) representing the start and end
+            polyline indices in map_polylines for each stop sign. G is the number of stop signs.
+        stop_sign_lane_ids (list[list[int]] | None): List of lists, where each inner list contains lane IDs associated
+            with a stop sign.
+        map_conflict_points (Float32NDArray2D | None): 2D array of shape (C, 3) representing conflict regions in the
+            map, where C is the number of conflict points. Each conflict point is represented as (x, y, z) coordinates.
+        agent_distances_to_conflict_points (Float32NDArray3D | None): 3D array of shape (N, C, T) representing the
+            distances from each agent to each conflict point at each timestep, where N is the number of agents, C is the
+            number of conflict points, and T is the number of timesteps. Distances are in meters.
     """
 
     map_polylines: Float32NDArray2D | None = None
@@ -158,12 +183,12 @@ class StaticMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
 class DynamicMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     """Encapsulates dynamic map data for a scenario, including dynamic stop points.
 
+    TODO: combine dynamic and static map data into a single map data class.
+
     Attributes:
-        num_dynamic_stop_points (NonNegativeInt): Number of dynamic stop points in the map.
-        dynamic_stop_points (Float32NDArray2D | None): 2D array of shape(num_dynamic_stop_points, 3) representing the
-            (x, y, z) positions for each dynamic stop point in the map.
-        dynamic_stop_points_lane_ids (Int32NDArray1D | None): 1D array of shape(num_dynamic_stop_points) representing
-            the lane IDs for each dynamic stop point.
+        stop_points (list[Any] | None): List of dynamic stop points in the map.
+        lane_ids (list[Any] | None): List of lane identifiers associated with the dynamic map data.
+        states (list[Any] | None): Placeholder for state information, can be more specific if needed.
     """
 
     stop_points: list[Any] | None = None
