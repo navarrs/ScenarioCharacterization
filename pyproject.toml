@@ -81,7 +81,6 @@ exclude = [
     "src/characterization/utils/viz/visualizer.py",
     "src/characterization/utils/viz/waymo.py",
     "src/characterization/utils/common.py",
-    "src/characterization/features/individual_features.py",
     "src/characterization/features/individual_utils.py",
     "src/characterization/features/interaction_features.py",
     "src/characterization/features/interaction_utils.py",
