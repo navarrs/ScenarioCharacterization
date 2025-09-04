@@ -21,11 +21,18 @@ uv pip install -e ".[waymo]"
 ```
 
 If conda is installed and active in order to make `uv` work the environment has to be sourced.
+
 ```bash
 uv python pin 3.10
 uv venv
 source .venv/bin/activate
 uv pip install -e ".[waymo]"
+```
+
+Or deactivate conda.
+
+```bash
+conda deactivate
 ```
 
 ### 1. Obtain Sample Data
@@ -61,12 +68,15 @@ With the same account you registered for Google Cloud you accept the terms of us
 
 ### 2. Compute Features
 
-For this section it is necesary `python3.12`, pin it with `uv`.
+For this section it is necesary `python3.12`, pin it with `uv`. Also make sure to have the the base dependencies installed.
+
 ```bash
 uv python pin 3.12
+uv sync
 ```
 
 If conda is installed and active in order to make `uv` work the environment has to be sourced.
+
 ```bash
 deactivate # if the uv environment is active
 uv python pin 3.12
@@ -99,6 +109,12 @@ This uses the computed features to generate per-agent and per-scenario scores, s
 ---
 
 ### 4. Visualize Scores and Scenarios
+
+To visualize the scenarios the viz dependencies are required. Install them with:
+
+```bash
+uv pip install -e ".[viz]"
+```
 
 ```bash
 uv run -m characterization.viz_scores_pdf paths=test

@@ -28,4 +28,4 @@ percentiles:
 
 min_scenarios_to_plot: 10
 viz_scenarios: false
-tag: ''
+tag: 'full'
