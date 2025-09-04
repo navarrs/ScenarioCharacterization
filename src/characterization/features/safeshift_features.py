@@ -34,7 +34,7 @@ class SafeShiftFeatures(BaseFeature):
                 - features (optional): Feature-specific configuration parameters for both
                   individual and interaction feature computation.
         """
-        super(SafeShiftFeatures, self).__init__(config)
+        super().__init__(config)
 
     def compute(self, scenario: Scenario) -> ScenarioFeatures:
         """Compute comprehensive scenario features combining individual and interaction analysis.
