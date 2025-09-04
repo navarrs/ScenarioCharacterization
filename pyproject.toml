@@ -103,6 +103,10 @@ lint.unfixable = [
     "RUF100",           # unused noqa
     # keep-sorted end
 ]
+extend-select = ["I"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
