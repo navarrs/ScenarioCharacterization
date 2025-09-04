@@ -12,6 +12,8 @@ repos:
       - id: ruff-check
         args: ["--fix"]
       - id: ruff-format
+        always_run: true
+        pass_filenames: false
 
   # Pyright
   - repo: local
@@ -21,7 +23,6 @@ repos:
         entry: pyright
         language: python
         types: [python]
-        rev: latest
         args: ["--project", "pyproject.toml", "src"]
         pass_filenames: false
         always_run: true
