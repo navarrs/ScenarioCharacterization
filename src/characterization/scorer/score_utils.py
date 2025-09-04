@@ -25,8 +25,21 @@ def simple_individual_score(
     """Aggregates a simple score for an agent using weighted feature values.
 
     Args:
-        **kwargs: Feature values for the agent, including speed, acceleration, deceleration,
-            jerk, and waiting_period.
+        speed (float): Speed of the agent.
+        speed_weight (float): Weight for the speed feature.
+        speed_detection (float): Detection threshold for the speed feature.
+        acceleration (float): Acceleration of the agent.
+        acceleration_weight (float): Weight for the acceleration feature.
+        acceleration_detection (float): Detection threshold for the acceleration feature.
+        deceleration (float): Deceleration of the agent.
+        deceleration_weight (float): Weight for the deceleration feature.
+        deceleration_detection (float): Detection threshold for the deceleration feature.
+        jerk (float): Jerk of the agent.
+        jerk_weight (float): Weight for the jerk feature.
+        jerk_detection (float): Detection threshold for the jerk feature.
+        waiting_period (float): Waiting period of the agent.
+        waiting_period_weight (float): Weight for the waiting period feature.
+        waiting_period_detection (float): Detection threshold for the waiting period feature.
 
     Returns:
         float: The aggregated score for the agent.
@@ -60,7 +73,20 @@ def simple_interaction_score(
     """Aggregates a simple interaction score for an agent pair using weighted feature values.
 
     Args:
-        **kwargs: Feature values for the agent pair, including collision and mttcp.
+        collision (float): Collision indicator (1 if collision occurred, else 0).
+        collision_weight (float): Weight for the collision feature.
+        mttcp (float): Minimum time to closest point of approach.
+        mttcp_weight (float): Weight for the mttcp feature.
+        mttcp_detection (float): Detection threshold for the mttcp feature.
+        thw (float): Time headway.
+        thw_weight (float): Weight for the thw feature.
+        thw_detection (float): Detection threshold for the thw feature.
+        ttc (float): Time to collision.
+        ttc_weight (float): Weight for the ttc feature.
+        ttc_detection (float): Detection threshold for the ttc feature.
+        drac (float): Deceleration rate to avoid collision.
+        drac_weight (float): Weight for the drac feature.
+        drac_detection (float): Detection threshold for the drac feature.
 
     Returns:
         float: The aggregated score for the agent pair.

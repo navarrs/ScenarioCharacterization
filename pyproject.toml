@@ -92,7 +92,6 @@ exclude = [
     "src/characterization/scorer/individual_scorer.py",
     "src/characterization/scorer/interaction_scorer.py",
     "src/characterization/scorer/safeshift_scorer.py",
-    "src/characterization/scorer/score_utils.py",
 ]
 line-length = 120
 target-version = "py312"
