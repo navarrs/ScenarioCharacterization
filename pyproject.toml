@@ -80,7 +80,6 @@ exclude = [
     "src/characterization/utils/viz/utils.py",
     "src/characterization/utils/viz/visualizer.py",
     "src/characterization/utils/viz/waymo.py",
-    "src/characterization/utils/common.py",
 ]
 line-length = 120
 target-version = "py312"

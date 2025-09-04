@@ -15,16 +15,21 @@ MIN_VALID_POINTS = 2
 
 # Validator factory
 def validate_array(
-    expected_dtype: Any,
+    expected_dtype: Any,  # noqa: ANN401
     expected_ndim: int,
 ) -> Callable[[Any], NDArray]:  # pyright: ignore[reportMissingTypeArgument]
-    def _validator(v: Any) -> NDArray:  # pyright: ignore[reportMissingTypeArgument]
+    """Factory function to create a validator for numpy arrays with specific dtype and ndim."""
+
+    def _validator(v: Any) -> NDArray:  # noqa: ANN401 pyright: ignore[reportMissingTypeArgument]
         if not isinstance(v, np.ndarray):
-            raise TypeError("Expected a numpy.ndarray")
+            error_message = f"Expected a numpy.ndarray, got {type(v)}"
+            raise TypeError(error_message)
         if v.dtype != expected_dtype:
-            raise TypeError(f"Expected dtype {expected_dtype}, got {v.dtype}")
+            error_message = f"Expected dtype {expected_dtype}, got {v.dtype}"
+            raise TypeError(error_message)
         if v.ndim != expected_ndim:
-            raise ValueError(f"Expected {expected_ndim}D array, got {v.ndim}D")
+            error_message = f"Expected {expected_ndim}D array, got {v.ndim}D"
+            raise ValueError(error_message)
         return v
 
     return _validator
@@ -43,6 +48,8 @@ Int64NDArray2D = Annotated[NDArray[np.int64], BeforeValidator(validate_array(np.
 
 
 class InteractionStatus(Enum):
+    """Enumeration for interaction status."""
+
     UNKNOWN = -1
     COMPUTED_OK = 0
     PARTIAL_INVALID_HEADING = 1
@@ -52,6 +59,8 @@ class InteractionStatus(Enum):
 
 
 class ReturnCriterion(Enum):
+    """Enumeration for return criteria."""
+
     CRITICAL = 0
     AVERAGE = 1
     UNSET = -1
@@ -106,70 +115,85 @@ class AgentTrajectoryMasker:
     # Mask accessors
     @property
     def xyz_pos_mask(self) -> list[bool]:
+        """Mask for the (x, y, z) position feature."""
         return self._TRAJECTORY_XYZ_POS
 
     @property
     def xy_pos_mask(self) -> list[bool]:
+        """Mask for the (x, y) position feature."""
         return self._TRAJECTORY_XY_POS
 
     @property
     def xy_vel_mask(self) -> list[bool]:
+        """Mask for the (x, y) velocity feature."""
         return self._TRAJECTORY_XY_VEL
 
     @property
     def heading_mask(self) -> list[bool]:
+        """Mask for the heading feature."""
         return self._TRAJECTORY_HEADING
 
     # Trajectory accessors
     @property
     def agent_trajectories(self) -> np.ndarray:
+        """Returns the full agent trajectory data."""
         return self._agent_trajectory
 
     @property
     def agent_dims(self) -> np.ndarray:
+        """Returns the agents dimensions: length, width, height."""
         return self._agent_trajectory[..., self._TRAJECTORY_DIMS]
 
     @property
     def agent_lengths(self) -> np.ndarray:
+        """Returns the length."""
         return self._agent_trajectory[..., self._TRAJECTORY_LENGTHS]
 
     @property
     def agent_widths(self) -> np.ndarray:
+        """Returns the width."""
         return self._agent_trajectory[..., self._TRAJECTORY_WIDTHS]
 
     @property
     def agent_heights(self) -> np.ndarray:
+        """Returns the height."""
         return self._agent_trajectory[..., self._TRAJECTORY_HEIGHTS]
 
     @property
     def agent_headings(self) -> np.ndarray:
+        """Returns the heading."""
         return self._agent_trajectory[..., self._TRAJECTORY_HEADING]
 
     @property
     def agent_xyz_pos(self) -> np.ndarray:
+        """Returns the (x, y, z) position."""
         return self._agent_trajectory[..., self._TRAJECTORY_XYZ_POS]
 
     @property
     def agent_xy_pos(self) -> np.ndarray:
+        """Returns the (x, y) position."""
         return self._agent_trajectory[..., self._TRAJECTORY_XY_POS]
 
     @property
     def agent_xy_vel(self) -> np.ndarray:
+        """Returns the (x, y) velocity."""
         return self._agent_trajectory[..., self._TRAJECTORY_XY_VEL]
 
     @property
     def agent_valid(self) -> np.ndarray:
+        """Returns the valid mask."""
         return self._agent_trajectory[..., self._TRAJECTORY_VALID]
 
     @property
     def agent_state(self) -> np.ndarray:
+        """Returns all features except the valid mask."""
         return self._agent_trajectory[..., self._TRAJECTORY_STATE]
 
 
 class InteractionAgent:
     """Class representing an agent for interaction feature computation."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initializes an InteractionAgent and resets all attributes."""
         self.reset()
 
@@ -294,7 +318,9 @@ class InteractionAgent:
     @property
     def in_conflict_point(self) -> bool:
         """bool: Whether the agent is in a conflict point."""
-        self._in_conflict_point = np.any(self._dists_to_conflict <= self._agent_to_conflict_point_max_distance).__bool__()
+        self._in_conflict_point = np.any(
+            self._dists_to_conflict <= self._agent_to_conflict_point_max_distance
+        ).__bool__()
         return self._in_conflict_point
 
     @property
