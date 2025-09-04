@@ -81,7 +81,6 @@ exclude = [
     "src/characterization/utils/viz/visualizer.py",
     "src/characterization/utils/viz/waymo.py",
     "src/characterization/utils/common.py",
-    "src/characterization/utils/io_utils.py",
     "src/characterization/features/individual_features.py",
     "src/characterization/features/individual_utils.py",
     "src/characterization/features/interaction_features.py",
@@ -108,6 +107,7 @@ lint.ignore = [
     "TC002",            # move import into a type-checking block
     "TD",               # ignore all TODO rules, re-enable later.
     "S101",             # use of assert detected
+    "S301",             # pickle load
     "W293",             # blank line contains whitespace
     # keep-sorted end
 ]
