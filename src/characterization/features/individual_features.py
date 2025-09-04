@@ -136,7 +136,7 @@ class IndividualFeatures(BaseFeature):
                     speed_limit_diff = speed_limit_diffs.max()
                     acceleration = accelerations.max()
                     deceleration = decelerations.max()
-                    jerk = jerks.max()
+                    jerk = jerks.max() if jerks is not None else None
                     waiting_period = waiting_periods.max()
                     waiting_interval = waiting_intervals.max()
                     waiting_distance = waiting_distances.min()
@@ -145,7 +145,7 @@ class IndividualFeatures(BaseFeature):
                     speed_limit_diff = speed_limit_diffs.mean()
                     acceleration = accelerations.mean()
                     deceleration = decelerations.mean()
-                    jerk = jerks.mean()
+                    jerk = jerks.mean() if jerks is not None else None
                     waiting_period = waiting_periods.mean()
                     waiting_interval = waiting_intervals.mean()
                     waiting_distance = waiting_distances.mean()

@@ -91,8 +91,8 @@ class InteractionFeatures(BaseFeature):
         # NOTE: this is also computed as a feature in the individual features.
         agent_velocities = np.linalg.norm(agent_trajectories.agent_xy_vel, axis=-1) + EPS
         agent_headings = np.rad2deg(agent_trajectories.agent_headings)
-        conflict_points = map_data.map_conflict_points
-        dists_to_conflict_points = map_data.agent_distances_to_conflict_points
+        conflict_points = map_data.map_conflict_points if map_data is not None else None
+        dists_to_conflict_points = map_data.agent_distances_to_conflict_points if map_data is not None else None
 
         # Meta information
         stationary_speed = metadata.stationary_speed

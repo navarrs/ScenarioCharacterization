@@ -39,8 +39,10 @@ class IndividualScorer(BaseScorer):
             ValueError: If any required feature (valid_idxs, speed, acceleration, deceleration, jerk, waiting_period)
                 is missing in scenario_features.
         """
-        # TODO: avoid these checks.
+        # TODO: avoid the overhead of these checks.
         individual_features = scenario_features.individual_features
+        if individual_features is None:
+            raise ValueError("individual_features must not be None")
         if individual_features.valid_idxs is None:
             raise ValueError("valid_idxs must not be None")
         if individual_features.speed is None:
