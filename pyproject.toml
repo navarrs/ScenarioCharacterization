@@ -73,7 +73,12 @@ extend-select = ["I"]
 fix = true
 exclude = [
     "src/scripts",
-    "src/characterization/utils",
+    "src/characterization/utils/datasets/waymo_preprocess.py",
+    "src/characterization/utils/datasets",
+    "src/characterization/utils/viz",
+    "src/characterization/utils/common.py",
+    "src/characterization/utils/geometric_utils.py",
+    "src/characterization/utils/io_utils.py",
     "src/characterization/examples",
     "src/characterization/features",
     "src/characterization/scorer",

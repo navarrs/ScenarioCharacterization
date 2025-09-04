@@ -4,6 +4,8 @@ from enum import Enum
 
 
 class AgentType(Enum):
+    """Agent Types for WOMD."""
+
     TYPE_UNSET = 0
     TYPE_VEHICLE = 1
     TYPE_PEDESTRIAN = 2
@@ -12,6 +14,8 @@ class AgentType(Enum):
 
 
 class LaneType(Enum):
+    """Lane Types for WOMD."""
+
     TYPE_UNDEFINED = 0
     TYPE_FREEWAY = 1
     TYPE_SURFACE_STREET = 2
@@ -19,6 +23,8 @@ class LaneType(Enum):
 
 
 class RoadLineType(Enum):
+    """Road line Types for WOMD."""
+
     TYPE_UNKNOWN = 0
     TYPE_BROKEN_SINGLE_WHITE = 1
     TYPE_SOLID_SINGLE_WHITE = 2
@@ -31,6 +37,8 @@ class RoadLineType(Enum):
 
 
 class RoadEdgeType(Enum):
+    """Road edge Types for WOMD."""
+
     TYPE_UNKNOWN = 0
     # Physical road boundary that doesn't have traffic on the other side (e.g.,
     # a curb or the k-rail on the right side of a freeway).
@@ -41,13 +49,14 @@ class RoadEdgeType(Enum):
 
 
 class PolylineType(Enum):
+    """Polyline Types for WOMD."""
+
     # for lane
     TYPE_UNDEFINED = -1
     TYPE_FREEWAY = 1
     TYPE_SURFACE_STREET = 2
     TYPE_BIKE_LANE = 3
     # for roadline
-    TYPE_UNKNOWN = -1
     TYPE_BROKEN_SINGLE_WHITE = 6
     TYPE_SOLID_SINGLE_WHITE = 7
     TYPE_SOLID_DOUBLE_WHITE = 8
@@ -68,6 +77,8 @@ class PolylineType(Enum):
 
 
 class SignalState(Enum):
+    """Traffic Signal States for WOMD."""
+
     LANE_STATE_UNKNOWN = 0
     # // States for traffic signals with arrows.
     LANE_STATE_ARROW_STOP = 1
