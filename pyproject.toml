@@ -75,14 +75,25 @@ exclude = [
     "src/scripts",
     "src/characterization/utils/datasets/waymo_preprocess.py",
     "src/characterization/examples",
-    # TODO: re-nable checks for these
-    "src/characterization/utils/datasets",
-    "src/characterization/utils/viz",
+    # TODO: re-nable checks for files below:
+    "src/characterization/utils/datasets/dataset.py",
+    "src/characterization/utils/datasets/waymo.py",
+    "src/characterization/utils/viz/utils.py",
+    "src/characterization/utils/viz/visualizer.py",
+    "src/characterization/utils/viz/waymo.py",
     "src/characterization/utils/common.py",
     "src/characterization/utils/geometric_utils.py",
     "src/characterization/utils/io_utils.py",
-    "src/characterization/features",
-    "src/characterization/scorer",
+    "src/characterization/features/individual_features.py",
+    "src/characterization/features/individual_utils.py",
+    "src/characterization/features/interaction_features.py",
+    "src/characterization/features/interaction_utils.py",
+    "src/characterization/features/safeshift_features.py",
+    "src/characterization/scorer/base_scorer.py",
+    "src/characterization/scorer/individual_scorer.py",
+    "src/characterization/scorer/interaction_scorer.py",
+    "src/characterization/scorer/safeshift_scorer.py",
+    "src/characterization/scorer/score_utils.py",
 ]
 line-length = 120
 target-version = "py312"
