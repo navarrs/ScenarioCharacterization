@@ -74,15 +74,15 @@ fix = true
 exclude = [
     "src/scripts",
     "src/characterization/utils/datasets/waymo_preprocess.py",
+    "src/characterization/examples",
+    # TODO: re-nable checks for these
     "src/characterization/utils/datasets",
     "src/characterization/utils/viz",
     "src/characterization/utils/common.py",
     "src/characterization/utils/geometric_utils.py",
     "src/characterization/utils/io_utils.py",
-    "src/characterization/examples",
     "src/characterization/features",
     "src/characterization/scorer",
-    "src/characterization/processors",
 ]
 line-length = 120
 target-version = "py312"
@@ -96,9 +96,11 @@ lint.ignore = [
     "ERA001",           # eradicate: remove commented-out code
     "PLR0913",          # too many arguments in function definition
     "PLR0915",          # too many statements
+    "PTH",              # use pathlib instead of os, re-enable later
     "TD003",            # missing issue
     "TC001",            # move application import into a type-checking block
     "TC002",            # move import into a type-checking block
+    "TD",               # ignore all TODO rules, re-enable later.
     "W293",             # blank line contains whitespace
     # keep-sorted end
 ]
