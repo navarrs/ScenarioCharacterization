@@ -127,12 +127,9 @@ def load_scores(
         scores = ScenarioScores.model_validate(scores)
 
         for scorer in score_types:
-            key_dict = f"{scorer}_scene_score"
             key = f"{prefix}_{scorer}"
-            scene_scores[key].append(scores[key_dict])
-
-            key_dict = f"{scorer}_agent_scores"
-            key = f"{prefix}_{scorer}"
-            agent_scores[key].append(scores[key_dict])
+            key_dict = f"{scorer}_scores"
+            scene_scores[key].append(scores[key_dict].scene_score)
+            agent_scores[key].append(scores[key_dict].agent_scores)
 
     return scene_scores, agent_scores

@@ -175,10 +175,10 @@ cython_debug/
 
 # Local
 outputs/
-output/
+output
 output_test/
-cache/
+cache
 tmp/
-samples/*
+samples
 pyproject.txt
 .vscode/
