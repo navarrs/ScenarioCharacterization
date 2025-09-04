@@ -21,7 +21,7 @@ repos:
         entry: pyright
         language: python
         types: [python]
-        additional_dependencies: ["pyright==1.1.379"]
+        rev: latest
         args: ["--project", "pyproject.toml", "src"]
         pass_filenames: false
         always_run: true

@@ -215,8 +215,9 @@ class WaymoData(BaseDataset):
                 if conflict_points_data["all_conflict_points"] is None
                 else conflict_points_data["all_conflict_points"]
             )
-        static_map_data.map_conflict_points = conflict_points
-        static_map_data.agent_distances_to_conflict_points = agent_distances_to_conflict_points
+        if static_map_data is not None:
+            static_map_data.map_conflict_points = conflict_points
+            static_map_data.agent_distances_to_conflict_points = agent_distances_to_conflict_points
 
         # TODO: refactor dynamic map data schema.
         # Repack dynamic map information

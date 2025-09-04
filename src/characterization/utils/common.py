@@ -296,7 +296,7 @@ class InteractionAgent:
     @property
     def is_stationary(self) -> bool | None:
         """Bool or None: Whether the agent is stationary (True/False), or None if unknown."""
-        if self._speed is None:
+        if self.speed is None:
             self._is_stationary = None
         else:
             self._is_stationary = self.speed.mean() < self._stationary_speed

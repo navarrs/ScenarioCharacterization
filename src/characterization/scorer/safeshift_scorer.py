@@ -35,11 +35,13 @@ class SafeShiftScorer(BaseScorer):
         """
         individual_scores: Score = self.individual_scorer.compute_individual_score(scenario, scenario_features)
         scores_ind = individual_scores.agent_scores
+        assert scores_ind is not None, "Individual agent scores must not be None"
         scene_score_ind = individual_scores.scene_score
         assert scene_score_ind is not None, "Scene score must not be None"
 
         interaction_scores: Score = self.interaction_scorer.compute_interaction_score(scenario, scenario_features)
         scores_int = interaction_scores.agent_scores
+        assert scores_int is not None, "Interaction agent scores must not be None"
         scene_score_int = interaction_scores.scene_score
         assert scene_score_int is not None, "Scene score must not be None"
 

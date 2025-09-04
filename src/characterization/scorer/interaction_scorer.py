@@ -45,6 +45,8 @@ class InteractionScorer(BaseScorer):
         interaction_features = scenario_features.interaction_features
         if scenario_features.agent_to_agent_closest_dists is None:
             raise ValueError("agent_to_agent_closest_dists must not be None")
+        if interaction_features is None:
+            raise ValueError("interaction_features must not be None")
         if interaction_features.interaction_agent_indices is None:
             raise ValueError("interaction_agent_indices must not be None")
         if interaction_features.interaction_status is None:

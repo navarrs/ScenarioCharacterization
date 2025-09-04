@@ -118,6 +118,8 @@ def compute_intersections(agent_i: InteractionAgent, agent_j: InteractionAgent) 
             of agent_j (shape: [T,]).
     """
     position_i, position_j = agent_i.position, agent_j.position
+    assert position_i is not None and position_j is not None, "Both agents must have position data."
+
     if position_i.shape[0] < 2 or position_j.shape[0] < 2:
         return np.zeros((position_i.shape[0],), dtype=bool)
 

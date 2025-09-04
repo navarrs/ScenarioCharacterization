@@ -146,22 +146,20 @@ reportUnknownParameterType = false
 reportUnknownArgumentType = false      # Argument type could not be inferred
 reportUnknownVariableType = false      # Variable type could not be inferred
 reportUnknownMemberType = false        # Attribute exists but type is unknown
-# Disable check for call statements whose return value is not None and is not used.
-reportUnusedCallResult = false
-# Check for deprecated typing aliases
-deprecateTypingAliases = true
+reportUnusedCallResult = false         # Disable check for call statements whose return value is not None and is not used.
+deprecateTypingAliases = true          # Check for deprecated typing aliases
 
 # --- Tier 1: Critical (make these errors) ---
-reportMissingImports = "none"             # Import cannot be resolved → runtime ImportError (TODO: resolve)
+reportMissingImports = "none"              # Import cannot be resolved → runtime ImportError (TODO: resolve)
 reportArgumentType = "error"               # Function call arg type mismatch
 reportCallIssue = "error"                  # Wrong number of args / invalid call
 reportIncompatibleMethodOverride = "error" # Subclass overrides with incompatible signature
 reportPossiblyUnboundVariable = "error"    # Variable may be used before assignment
-reportOptionalMemberAccess = "none"       # Accessing attribute on possibly None
-reportOptionalOperand = "none"            # Using arithmetic/logical op on possibly None
-reportOptionalSubscript = "none"          # Indexing a possibly None value
+reportOptionalMemberAccess = "error"        # Accessing attribute on possibly None
+reportOptionalOperand = "none"             # Using arithmetic/logical op on possibly None
+reportOptionalSubscript = "none"           # Indexing a possibly None value
 reportMissingTypeArgument = "error"        # Generic used without type args (e.g., list vs list[int])
-reportInvalidTypeForm = "none"            # Invalid type expression (unsupported or malformed)
+reportInvalidTypeForm = "none"             # Invalid type expression (unsupported or malformed)
 
 # --- Tier 2: Important but can start as warnings ---
 reportUntypedFunction = "none"          # Function missing type annotations
