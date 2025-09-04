@@ -6,6 +6,7 @@ from omegaconf import DictConfig
 from characterization.schemas import Scenario, ScenarioFeatures
 from characterization.utils.common import ReturnCriterion
 
+
 class BaseFeature(ABC):
     """Abstract base class for scenario feature computation.
 

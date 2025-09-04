@@ -1,5 +1,7 @@
-""" Defines Autonomoud Driving (AD) types. """
+"""Defines Autonomoud Driving (AD) types."""
+
 from enum import Enum
+
 
 class AgentType(Enum):
     TYPE_UNSET = 0
@@ -8,11 +10,13 @@ class AgentType(Enum):
     TYPE_CYCLIST = 3
     TYPE_OTHER = 4
 
+
 class LaneType(Enum):
     TYPE_UNDEFINED = 0
     TYPE_FREEWAY = 1
     TYPE_SURFACE_STREET = 2
     TYPE_BIKE_LANE = 3
+
 
 class RoadLineType(Enum):
     TYPE_UNKNOWN = 0
@@ -25,6 +29,7 @@ class RoadLineType(Enum):
     TYPE_SOLID_DOUBLE_YELLOW = 7
     TYPE_PASSING_DOUBLE_YELLOW = 8
 
+
 class RoadEdgeType(Enum):
     TYPE_UNKNOWN = 0
     # Physical road boundary that doesn't have traffic on the other side (e.g.,
@@ -33,6 +38,7 @@ class RoadEdgeType(Enum):
     # Physical road boundary that separates the car from other traffic
     # (e.g. a k-rail or an island).
     TYPE_ROAD_EDGE_MEDIAN = 2
+
 
 class PolylineType(Enum):
     # for lane
@@ -59,6 +65,7 @@ class PolylineType(Enum):
     TYPE_CROSSWALK = 18
     # for speed bump
     TYPE_SPEED_BUMP = 19
+
 
 class SignalState(Enum):
     LANE_STATE_UNKNOWN = 0

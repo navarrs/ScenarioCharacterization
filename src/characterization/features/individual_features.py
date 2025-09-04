@@ -3,9 +3,9 @@ from omegaconf import DictConfig
 
 import characterization.features.individual_utils as individual
 from characterization.features.base_feature import BaseFeature
+from characterization.schemas import Individual, Scenario, ScenarioFeatures
+from characterization.utils.common import AgentTrajectoryMasker, ReturnCriterion
 from characterization.utils.io_utils import get_logger
-from characterization.utils.common import ReturnCriterion, AgentTrajectoryMasker
-from characterization.schemas import Scenario, ScenarioFeatures, Individual
 
 logger = get_logger(__name__)
 

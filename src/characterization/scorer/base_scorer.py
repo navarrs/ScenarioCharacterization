@@ -4,8 +4,9 @@ from abc import ABC, abstractmethod
 import numpy as np
 from omegaconf import DictConfig
 
+from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores
 from characterization.utils.common import EPS
-from characterization.schemas import ScenarioScores, ScenarioFeatures, Scenario
+
 
 class BaseScorer(ABC):
     def __init__(self, config: DictConfig) -> None:

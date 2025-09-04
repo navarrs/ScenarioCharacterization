@@ -73,9 +73,9 @@ extend-select = ["I"]
 fix = true
 exclude = [
     "src/scripts",
+    "src/characterization/utils",
     "src/characterization/examples",
     "src/characterization/features",
-    "src/characterization/utils",
     "src/characterization/scorer",
     "src/characterization/processors",
 ]
@@ -87,8 +87,11 @@ lint.ignore = [
     "COM812",           #
     "D100",             # missing docstring in public module
     "D104",             # missing docstring in public package
+    "FIX002",           # line contains TODO
     "ERA001",           # eradicate: remove commented-out code
+    "PLR0913",          # too many arguments in function definition
     "PLR0915",          # too many statements
+    "TD003",            # missing issue
     "TC001",            # move application import into a type-checking block
     "TC002",            # move import into a type-checking block
     "W293",             # blank line contains whitespace

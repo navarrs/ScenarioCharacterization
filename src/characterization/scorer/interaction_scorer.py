@@ -2,10 +2,11 @@ import numpy as np
 from omegaconf import DictConfig
 
 from characterization.features.interaction_features import InteractionStatus
-from .score_utils import INTERACTION_SCORE_FUNCTIONS
+from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores, Score
 from characterization.scorer.base_scorer import BaseScorer
 from characterization.utils.io_utils import get_logger
-from characterization.schemas import ScenarioScores, ScenarioFeatures, Scenario, Score
+
+from .score_utils import INTERACTION_SCORE_FUNCTIONS
 
 logger = get_logger(__name__)
 
@@ -63,7 +64,9 @@ class InteractionScorer(BaseScorer):
         interaction_agent_indices = interaction_features.interaction_agent_indices
         if self.score_wrt_ego_only:
             interaction_agent_indices = [
-                (i, j) for i, j in interaction_agent_indices if i == scenario.metadata.ego_vehicle_index or j == scenario.metadata.ego_vehicle_index
+                (i, j)
+                for i, j in interaction_agent_indices
+                if i == scenario.metadata.ego_vehicle_index or j == scenario.metadata.ego_vehicle_index
             ]
         for n, (i, j) in enumerate(interaction_agent_indices):
             status = interaction_features.interaction_status[n]

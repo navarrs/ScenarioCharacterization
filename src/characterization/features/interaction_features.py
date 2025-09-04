@@ -5,9 +5,9 @@ from omegaconf import DictConfig
 
 import characterization.features.interaction_utils as interaction
 from characterization.features.base_feature import BaseFeature
-from characterization.utils.common import EPS, InteractionStatus, ReturnCriterion, AgentTrajectoryMasker
+from characterization.schemas import Interaction, Scenario, ScenarioFeatures
+from characterization.utils.common import EPS, AgentTrajectoryMasker, InteractionStatus, ReturnCriterion
 from characterization.utils.io_utils import get_logger
-from characterization.schemas import Scenario, ScenarioFeatures, Interaction
 
 logger = get_logger(__name__)
 
@@ -235,7 +235,6 @@ class InteractionFeatures(BaseFeature):
             interaction_agent_types=scenario_agents_pair_types,
         )
 
-
     def compute(self, scenario: Scenario) -> ScenarioFeatures:
         """Compute scenario features focused on agent-to-agent interactions.
 
@@ -260,5 +259,5 @@ class InteractionFeatures(BaseFeature):
         """
         return ScenarioFeatures(
             metadata=scenario.metadata,
-            interaction_features=InteractionFeatures.compute_interaction_features(scenario, self.return_criterion)
+            interaction_features=InteractionFeatures.compute_interaction_features(scenario, self.return_criterion),
         )

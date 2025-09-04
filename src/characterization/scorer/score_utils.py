@@ -4,6 +4,7 @@ from characterization.utils.common import EPS
 
 SUPPORTED_SCORERS = ["individual", "interaction", "safeshift"]
 
+
 def simple_individual_score(
     speed: float = 0.0,
     speed_weight: float = 1.0,
@@ -74,6 +75,7 @@ def simple_interaction_score(
         + ttc_weight * min(ttc_detection, inv_ttc)
         + min(drac_detection, drac_weight * drac)
     )
+
 
 INDIVIDUAL_SCORE_FUNCTIONS = {
     "simple": simple_individual_score,

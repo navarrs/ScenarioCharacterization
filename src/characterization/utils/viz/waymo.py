@@ -3,8 +3,8 @@ import numpy as np
 from matplotlib.axes import Axes
 from omegaconf import DictConfig
 
-from characterization.utils.io_utils import get_logger
 from characterization.schemas import Scenario
+from characterization.utils.io_utils import get_logger
 from characterization.utils.viz.visualizer import BaseVisualizer
 
 # from matplotlib.patches import Rectangle

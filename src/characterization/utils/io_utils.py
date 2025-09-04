@@ -1,10 +1,10 @@
-
 import logging
 import os
 import pickle  # nosec B403
 
 import colorlog
 from omegaconf import DictConfig, OmegaConf
+
 
 def make_output_paths(cfg: DictConfig) -> None:
     """Creates output directories as specified in the configuration.

@@ -5,9 +5,9 @@ from typing import Any
 from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
+from characterization.schemas import Scenario
 from characterization.utils.common import SUPPORTED_SCENARIO_TYPES
 from characterization.utils.io_utils import get_logger
-from characterization.schemas import Scenario
 
 logger = get_logger(__name__)
 

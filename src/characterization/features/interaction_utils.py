@@ -51,7 +51,9 @@ def find_valid_headings(
     return valid_headings
 
 
-def find_leading_agent(agent_i: InteractionAgent, agent_j: InteractionAgent, mask: np.ndarray | None = None) -> np.ndarray:
+def find_leading_agent(
+    agent_i: InteractionAgent, agent_j: InteractionAgent, mask: np.ndarray | None = None
+) -> np.ndarray:
     """Determines which agent is leading based on their positions and headings.
 
     Args:
