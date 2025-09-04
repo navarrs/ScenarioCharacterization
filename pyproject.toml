@@ -83,7 +83,6 @@ exclude = [
     "src/characterization/utils/common.py",
     "src/characterization/features/individual_utils.py",
     "src/characterization/features/interaction_utils.py",
-    "src/characterization/features/safeshift_features.py",
 ]
 line-length = 120
 target-version = "py312"
