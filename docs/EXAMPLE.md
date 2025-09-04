@@ -12,8 +12,20 @@ This guide demonstrates how to process and analyze scenarios from the Waymo Open
 
 ### Prerequisite: Install Waymo Dependencies
 
+To process the waymo dataset `python 3.10` is required, it can be pinned with `uv`.
+
 ```bash
-uv run pip install -e ".[waymo]"
+uv python pin 3.10
+uv venv
+uv pip install -e ".[waymo]"
+```
+
+If conda is installed and active in order to make `uv` work the environment has to be sourced.
+```bash
+uv python pin 3.10
+uv venv
+source .venv/bin/activate
+uv pip install -e ".[waymo]"
 ```
 
 ### 1. Obtain Sample Data
@@ -21,15 +33,23 @@ uv run pip install -e ".[waymo]"
 Sample files are available in the `samples` directory for quick testing.
 
 1. **Install the [gcloud CLI](https://cloud.google.com/sdk/docs/install).**
-2. **Download a sample scenario:**
+
+2. **Register and accept Waymo’s terms of use**
+
+With the same account you registered for Google Cloud you accept the terms of use in [Waymo Dataset Site](https://waymo.com/open/).
+
+4. **Give your Google Cloud user Cloud Storage permissions**
+
+5. **Download a sample scenario:**
    ```bash
    mkdir -p samples/raw
    cd samples/raw
    gcloud init
    gsutil -m cp -r "gs://waymo_open_dataset_motion_v_1_3_0/uncompressed/scenario/training/training.tfrecord-00000-of-01000" .
    ```
-3. **Pre-process the data:**
+6. **Pre-process the data:**
    (Script adapted from [SafeShift](https://github.com/cmubig/SafeShift?tab=readme-ov-file#waymo-dataset-preparation))
+
    ```bash
    uv run -m characterization.utils.datasets.waymo_preprocess ./samples/raw ./samples/
    ```
@@ -40,6 +60,20 @@ Sample files are available in the `samples` directory for quick testing.
 ---
 
 ### 2. Compute Features
+
+For this section it is necesary `python3.12`, pin it with `uv`.
+```bash
+uv python pin 3.12
+```
+
+If conda is installed and active in order to make `uv` work the environment has to be sourced.
+```bash
+deactivate # if the uv environment is active
+uv python pin 3.12
+uv venv
+source .venv/bin/activate
+```
+
 
 ```bash
 uv run -m characterization.run_processor characterizer=individual_features paths=test
