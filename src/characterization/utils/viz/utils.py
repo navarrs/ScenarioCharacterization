@@ -7,7 +7,6 @@ import seaborn as sns
 from rich.progress import track
 
 from characterization.schemas import ScenarioScores
-from characterization.scorer import SUPPORTED_SCORERS
 from characterization.utils.io_utils import from_pickle, get_logger
 
 logger = get_logger(__name__)
@@ -103,33 +102,24 @@ def plot_histograms_from_dataframe(
 
 
 def load_scores(
-    scene_scores: dict[str, list[float]],
-    agent_scores: dict[str, list[float]],
     scenario_ids: list[str],
     scores_path: str,
     prefix: str,
-    score_types: list[str] = SUPPORTED_SCORERS,
-) -> tuple[dict[str, list[float]], dict[str, list[float]]]:
+) -> dict[str, ScenarioScores]:
     """Loads scenario scores from the specified path and updates the scores DataFrame.
 
     Args:
-        scores_df (pd.DataFrame): DataFrame to update with loaded scores.
+        scenario_ids (list[str]): List of scenario IDs to load scores for.
         scores_path (str): Path to the directory containing score files.
-        scenario_type (str): Type of scenario to load scores for.
-        criteria (str): Scoring criteria to filter by.
+        prefix (str): Prefix for the score files.
 
     Returns:
-        pd.DataFrame: Updated DataFrame with loaded scores.
+        dict[str, ScenarioScores]: Dictionary mapping scenario IDs to their corresponding ScenarioScores.
     """
+    scores_dict = {}
     for scenario_id in track(scenario_ids, description=f"Loading {prefix} scores"):
         filepath = os.path.join(scores_path, scenario_id)
         scores = from_pickle(filepath)  # nosec B301
         scores = ScenarioScores.model_validate(scores)
-
-        for scorer in score_types:
-            key = f"{prefix}_{scorer}"
-            key_dict = f"{scorer}_scores"
-            scene_scores[key].append(scores[key_dict].scene_score)
-            agent_scores[key].append(scores[key_dict].agent_scores)
-
-    return scene_scores, agent_scores
+        scores_dict[scenario_id] = scores
+    return scores_dict

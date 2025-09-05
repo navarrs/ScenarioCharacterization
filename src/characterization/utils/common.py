@@ -10,6 +10,7 @@ from characterization.utils.ad_types import AgentType
 
 EPS = 1e-6
 SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
+SUPPORTED_CRITERIA = ["critical", "average"]
 MIN_VALID_POINTS = 2
 
 
@@ -380,4 +381,4 @@ class InteractionAgent:
         self._length = np.empty((0,), dtype=np.float32)
         self._width = np.empty((0,), dtype=np.float32)
         self._height = np.empty((0,), dtype=np.float32)
-        self._agent_type = AgentType.UNSET
+        self._agent_type = AgentType.TYPE_UNSET

@@ -37,3 +37,4 @@ config:
     TYPE_VEHICLE: "blue"
     TYPE_SDC: "red"
     TYPE_RELEVANT: "orange"
+    TYPE_RELEVAN: "orange"
