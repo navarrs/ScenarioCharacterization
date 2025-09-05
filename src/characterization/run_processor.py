@@ -27,6 +27,7 @@ def run(cfg: DictConfig) -> None:
     print_config(cfg, theme="native")
 
     logger.info("Instatiating dataset: %s", cfg.dataset._target_)
+
     dataset: BaseDataset = hydra.utils.instantiate(cfg.dataset)
 
     logger.info("Instatiating characterizer: %s", cfg.characterizer._target_)
