@@ -1,9 +1,18 @@
 name: pre-commit
-on:
-  pull_request:
-    branches: [ main, develop ]
-  push:
-    branches: [ main, develop ]   # optional: fail fast on direct pushes (if allowed)
+pull_request:
+  branches:
+    - main
+    - develop
+    - 'fix/*'
+    - 'bug/*'
+    - 'feature/*'
+push:
+  branches:
+    - main
+    - develop
+    - 'fix/*'
+    - 'bug/*'
+    - 'feature/*'   # optional: fail fast on direct pushes (if allowed)
 
 jobs:
   pre-commit:
