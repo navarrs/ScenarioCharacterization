@@ -30,6 +30,7 @@ def run(cfg: DictConfig) -> None:
     dataset: BaseDataset = hydra.utils.instantiate(cfg.dataset)
 
     logger.info("Instatiating characterizer: %s", cfg.characterizer._target_)
+
     characterizer: BaseFeature | BaseScorer = hydra.utils.instantiate(cfg.characterizer)
 
     logger.info("Instatiating processor: %s", cfg.processor._target_)
