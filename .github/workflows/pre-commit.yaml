@@ -1,25 +1,27 @@
 name: pre-commit
-pull_request:
-  branches:
-    - main
-    - develop
-    - 'fix/*'
-    - 'bug/*'
-    - 'feature/*'
-push:
-  branches:
-    - main
-    - develop
-    - 'fix/*'
-    - 'bug/*'
-    - 'feature/*'   # optional: fail fast on direct pushes (if allowed)
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - fix/*
+      - bug/*
+      - feature/*
+  push:
+    branches:
+      - main
+      - develop
+      - fix/*
+      - bug/*
+      - feature/*
+
+
 
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # This action installs and runs pre-commit in an isolated env — no project deps needed
       - uses: pre-commit/action@v3.0.1
         with:
           extra_args: --all-files --show-diff-on-failure
