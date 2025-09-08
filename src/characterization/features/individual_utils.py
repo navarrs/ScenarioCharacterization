@@ -62,7 +62,7 @@ def compute_acceleration_profile(speed: np.ndarray, timestamps: np.ndarray) -> t
         ValueError: If speed and timestamps do not have the same shape.
     """
 
-    def get_acc_sums(acc: np.ndarray, idx: np.ndarray) -> tuple[np.ndarray, list[tuple]]:
+    def get_acc_sums(acc: np.ndarray, idx: np.ndarray) -> tuple[np.ndarray, list[tuple[int, int]]]:
         diff = idx[1:] - idx[:-1]
         diff = np.array([-1] + np.where(diff > 1)[0].tolist() + [diff.shape[0]])  # noqa: RUF005
         se_idxs = [(idx[s + 1], idx[e] + 1) for s, e in zip(diff[:-1], diff[1:], strict=False)]  # noqa: RUF007
