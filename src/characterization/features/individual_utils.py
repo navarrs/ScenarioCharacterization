@@ -44,6 +44,7 @@ def compute_speed(velocities: np.ndarray) -> tuple[np.ndarray | None, ...]:
 
 def compute_acceleration_profile(speed: np.ndarray, timestamps: np.ndarray) -> tuple[np.ndarray | None, ...]:
     """Computes the acceleration profile from the speed (m/s) and time delta.
+
     Args:
         speed (np.ndarray): The speed time series (m/s) (shape: [T,]).
         timestamps (np.ndarray): The timestamps corresponding to each speed measurement (shape: [T,]).

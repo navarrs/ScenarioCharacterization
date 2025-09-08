@@ -24,4 +24,4 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pre-commit/action@v3.0.1
         with:
-          extra_args: --all-files --show-diff-on-failure --hook-stage commit
+          extra_args: --all-files --show-diff-on-failure
