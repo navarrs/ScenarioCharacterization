@@ -222,6 +222,10 @@ class BaseVisualizer(ABC):
             num_windows (int, optional): Number of subplot windows. Defaults to 0.
             dim (int, optional): Number of dimensions to plot. Defaults to 2.
         """
+        if static_map_data.map_polylines is None:
+            logger.warning("Scenario does not contain map_polylines, skipping static map visualization.")
+            return
+
         road_graph = static_map_data.map_polylines[:, :dim]
         if static_map_data.lane_polyline_idxs is not None:
             color, alpha = self.map_colors["lane"], self.map_alphas["lane"]

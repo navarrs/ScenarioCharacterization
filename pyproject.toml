@@ -166,7 +166,7 @@ reportIncompatibleMethodOverride = "error" # Subclass overrides with incompatibl
 reportPossiblyUnboundVariable = "error"    # Variable may be used before assignment
 reportOptionalMemberAccess = "error"        # Accessing attribute on possibly None
 reportOptionalOperand = "error"             # Using arithmetic/logical op on possibly None
-reportOptionalSubscript = "none"           # Indexing a possibly None value
+reportOptionalSubscript = "error"           # Indexing a possibly None value
 reportMissingTypeArgument = "error"        # Generic used without type args (e.g., list vs list[int])
 reportInvalidTypeForm = "none"             # Invalid type expression (unsupported or malformed)
 
