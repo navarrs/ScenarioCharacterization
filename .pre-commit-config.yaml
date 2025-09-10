@@ -36,7 +36,7 @@ repos:
       - id: detect-secrets
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
       # Prevents accidentally committing huge files. Limit set to 1MB.
       - id: check-added-large-files
