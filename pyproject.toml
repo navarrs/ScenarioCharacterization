@@ -170,7 +170,7 @@ reportUnnecessaryComparison = "none"       # Comparison always true/false (rare 
 reportMissingModuleSource = "none"         # Module has stub but no source (informational only)
 
 # --- Tier 2: Important but can start as warnings ---
-reportUntypedFunction = "none"          # Function missing type annotations
+reportUntypedFunction = "error"          # Function missing type annotations
 reportUntypedBaseClass = "none"         # Inheriting from untyped base class
 reportUntypedFunctionDecorator = "none" # Decorator has no type info
 reportMissingParameterType = "none"     # Parameter missing explicit type
