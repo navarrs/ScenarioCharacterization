@@ -148,27 +148,26 @@ exclude = [
 ]
 ignore = ["tmp/**"]
 typeCheckingMode = "strict"
-# Disable support for '# type: ignore' in favor of '# pyright: ignore'
-enableTypeIgnoreComments = false
-# Disable rules that error if types are partially known.
-reportUnknownParameterType = false
-reportUnknownArgumentType = false      # Argument type could not be inferred
-reportUnknownVariableType = false      # Variable type could not be inferred
-reportUnknownMemberType = false        # Attribute exists but type is unknown
-reportUnusedCallResult = false         # Disable check for call statements whose return value is not None and is not used.
-deprecateTypingAliases = true          # Check for deprecated typing aliases
-
-# --- Tier 1: Critical (make these errors) ---
+enableTypeIgnoreComments = false           # Disable support for '# type: ignore' in favor of '# pyright: ignore'
+reportUnknownParameterType = false         # Parameter type could not be inferred
+reportUnknownArgumentType = false          # Argument type could not be inferred
+reportUnknownVariableType = false          # Variable type could not be inferred
+reportUnknownMemberType = false            # Attribute exists but type is unknown
+reportUnusedCallResult = false             # Disable check for call statements whose return value is not None and is not used.
+deprecateTypingAliases = true              # Check for deprecated typing aliases
 reportMissingImports = "none"              # Import cannot be resolved → runtime ImportError (TODO: resolve)
 reportArgumentType = "error"               # Function call arg type mismatch
 reportCallIssue = "error"                  # Wrong number of args / invalid call
 reportIncompatibleMethodOverride = "error" # Subclass overrides with incompatible signature
 reportPossiblyUnboundVariable = "error"    # Variable may be used before assignment
-reportOptionalMemberAccess = "error"        # Accessing attribute on possibly None
-reportOptionalOperand = "error"             # Using arithmetic/logical op on possibly None
-reportOptionalSubscript = "error"           # Indexing a possibly None value
+reportOptionalMemberAccess = "error"       # Accessing attribute on possibly None
+reportOptionalOperand = "error"            # Using arithmetic/logical op on possibly None
+reportOptionalSubscript = "error"          # Indexing a possibly None value
 reportMissingTypeArgument = "error"        # Generic used without type args (e.g., list vs list[int])
-reportInvalidTypeForm = "none"             # Invalid type expression (unsupported or malformed)
+reportInvalidTypeForm = "none"            # Invalid type expression (unsupported or malformed)
+reportUnusedImports = "none"               # Unused imports (Ruff handles this faster)
+reportUnnecessaryComparison = "none"       # Comparison always true/false (rare style smell)
+reportMissingModuleSource = "none"         # Module has stub but no source (informational only)
 
 # --- Tier 2: Important but can start as warnings ---
 reportUntypedFunction = "none"          # Function missing type annotations
@@ -176,8 +175,3 @@ reportUntypedBaseClass = "none"         # Inheriting from untyped base class
 reportUntypedFunctionDecorator = "none" # Decorator has no type info
 reportMissingParameterType = "none"     # Parameter missing explicit type
 reportAttributeAccessIssue = "none"
-
-# --- Tier 3: Style / not critical (better handled by Ruff or ignorable) ---
-reportUnusedImports = "none"             # Unused imports (Ruff handles this faster)
-reportUnnecessaryComparison = "none"     # Comparison always true/false (rare style smell)
-reportMissingModuleSource = "none"       # Module has stub but no source (informational only)
