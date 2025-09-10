@@ -175,7 +175,7 @@ reportUntypedFunction = "error"            # Function missing type annotations
 
 # Set to "none"
 # keep-sorted start
-reportAttributeAccessIssue = "none"        # Attribute access issue
+reportAttributeAccessIssue = "error"        # Attribute access issue
 reportInvalidTypeForm = "none"             # Invalid type expression (unsupported or malformed)
 reportMissingImports = "none"              # Import cannot be resolved → runtime ImportError (TODO: resolve)
 reportMissingModuleSource = "none"         # Module has stub but no source (informational only)
