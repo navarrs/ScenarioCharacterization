@@ -88,17 +88,17 @@ lint.ignore = [
     "COM812",           #
     "D100",             # missing docstring in public module
     "D104",             # missing docstring in public package
-    "FIX002",           # line contains TODO
     "ERA001",           # eradicate: remove commented-out code
+    "FIX002",           # line contains TODO
     "PLR0913",          # too many arguments in function definition
     "PLR0915",          # too many statements
     "PTH",              # use pathlib instead of os, re-enable later
-    "TD003",            # missing issue
+    "S101",             # use of assert detected
+    "S301",             # pickle load
     "TC001",            # move application import into a type-checking block
     "TC002",            # move import into a type-checking block
     "TD",               # ignore all TODO rules, re-enable later.
-    "S101",             # use of assert detected
-    "S301",             # pickle load
+    "TD003",            # missing issue
     "W293",             # blank line contains whitespace
     # keep-sorted end
 ]
@@ -148,36 +148,40 @@ exclude = [
 ]
 ignore = ["tmp/**"]
 typeCheckingMode = "strict"
-# Disable support for '# type: ignore' in favor of '# pyright: ignore'
-enableTypeIgnoreComments = false
-# Disable rules that error if types are partially known.
-reportUnknownParameterType = false
-reportUnknownArgumentType = false      # Argument type could not be inferred
-reportUnknownVariableType = false      # Variable type could not be inferred
-reportUnknownMemberType = false        # Attribute exists but type is unknown
-reportUnusedCallResult = false         # Disable check for call statements whose return value is not None and is not used.
-deprecateTypingAliases = true          # Check for deprecated typing aliases
+deprecateTypingAliases = true              # Check for deprecated typing aliases
 
-# --- Tier 1: Critical (make these errors) ---
-reportMissingImports = "none"              # Import cannot be resolved → runtime ImportError (TODO: resolve)
+# Set to false
+# keep-sorted start
+enableTypeIgnoreComments = false           # Disable support for '# type: ignore' in favor of '# pyright: ignore'
+reportUnknownArgumentType = false          # Argument type could not be inferred
+reportUnknownMemberType = false            # Attribute exists but type is unknown
+reportUnknownParameterType = false         # Parameter type could not be inferred
+reportUnknownVariableType = false          # Variable type could not be inferred
+reportUnusedCallResult = false             # Disable check for call statements whose return value is not None and is not used.
+# keep-sorted end
+
+# Set to "error"
+# keep-sorted start
 reportArgumentType = "error"               # Function call arg type mismatch
+reportAttributeAccessIssue = "error"       # Attribute access issue
 reportCallIssue = "error"                  # Wrong number of args / invalid call
 reportIncompatibleMethodOverride = "error" # Subclass overrides with incompatible signature
-reportPossiblyUnboundVariable = "error"    # Variable may be used before assignment
-reportOptionalMemberAccess = "error"        # Accessing attribute on possibly None
-reportOptionalOperand = "none"             # Using arithmetic/logical op on possibly None
-reportOptionalSubscript = "none"           # Indexing a possibly None value
+reportMissingParameterType = "error"       # Parameter missing explicit type
 reportMissingTypeArgument = "error"        # Generic used without type args (e.g., list vs list[int])
+reportOptionalMemberAccess = "error"       # Accessing attribute on possibly None
+reportOptionalOperand = "error"            # Using arithmetic/logical op on possibly None
+reportOptionalSubscript = "error"          # Indexing a possibly None value
+reportPossiblyUnboundVariable = "error"    # Variable may be used before assignment
+reportUnnecessaryComparison = "error"      # Comparison always true/false
+reportUntypedBaseClass = "error"           # Inheriting from untyped base class
+reportUntypedFunction = "error"            # Function missing type annotations
+# keep-sorted end
+
+# Set to "none"
+# keep-sorted start
 reportInvalidTypeForm = "none"             # Invalid type expression (unsupported or malformed)
-
-# --- Tier 2: Important but can start as warnings ---
-reportUntypedFunction = "none"          # Function missing type annotations
-reportUntypedBaseClass = "none"         # Inheriting from untyped base class
-reportUntypedFunctionDecorator = "none" # Decorator has no type info
-reportMissingParameterType = "none"     # Parameter missing explicit type
-reportAttributeAccessIssue = "none"
-
-# --- Tier 3: Style / not critical (better handled by Ruff or ignorable) ---
-reportUnusedImports = "none"             # Unused imports (Ruff handles this faster)
-reportUnnecessaryComparison = "none"     # Comparison always true/false (rare style smell)
-reportMissingModuleSource = "none"       # Module has stub but no source (informational only)
+reportMissingImports = "none"              # Import cannot be resolved → runtime ImportError (TODO: resolve)
+reportMissingModuleSource = "none"         # Module has stub but no source (informational only)
+reportUntypedFunctionDecorator = "none"    # Decorator has no type info
+reportUnusedImports = "none"               # Unused imports (Ruff handles this faster)
+# keep-sorted end
