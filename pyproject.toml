@@ -163,6 +163,7 @@ reportUnusedCallResult = false             # Disable check for call statements w
 # Set to "error"
 # keep-sorted start
 reportArgumentType = "error"               # Function call arg type mismatch
+reportAttributeAccessIssue = "error"       # Attribute access issue
 reportCallIssue = "error"                  # Wrong number of args / invalid call
 reportIncompatibleMethodOverride = "error" # Subclass overrides with incompatible signature
 reportMissingTypeArgument = "error"        # Generic used without type args (e.g., list vs list[int])
@@ -175,11 +176,10 @@ reportUntypedFunction = "error"            # Function missing type annotations
 
 # Set to "none"
 # keep-sorted start
-reportAttributeAccessIssue = "error"        # Attribute access issue
 reportInvalidTypeForm = "none"             # Invalid type expression (unsupported or malformed)
 reportMissingImports = "none"              # Import cannot be resolved → runtime ImportError (TODO: resolve)
 reportMissingModuleSource = "none"         # Module has stub but no source (informational only)
-reportMissingParameterType = "none"        # Parameter missing explicit type
+reportMissingParameterType = "error"        # Parameter missing explicit type
 reportUnnecessaryComparison = "none"       # Comparison always true/false (rare style smell)
 reportUntypedBaseClass = "none"            # Inheriting from untyped base class
 reportUntypedFunctionDecorator = "none"    # Decorator has no type info
