@@ -173,6 +173,7 @@ reportOptionalOperand = "error"            # Using arithmetic/logical op on poss
 reportOptionalSubscript = "error"          # Indexing a possibly None value
 reportPossiblyUnboundVariable = "error"    # Variable may be used before assignment
 reportUnnecessaryComparison = "error"      # Comparison always true/false
+reportUntypedBaseClass = "error"           # Inheriting from untyped base class
 reportUntypedFunction = "error"            # Function missing type annotations
 # keep-sorted end
 
@@ -181,7 +182,6 @@ reportUntypedFunction = "error"            # Function missing type annotations
 reportInvalidTypeForm = "none"             # Invalid type expression (unsupported or malformed)
 reportMissingImports = "none"              # Import cannot be resolved → runtime ImportError (TODO: resolve)
 reportMissingModuleSource = "none"         # Module has stub but no source (informational only)
-reportUntypedBaseClass = "error"            # Inheriting from untyped base class
 reportUntypedFunctionDecorator = "none"    # Decorator has no type info
 reportUnusedImports = "none"               # Unused imports (Ruff handles this faster)
 # keep-sorted end
