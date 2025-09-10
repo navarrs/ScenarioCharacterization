@@ -148,14 +148,17 @@ exclude = [
 ]
 ignore = ["tmp/**"]
 typeCheckingMode = "strict"
-enableTypeIgnoreComments = false           # Disable support for '# type: ignore' in favor of '# pyright: ignore'
-reportUnknownParameterType = false         # Parameter type could not be inferred
-reportUnknownArgumentType = false          # Argument type could not be inferred
-reportUnknownVariableType = false          # Variable type could not be inferred
-reportUnknownMemberType = false            # Attribute exists but type is unknown
-reportUnusedCallResult = false             # Disable check for call statements whose return value is not None and is not used.
 deprecateTypingAliases = true              # Check for deprecated typing aliases
-reportMissingImports = "none"              # Import cannot be resolved → runtime ImportError (TODO: resolve)
+
+# keep-sorted start
+enableTypeIgnoreComments = false           # Disable support for '# type: ignore' in favor of '# pyright: ignore'
+reportUnknownArgumentType = false          # Argument type could not be inferred
+reportUnknownMemberType = false            # Attribute exists but type is unknown
+reportUnknownParameterType = false         # Parameter type could not be inferred
+reportUnknownVariableType = false          # Variable type could not be inferred
+reportUnusedCallResult = false             # Disable check for call statements whose return value is not None and is not used.
+# keep-sorted end
+# keep-sorted start
 reportArgumentType = "error"               # Function call arg type mismatch
 reportCallIssue = "error"                  # Wrong number of args / invalid call
 reportIncompatibleMethodOverride = "error" # Subclass overrides with incompatible signature
@@ -164,7 +167,9 @@ reportOptionalMemberAccess = "error"       # Accessing attribute on possibly Non
 reportOptionalOperand = "error"            # Using arithmetic/logical op on possibly None
 reportOptionalSubscript = "error"          # Indexing a possibly None value
 reportMissingTypeArgument = "error"        # Generic used without type args (e.g., list vs list[int])
-reportInvalidTypeForm = "none"            # Invalid type expression (unsupported or malformed)
+# keep-sorted end
+reportMissingImports = "none"              # Import cannot be resolved → runtime ImportError (TODO: resolve)
+reportInvalidTypeForm = "none"             # Invalid type expression (unsupported or malformed)
 reportUnusedImports = "none"               # Unused imports (Ruff handles this faster)
 reportUnnecessaryComparison = "none"       # Comparison always true/false (rare style smell)
 reportMissingModuleSource = "none"         # Module has stub but no source (informational only)
