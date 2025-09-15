@@ -22,13 +22,22 @@ class InteractionScorer(BaseScorer):
         """
         super().__init__(config)
 
-        if self.config.interaction_score_function not in INTERACTION_SCORE_FUNCTIONS:
+        interaction_score_function = self.config.get("interaction_score_function")
+        if not interaction_score_function:
+            warning_message = (
+                "No interaction_score_function specified. Defaulting to 'simple'."
+                f"If this is not intended, specify one of the supported functions: {INTERACTION_SCORE_FUNCTIONS.keys()}"
+            )
+            interaction_score_function = "simple"
+            logger.warning(warning_message)
+
+        if interaction_score_function not in INTERACTION_SCORE_FUNCTIONS:
             error_message = (
-                f"Score function {self.config.interaction_score_function} not supported. "
+                f"Score function {interaction_score_function} not supported. "
                 f"Supported functions are: {list(INTERACTION_SCORE_FUNCTIONS.keys())}"
             )
             raise ValueError(error_message)
-        self.score_function = INTERACTION_SCORE_FUNCTIONS[self.config.interaction_score_function]
+        self.score_function = INTERACTION_SCORE_FUNCTIONS[interaction_score_function]
 
     def compute_interaction_score(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> Score:
         """Computes interaction scores for agent pairs and a scene-level score from scenario features.
@@ -59,6 +68,12 @@ class InteractionScorer(BaseScorer):
             raise ValueError("collision must not be None")  # noqa: EM101, TRY003
         if interaction_features.mttcp is None:
             raise ValueError("mttcp must not be None")  # noqa: EM101, TRY003
+        if interaction_features.thw is None:
+            raise ValueError("thw must not be None")  # noqa: EM101, TRY003
+        if interaction_features.ttc is None:
+            raise ValueError("ttc must not be None")  # noqa: EM101, TRY003
+        if interaction_features.drac is None:
+            raise ValueError("drac must not be None")  # noqa: EM101, TRY003
 
         # Get the agent weights
         weights = self.get_weights(scenario, scenario_features)

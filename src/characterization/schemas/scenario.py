@@ -29,18 +29,18 @@ class AgentData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
                 idx 7 to 8: the agent's (x, y) velocity in meters/second
                 idx 9: a flag indicating if the information is valid
             NOTE: For convenient masking see 'AgentTrajectoryMasker' in utils/common.py
-        agent_relevance (Float32NDArray2D | None): Optional 2D array of shape (N, T) representing relevance scores for
-            each agent at each timestep. Higher values indicate greater relevance, while NaN or negative values indicate
+        agent_relevance (Float32NDArray1D | None): Optional 1D array of shape (N,) representing relevance scores for
+            each agent. Higher values indicate greater relevance, while NaN or negative values indicate
             irrelevance. If None, all agents are considered equally relevant.
     """
 
     agent_ids: list[NonNegativeInt]
     agent_types: list[AgentType]
     agent_trajectories: Float32NDArray3D
-    agent_relevance: Float32NDArray2D | None = None  # Optional relevance scores for agents
+    agent_relevance: Float32NDArray1D | None = None  # Optional relevance scores for agents
 
     # To allow numpy and other arbitrary types in the model
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
     @computed_field
     @property
@@ -87,7 +87,7 @@ class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     heading_threshold: float = 45.0  # degrees
 
     # To allow numpy and other arbitrary types in the model
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
 
 class TracksToPredict(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
@@ -104,7 +104,7 @@ class TracksToPredict(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     object_type: list[AgentType]
 
     # To allow numpy and other arbitrary types in the model
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
 
 class StaticMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
@@ -165,7 +165,7 @@ class StaticMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     agent_distances_to_conflict_points: Float32NDArray3D | None = None
 
     # To allow numpy and other arbitrary types in the model
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
     @computed_field
     @property
@@ -196,7 +196,7 @@ class DynamicMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     states: list[Any] | None = None  # Placeholder for state information, can be more specific if needed
 
     # To allow numpy and other arbitrary types in the model
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
     @computed_field
     @property
@@ -226,4 +226,4 @@ class Scenario(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     dynamic_map_data: DynamicMapData | None = None
 
     # To allow numpy and other arbitrary types in the model
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}

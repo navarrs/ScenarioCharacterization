@@ -37,7 +37,7 @@ class Individual(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     waiting_interval: Float32NDArray1D | None = None
     waiting_distance: Float32NDArray1D | None = None
 
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
 
 class Interaction(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
@@ -79,7 +79,7 @@ class Interaction(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     interaction_agent_indices: list[tuple[int, int]] | None = None
     interaction_agent_types: list[tuple[AgentType, AgentType]] | None = None
 
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
 
 class ScenarioFeatures(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
@@ -103,4 +103,4 @@ class ScenarioFeatures(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     interaction_features: Interaction | None = None
 
     agent_to_agent_closest_dists: Float32NDArray2D | None = None
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
