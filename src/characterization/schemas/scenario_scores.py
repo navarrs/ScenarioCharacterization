@@ -18,7 +18,7 @@ class Score(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     agent_scores: Float32NDArray1D | None = None
     scene_score: float | None = None
 
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
 
 class ScenarioScores(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
@@ -47,7 +47,7 @@ class ScenarioScores(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     # Combined Scores
     safeshift_scores: Score | None = None
 
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
     def __getitem__(self, key: str) -> Any:  # noqa: ANN401
         """Get the value of a key in the ScenarioScores object.

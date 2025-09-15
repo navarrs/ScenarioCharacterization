@@ -21,13 +21,22 @@ class IndividualScorer(BaseScorer):
         """
         super().__init__(config)
 
-        if self.config.individual_score_function not in INDIVIDUAL_SCORE_FUNCTIONS:
+        individual_score_function = self.config.get("individual_score_function")
+        if not individual_score_function:
+            warning_message = (
+                "No individual_score_function specified. Defaulting to 'simple'."
+                f"If this is not intended, specify one of the supported functions: {INDIVIDUAL_SCORE_FUNCTIONS.keys()}"
+            )
+            individual_score_function = "simple"
+            logger.warning(warning_message)
+
+        if individual_score_function not in INDIVIDUAL_SCORE_FUNCTIONS:
             error_message = (
-                f"Score function {self.config.individual_score_function} not supported. "
+                f"Score function {individual_score_function} not supported. "
                 f"Supported functions are: {list(INDIVIDUAL_SCORE_FUNCTIONS.keys())}"
             )
             raise ValueError(error_message)
-        self.score_function = INDIVIDUAL_SCORE_FUNCTIONS[self.config.individual_score_function]
+        self.score_function = INDIVIDUAL_SCORE_FUNCTIONS[individual_score_function]
 
     def compute_individual_score(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> Score:
         """Computes individual agent scores and a scene-level score from scenario features.

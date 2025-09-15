@@ -64,8 +64,11 @@ class BaseScorer(ABC):
             relevant_agents = np.array([scenario.metadata.ego_vehicle_index])
             relevant_agents_values = np.array([1.0])  # Only the ego agent is relevant
         else:
-            relevant_agents = np.where(scenario.agent_data.agent_relevance > 0.0)[0]
-            relevant_agents_values = scenario.agent_data.agent_relevance[relevant_agents]  # Shape (num_relevant_agents)
+            agent_relevance = scenario.agent_data.agent_relevance
+            if agent_relevance is None:
+                agent_relevance = np.ones(scenario.agent_data.num_agents, dtype=np.float32)
+            relevant_agents = np.where(agent_relevance > 0.0)[0]
+            relevant_agents_values = agent_relevance[relevant_agents]  # Shape (num_relevant_agents)
 
         relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]  # Shape (num_agents, num_relevant_agents)
         min_dist = relevant_agents_dists.min(axis=1) + EPS  # Avoid division by zero

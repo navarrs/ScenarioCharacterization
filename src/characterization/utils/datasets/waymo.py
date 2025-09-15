@@ -8,8 +8,8 @@ import numpy as np
 from joblib import Parallel, delayed
 from natsort import natsorted
 from omegaconf import DictConfig
-from rich.progress import track
 from scipy.signal import resample
+from tqdm import tqdm
 
 from characterization.schemas.scenario import (
     AgentData,
@@ -347,11 +347,11 @@ class WaymoData(BaseDataset):
         if self.parallel:
             outs = Parallel(n_jobs=self.num_workers, batch_size=self.batch_size)(
                 delayed(process_file)(scenario_id=scenario_id, scenario_path=scenario_path)
-                for scenario_id, scenario_path in track(zipped, total=len(self.data.scenarios_ids))
+                for scenario_id, scenario_path in tqdm(zipped, total=len(self.data.scenarios_ids))
             )
             self.data.conflict_points = natsorted(outs)
         else:
-            for scenario_id, scenario_path in track(zipped, total=len(self.data.scenarios_ids)):
+            for scenario_id, scenario_path in tqdm(zipped, total=len(self.data.scenarios_ids)):
                 out = process_file(scenario_id=scenario_id, scenario_path=scenario_path)
                 self.data.conflict_points.append(out)
 
