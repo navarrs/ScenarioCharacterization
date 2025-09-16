@@ -9,7 +9,6 @@ on:
       - feature/*
   push:
     branches:
-      - main
       - develop
       - fix/*
       - bug/*
