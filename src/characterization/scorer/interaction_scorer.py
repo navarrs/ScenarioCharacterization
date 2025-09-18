@@ -109,6 +109,8 @@ class InteractionScorer(BaseScorer):
             scores[i] += weights[i] * agent_pair_score
             scores[j] += weights[j] * agent_pair_score
 
+        scores = np.nan_to_num(scores, nan=0.0)
+
         # Normalize the scores
         denom = max(np.where(scores > 0.0)[0].shape[0], 1)
         scene_score = np.clip(scores.sum() / denom, a_min=self.score_clip.min, a_max=self.score_clip.max)

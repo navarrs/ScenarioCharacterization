@@ -94,6 +94,7 @@ class IndividualScorer(BaseScorer):
                 waiting_period_weight=self.weights.waiting_period,
                 waiting_period_detection=self.detections.waiting_period,
             )
+        scores = np.nan_to_num(scores, nan=0.0)
 
         # Normalize the scores
         denom = max(np.where(scores > 0.0)[0].shape[0], 1)
