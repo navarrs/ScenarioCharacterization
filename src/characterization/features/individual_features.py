@@ -5,6 +5,7 @@ import characterization.features.individual_utils as individual
 from characterization.features.base_feature import BaseFeature
 from characterization.schemas import Individual, Scenario, ScenarioFeatures
 from characterization.utils.common import MIN_VALID_POINTS, AgentTrajectoryMasker, ReturnCriterion
+from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -207,18 +208,8 @@ class IndividualFeatures(BaseFeature):
         agent_data = scenario.agent_data
         agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
         agent_positions = agent_trajectories.agent_xyz_pos
-
-        metadata = scenario.metadata
-
-        # NOTE: this is not really an individual feature and would be useful for interactive features.
-        agent_to_agent_closest_dists = (
-            np.linalg.norm(agent_positions[:, np.newaxis, :] - agent_positions[np.newaxis, :, :], axis=-1)
-            .min(axis=-1)
-            .astype(np.float32)
-        )
-
         return ScenarioFeatures(
-            metadata=metadata,
+            metadata=scenario.metadata,
             individual_features=IndividualFeatures.compute_individual_features(scenario, self.return_criterion),
-            agent_to_agent_closest_dists=agent_to_agent_closest_dists,
+            agent_to_agent_closest_dists=compute_agent_to_agent_closest_dists(agent_positions),
         )

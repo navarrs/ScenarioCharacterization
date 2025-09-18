@@ -49,13 +49,9 @@ class BaseScorer(ABC):
 
         Returns:
             np.ndarray: The computed weights for each agent.
-
-        Raises:
-            ValueError: If agent_to_agent_closest_dists is None in scenario_features.
         """
         if scenario_features.agent_to_agent_closest_dists is None:
-            error_message = "agent_to_agent_closest_dists must not be None"
-            raise ValueError(error_message)
+            return np.ones(scenario.agent_data.num_agents, dtype=np.float32)
 
         # An agent's contribution (weight) to the score is inversely proportional to the closest distance
         # between the agent and the relevant agents
@@ -70,6 +66,7 @@ class BaseScorer(ABC):
             relevant_agents = np.where(agent_relevance > 0.0)[0]
             relevant_agents_values = agent_relevance[relevant_agents]  # Shape (num_relevant_agents)
 
+        agent_to_agent_dists = np.nan_to_num(agent_to_agent_dists, nan=np.inf)
         relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]  # Shape (num_agents, num_relevant_agents)
         min_dist = relevant_agents_dists.min(axis=1) + EPS  # Avoid division by zero
         argmin_dist = relevant_agents_dists.argmin(axis=1)
