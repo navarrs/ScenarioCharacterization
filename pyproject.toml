@@ -69,7 +69,11 @@ exclude = ["docs", "scripts", "tmp", "samples", "assets"]
 include-package-data = true
 
 [tool.ruff]
-lint.extend-select = ["I", "PLR1714", "PLR0124", "PLR2004"]
+lint.extend-select = [
+    # keep-sorted start
+    "I",
+    # keep-sorted end
+]
 lint.ignore = [
     # keep-sorted start
     "C901",             # too complex
