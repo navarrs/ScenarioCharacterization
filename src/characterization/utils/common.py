@@ -183,7 +183,8 @@ class AgentTrajectoryMasker:
     @property
     def agent_valid(self) -> np.ndarray:
         """Returns the valid mask."""
-        return self._agent_trajectory[..., self._TRAJECTORY_VALID]
+        valid = self._agent_trajectory[..., self._TRAJECTORY_VALID]
+        return np.nan_to_num(valid, nan=0.0)
 
     @property
     def agent_state(self) -> np.ndarray:
