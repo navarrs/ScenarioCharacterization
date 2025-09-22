@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scenario-characterization"
-version = "0.2.7"
+version = "0.2.9"
 authors = [
     {name="Ingrid Navarro", email="ingridn@cmu.edu"},
 ]
@@ -70,18 +70,6 @@ include-package-data = true
 
 [tool.ruff]
 lint.extend-select = ["I"]
-fix = true
-exclude = [
-    "src/scripts",
-    "src/characterization/utils/datasets/waymo_preprocess.py",
-    "src/characterization/examples",
-    # TODO: re-nable checks for files below:
-    "src/characterization/utils/viz/utils.py",
-    "src/characterization/utils/viz/visualizer.py",
-    "src/characterization/utils/viz/waymo.py",
-]
-line-length = 120
-target-version = "py312"
 lint.ignore = [
     # keep-sorted start
     "C901",             # too complex
@@ -112,6 +100,18 @@ lint.unfixable = [
     "RUF100",           # unused noqa
     # keep-sorted end
 ]
+fix = true
+exclude = [
+    "src/scripts",
+    "src/characterization/utils/datasets/waymo_preprocess.py",
+    "src/characterization/examples",
+    # TODO: re-nable checks for files below:
+    "src/characterization/utils/viz/utils.py",
+    "src/characterization/utils/viz/visualizer.py",
+    "src/characterization/utils/viz/waymo.py",
+]
+line-length = 120
+target-version = "py312"
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

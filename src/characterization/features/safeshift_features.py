@@ -1,4 +1,3 @@
-import numpy as np
 from omegaconf import DictConfig
 
 from characterization.features.base_feature import BaseFeature
@@ -6,6 +5,7 @@ from characterization.features.individual_features import IndividualFeatures
 from characterization.features.interaction_features import InteractionFeatures
 from characterization.schemas import Scenario, ScenarioFeatures
 from characterization.utils.common import AgentTrajectoryMasker
+from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -70,20 +70,10 @@ class SafeShiftFeatures(BaseFeature):
         # Unpack senario fields
         agent_data = scenario.agent_data
         agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
-
         agent_positions = agent_trajectories.agent_xyz_pos
-
-        metadata = scenario.metadata
-
-        agent_to_agent_closest_dists = (
-            np.linalg.norm(agent_positions[:, np.newaxis, :] - agent_positions[np.newaxis, :, :], axis=-1)
-            .min(axis=-1)
-            .astype(np.float32)
-        )
-
         return ScenarioFeatures(
-            metadata=metadata,
+            metadata=scenario.metadata,
             individual_features=IndividualFeatures.compute_individual_features(scenario, self.return_criterion),
             interaction_features=InteractionFeatures.compute_interaction_features(scenario, self.return_criterion),
-            agent_to_agent_closest_dists=agent_to_agent_closest_dists,
+            agent_to_agent_closest_dists=compute_agent_to_agent_closest_dists(agent_positions),
         )
