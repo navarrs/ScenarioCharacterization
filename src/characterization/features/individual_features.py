@@ -204,12 +204,15 @@ class IndividualFeatures(BaseFeature):
         Raises:
             ValueError: If an unknown return criterion is specified in the configuration.
         """
-        # Unpack senario fields
-        agent_data = scenario.agent_data
-        agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
-        agent_positions = agent_trajectories.agent_xyz_pos
+        agent_to_agent_closest_dists = None
+        if self.compute_agent_to_agent_closest_dists:
+            agent_data = scenario.agent_data
+            agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
+            agent_positions = agent_trajectories.agent_xyz_pos
+            agent_to_agent_closest_dists = compute_agent_to_agent_closest_dists(agent_positions)
+
         return ScenarioFeatures(
             metadata=scenario.metadata,
             individual_features=IndividualFeatures.compute_individual_features(scenario, self.return_criterion),
-            agent_to_agent_closest_dists=compute_agent_to_agent_closest_dists(agent_positions),
+            agent_to_agent_closest_dists=agent_to_agent_closest_dists,
         )

@@ -48,67 +48,48 @@ class InteractionScorer(BaseScorer):
 
         Returns:
             ScenarioScores: An object containing computed interaction agent-pair scores and the scene-level score.
-
-        Raises:
-            ValueError: If any required feature (agent_to_agent_closest_dists, interaction_agent_indices,
-                interaction_status, collision, mttcp) is missing in scenario_features.
         """
-        # TODO: need to avoid a lot of recomputations from the two types of features
-        # TODO: avoid these checks.
-        interaction_features = scenario_features.interaction_features
-        if scenario_features.agent_to_agent_closest_dists is None:
-            raise ValueError("agent_to_agent_closest_dists must not be None")  # noqa: EM101, TRY003
-        if interaction_features is None:
-            raise ValueError("interaction_features must not be None")  # noqa: EM101, TRY003
-        if interaction_features.interaction_agent_indices is None:
-            raise ValueError("interaction_agent_indices must not be None")  # noqa: EM101, TRY003
-        if interaction_features.interaction_status is None:
-            raise ValueError("interaction_status must not be None")  # noqa: EM101, TRY003
-        if interaction_features.collision is None:
-            raise ValueError("collision must not be None")  # noqa: EM101, TRY003
-        if interaction_features.mttcp is None:
-            raise ValueError("mttcp must not be None")  # noqa: EM101, TRY003
-        if interaction_features.thw is None:
-            raise ValueError("thw must not be None")  # noqa: EM101, TRY003
-        if interaction_features.ttc is None:
-            raise ValueError("ttc must not be None")  # noqa: EM101, TRY003
-        if interaction_features.drac is None:
-            raise ValueError("drac must not be None")  # noqa: EM101, TRY003
+        scores = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
+        features = scenario_features.interaction_features
+        if features is None or features.interaction_agent_indices is None or features.interaction_status is None:
+            warning_message = "interaction_features is None. Cannot compute interaction scores."
+            logger.warning(warning_message)
+            return Score(agent_scores=scores, scene_score=0.0)
 
         # Get the agent weights
         weights = self.get_weights(scenario, scenario_features)
-        scores = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
 
-        interaction_agent_indices = interaction_features.interaction_agent_indices
+        interaction_agent_indices = features.interaction_agent_indices
         if self.score_wrt_ego_only:
             interaction_agent_indices = [
                 (i, j) for i, j in interaction_agent_indices if scenario.metadata.ego_vehicle_index in (i, j)
             ]
         for n, (i, j) in enumerate(interaction_agent_indices):
-            status = interaction_features.interaction_status[n]
+            status = features.interaction_status[n]
             if status != InteractionStatus.COMPUTED_OK:
                 continue
 
             # Compute the agent-pair scores
             agent_pair_score = self.score_function(
-                collision=interaction_features.collision[n],
+                collision=features.collision[n] if features.collision is not None else 0.0,
                 collision_weight=self.weights.collision,
-                mttcp=interaction_features.mttcp[n],
+                mttcp=features.mttcp[n] if features.mttcp is not None else np.inf,
                 mttcp_weight=self.weights.mttcp,
                 mttcp_detection=self.detections.mttcp,
-                thw=interaction_features.thw[n],
+                thw=features.thw[n] if features.thw is not None else np.inf,
                 thw_weight=self.weights.thw,
                 thw_detection=self.detections.thw,
-                ttc=interaction_features.ttc[n],
+                ttc=features.ttc[n] if features.ttc is not None else np.inf,
                 ttc_weight=self.weights.ttc,
                 ttc_detection=self.detections.ttc,
-                drac=interaction_features.drac[n],
+                drac=features.drac[n] if features.drac is not None else 0.0,
                 drac_weight=self.weights.drac,
                 drac_detection=self.detections.drac,
             )
             scores[i] += weights[i] * agent_pair_score
             scores[j] += weights[j] * agent_pair_score
 
+        # Replace NaNs with zeros as a safeguard
         scores = np.nan_to_num(scores, nan=0.0)
 
         # Normalize the scores

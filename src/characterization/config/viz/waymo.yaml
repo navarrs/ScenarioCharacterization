@@ -1,4 +1,4 @@
-_target_: characterization.utils.viz.waymo.WaymoVisualizer
+_target_: characterization.utils.viz.scenario.ScenarioVisualizer
 config:
   scenario_type: ${scenario_type}
 

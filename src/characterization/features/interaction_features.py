@@ -13,6 +13,7 @@ from characterization.utils.common import (
     InteractionStatus,
     ReturnCriterion,
 )
+from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -264,7 +265,16 @@ class InteractionFeatures(BaseFeature):
         Raises:
             ValueError: If the scenario contains fewer than 2 agents.
         """
+        # Unpack senario fields
+        agent_to_agent_closest_dists = None
+        if self.compute_agent_to_agent_closest_dists:
+            agent_data = scenario.agent_data
+            agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
+            agent_positions = agent_trajectories.agent_xyz_pos
+            agent_to_agent_closest_dists = compute_agent_to_agent_closest_dists(agent_positions)
+
         return ScenarioFeatures(
             metadata=scenario.metadata,
             interaction_features=InteractionFeatures.compute_interaction_features(scenario, self.return_criterion),
+            agent_to_agent_closest_dists=agent_to_agent_closest_dists,
         )

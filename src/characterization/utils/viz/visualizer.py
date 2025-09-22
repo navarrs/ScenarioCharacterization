@@ -61,6 +61,7 @@ class BaseVisualizer(ABC):
             error_message = "agent_colors must be provided in the configuration."
             raise AssertionError(error_message)
 
+        self.update_limits = config.get("update_limits", False)
         self.buffer_distance = config.get("distance_to_ego_zoom_in", 5.0)  # in meters
         self.distance_to_ego_zoom_in = config.get("distance_to_ego_zoom_in", 50.0)  # in meters
 
@@ -409,6 +410,33 @@ class BaseVisualizer(ABC):
         agent_scores[ego_index] = amax
         return agent_scores
 
+    @staticmethod
+    def get_first_and_last_ego_position(scenario: Scenario) -> tuple[np.ndarray, np.ndarray] | tuple[None, None]:
+        """Gets the first and last valid positions of the ego vehicle.
+
+        Args:
+            scenario (Scenario): encapsulates the scenario to visualize.
+            distance_to_zoom_in (float): minimum distance to zoom in around the ego vehicle.
+            buffer_distance (float): additional buffer distance to add to the zoom-in distance.
+        Returns:
+            tuple[np.ndarray, float]: ego vehicle position and distance to set the plot limits.
+        """
+        ego_index = scenario.metadata.ego_vehicle_index
+        agent_trajectories = AgentTrajectoryMasker(scenario.agent_data.agent_trajectories)
+        agent_valid = agent_trajectories.agent_valid.squeeze(-1).astype(bool)
+        agent_positions = agent_trajectories.agent_xy_pos
+
+        # Get first valid ego position
+        ego_traj = agent_positions[ego_index]
+
+        valid_mask = agent_valid[ego_index] & np.all(np.isfinite(ego_traj), axis=-1)
+        valid_ego_traj = ego_traj[valid_mask]
+        if valid_ego_traj.shape[0] < 2:
+            return None, None
+
+        # Return first and last valid positions
+        return valid_ego_traj[0],  valid_ego_traj[-1]
+
     def set_axes(self, ax: Axes, scenario: Scenario, num_windows: int = 1) -> None:
         """Plots dynamic map features (e.g., stop points) for a scenario.
 
@@ -417,19 +445,20 @@ class BaseVisualizer(ABC):
             scenario (Scenario): encapsulates the scenario to visualize.
             num_windows (int, optional): Number of subplot windows. Defaults to 0.
         """
-        ego_index = scenario.metadata.ego_vehicle_index
-        agent_positions = AgentTrajectoryMasker(scenario.agent_data.agent_trajectories).agent_xy_pos
-        ego_position = agent_positions[ego_index, 0]
-        last_ego_position = agent_positions[ego_index, -1]
-        ego_displacement = np.linalg.norm(ego_position - last_ego_position, axis=-1)
+        first_ego_position, last_ego_position = BaseVisualizer.get_first_and_last_ego_position(scenario)
+        if first_ego_position is None or last_ego_position is None:
+            return
+
+        ego_displacement = np.linalg.norm(first_ego_position - last_ego_position, axis=-1)
         distance = max(self.distance_to_ego_zoom_in, ego_displacement) + self.buffer_distance
 
         if num_windows == 1:
             ax.set_xticks([])
             ax.set_yticks([])
 
-            ax.set_xlim(ego_position[0] - distance, ego_position[0] + distance)
-            ax.set_ylim(ego_position[1] - distance, ego_position[1] + distance)
+            if self.update_limits:
+                ax.set_xlim(first_ego_position[0] - distance, first_ego_position[0] + distance)
+                ax.set_ylim(first_ego_position[1] - distance, first_ego_position[1] + distance)
 
         else:
             for n, a in enumerate(ax.reshape(-1)):
@@ -438,8 +467,9 @@ class BaseVisualizer(ABC):
                 if n == 0:
                     continue
 
-                a.set_xlim(ego_position[0] - distance, ego_position[0] + distance)
-                a.set_ylim(ego_position[1] - distance, ego_position[1] + distance)
+                if self.update_limits:
+                    a.set_xlim(first_ego_position[0] - distance, first_ego_position[0] + distance)
+                    a.set_ylim(first_ego_position[1] - distance, first_ego_position[1] + distance)
 
     @abstractmethod
     def visualize_scenario(
