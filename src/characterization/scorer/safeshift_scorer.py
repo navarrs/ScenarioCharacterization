@@ -36,24 +36,35 @@ class SafeShiftScorer(BaseScorer):
             ValueError: If any required feature (agent_to_agent_closest_dists, interaction_agent_indices,
                 interaction_status, collision, mttcp) is missing in scenario_features.
         """
+        scores = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
+
+        # Compute individual scores
         individual_scores: Score = self.individual_scorer.compute_individual_score(scenario, scenario_features)
         scores_ind = individual_scores.agent_scores
-        assert scores_ind is not None, "Individual agent scores must not be None"
+        if scores_ind is None:
+            scores_ind = scores.copy()
         scene_score_ind = individual_scores.scene_score
-        assert scene_score_ind is not None, "Scene score must not be None"
+        if scene_score_ind is None:
+            scene_score_ind = 0.0
 
+        # Compute interaction scores
         interaction_scores: Score = self.interaction_scorer.compute_interaction_score(scenario, scenario_features)
         scores_int = interaction_scores.agent_scores
-        assert scores_int is not None, "Interaction agent scores must not be None"
+        if scores_int is None:
+            scores_int = scores.copy()
+
         scene_score_int = interaction_scores.scene_score
-        assert scene_score_int is not None, "Scene score must not be None"
+        if scene_score_int is None:
+            scene_score_int = 0.0
 
         # Combine the scores
-        scores = scores_ind.copy() + scores_int.copy()
-        scene_score = np.clip(scene_score_int + scene_score_ind, a_min=self.score_clip.min, a_max=self.score_clip.max)
+        agent_scores = scores_ind.copy() + scores_int.copy()
+        scene_score = np.clip(
+            scene_score_int + scene_score_ind, a_min=2.0 * self.score_clip.min, a_max=2.0 * self.score_clip.max
+        )
         return ScenarioScores(
             metadata=scenario.metadata,
             individual_scores=individual_scores,
             interaction_scores=interaction_scores,
-            safeshift_scores=Score(agent_scores=scores, scene_score=scene_score),
+            safeshift_scores=Score(agent_scores=agent_scores, scene_score=scene_score),
         )

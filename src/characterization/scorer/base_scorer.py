@@ -5,7 +5,8 @@ import numpy as np
 from omegaconf import DictConfig
 
 from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores
-from characterization.utils.common import EPS
+from characterization.utils.common import EPS, AgentTrajectoryMasker
+from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 
 
 class BaseScorer(ABC):
@@ -49,17 +50,14 @@ class BaseScorer(ABC):
 
         Returns:
             np.ndarray: The computed weights for each agent.
-
-        Raises:
-            ValueError: If agent_to_agent_closest_dists is None in scenario_features.
         """
-        if scenario_features.agent_to_agent_closest_dists is None:
-            error_message = "agent_to_agent_closest_dists must not be None"
-            raise ValueError(error_message)
-
-        # An agent's contribution (weight) to the score is inversely proportional to the closest distance
-        # between the agent and the relevant agents
         agent_to_agent_dists = scenario_features.agent_to_agent_closest_dists  # Shape (num_agents, num_agents)
+        if agent_to_agent_dists is None:
+            agent_data = scenario.agent_data
+            agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
+            agent_positions = agent_trajectories.agent_xyz_pos
+            agent_to_agent_dists = compute_agent_to_agent_closest_dists(agent_positions)
+
         if self.score_wrt_ego_only:
             relevant_agents = np.array([scenario.metadata.ego_vehicle_index])
             relevant_agents_values = np.array([1.0])  # Only the ego agent is relevant
@@ -70,6 +68,9 @@ class BaseScorer(ABC):
             relevant_agents = np.where(agent_relevance > 0.0)[0]
             relevant_agents_values = agent_relevance[relevant_agents]  # Shape (num_relevant_agents)
 
+        # An agent's contribution (weight) to the score is inversely proportional to the closest distance
+        # between the agent and the relevant agents
+        agent_to_agent_dists = np.nan_to_num(agent_to_agent_dists, nan=np.inf)
         relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]  # Shape (num_agents, num_relevant_agents)
         min_dist = relevant_agents_dists.min(axis=1) + EPS  # Avoid division by zero
         argmin_dist = relevant_agents_dists.argmin(axis=1)

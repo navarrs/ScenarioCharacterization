@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scenario-characterization"
-version = "0.2.6"
+version = "0.2.9"
 authors = [
     {name="Ingrid Navarro", email="ingridn@cmu.edu"},
 ]
@@ -70,7 +70,11 @@ exclude = ["docs", "scripts", "tmp", "samples", "assets"]
 include-package-data = true
 
 [tool.ruff]
-lint.extend-select = ["I"]
+lint.extend-select = [
+    # keep-sorted start
+    "I",
+    # keep-sorted end
+]
 lint.ignore = [
     # keep-sorted start
     "C901",             # too complex

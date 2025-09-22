@@ -52,48 +52,42 @@ class IndividualScorer(BaseScorer):
             ValueError: If any required feature (valid_idxs, speed, acceleration, deceleration, jerk, waiting_period)
                 is missing in scenario_features.
         """
-        # TODO: avoid the overhead of these checks.
-        individual_features = scenario_features.individual_features
-        if individual_features is None:
-            raise ValueError("individual_features must not be None")  # noqa: EM101, TRY003
-        if individual_features.valid_idxs is None:
-            raise ValueError("valid_idxs must not be None")  # noqa: EM101, TRY003
-        if individual_features.speed is None:
-            raise ValueError("speed must not be None")  # noqa: EM101, TRY003
-        if individual_features.acceleration is None:
-            raise ValueError("acceleration must not be None")  # noqa: EM101, TRY003
-        if individual_features.deceleration is None:
-            raise ValueError("deceleration must not be None")  # noqa: EM101, TRY003
-        if individual_features.jerk is None:
-            raise ValueError("jerk must not be None")  # noqa: EM101, TRY003
-        if individual_features.waiting_period is None:
-            raise ValueError("waiting_period must not be None")  # noqa: EM101, TRY003
+        scores = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
+        features = scenario_features.individual_features
+        if features is None:
+            warning_message = "individual_features is None. Cannot compute individual scores."
+            logger.warning(warning_message)
+            return Score(agent_scores=scores, scene_score=0.0)
+
+        if features.valid_idxs is None:
+            error_message = "valid_idxs must not be None if individual_features is not None. Cannot compute scores."
+            raise ValueError(error_message)
 
         # Get the agent weights
         weights = self.get_weights(scenario, scenario_features)
-        scores = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
 
-        valid_idxs = individual_features.valid_idxs
+        valid_idxs = features.valid_idxs
         for n in range(valid_idxs.shape[0]):
-            # TODO: fix this indexing issue.
             valid_idx = valid_idxs[n]
             scores[valid_idx] = weights[valid_idx] * self.score_function(
-                speed=individual_features.speed[n],
+                speed=features.speed[n] if features.speed is not None else 0.0,
                 speed_weight=self.weights.speed,
                 speed_detection=self.detections.speed,
-                acceleration=individual_features.acceleration[n],
+                acceleration=features.acceleration[n] if features.acceleration is not None else 0.0,
                 acceleration_weight=self.weights.acceleration,
                 acceleration_detection=self.detections.acceleration,
-                deceleration=individual_features.deceleration[n],
+                deceleration=features.deceleration[n] if features.deceleration is not None else 0.0,
                 deceleration_weight=self.weights.deceleration,
                 deceleration_detection=self.detections.deceleration,
-                jerk=individual_features.jerk[n],
+                jerk=features.jerk[n] if features.jerk is not None else 0.0,
                 jerk_weight=self.weights.jerk,
                 jerk_detection=self.detections.jerk,
-                waiting_period=individual_features.waiting_period[n],
+                waiting_period=features.waiting_period[n] if features.waiting_period is not None else 0.0,
                 waiting_period_weight=self.weights.waiting_period,
                 waiting_period_detection=self.detections.waiting_period,
             )
+        # As a safeguard, replace NaNs with zeros
+        scores = np.nan_to_num(scores, nan=0.0)
 
         # Normalize the scores
         denom = max(np.where(scores > 0.0)[0].shape[0], 1)

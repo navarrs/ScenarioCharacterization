@@ -1,17 +1,18 @@
 import matplotlib.pyplot as plt
-from characterization.schemas import Scenario, ScenarioScores
-from characterization.utils.io_utils import get_logger
 from omegaconf import DictConfig
 
+from characterization.schemas import Scenario, ScenarioScores
+from characterization.utils.io_utils import get_logger
 from characterization.utils.viz.visualizer import BaseVisualizer
 
 logger = get_logger(__name__)
 
 
-class WaymoVisualizer(BaseVisualizer):
-    """Visualizer for Waymo scenarios."""
+class ScenarioVisualizer(BaseVisualizer):
+    """Visualizer for scenarios."""
+
     def __init__(self, config: DictConfig) -> None:
-        """Initializes the WaymoVisualizer with the given configuration."""
+        """Initializes the ScenarioVisualizer with the given configuration."""
         super().__init__(config)
 
     def visualize_scenario(
@@ -33,7 +34,8 @@ class WaymoVisualizer(BaseVisualizer):
         """
         scenario_id = scenario.metadata.scenario_id
         suffix = (
-            "" if scores is None or scores.safeshift_scores is None or scores.safeshift_scores.scene_score is None
+            ""
+            if scores is None or scores.safeshift_scores is None or scores.safeshift_scores.scene_score is None
             else f"_{round(scores.safeshift_scores.scene_score, 2)}"
         )
         output_filepath = f"{output_dir}/{scenario_id}{suffix}.png"

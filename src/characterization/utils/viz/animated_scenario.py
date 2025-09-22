@@ -8,11 +8,11 @@ from characterization.utils.viz.visualizer import BaseVisualizer
 logger = get_logger(__name__)
 
 
-class WaymoAnimatedVisualizer(BaseVisualizer):
-    """Animated Visualizer for Waymo scenarios."""
+class AnimatedScenarioVisualizer(BaseVisualizer):
+    """Animated Visualizer for scenarios."""
 
     def __init__(self, config: DictConfig) -> None:
-        """Initializes the WaymoAnimatedVisualizer with the given configuration."""
+        """Initializes the AnimatedScenarioVisualizer with the given configuration."""
         super().__init__(config)
 
     def visualize_scenario(
@@ -52,7 +52,6 @@ class WaymoAnimatedVisualizer(BaseVisualizer):
             self.set_axes(ax, scenario)
             ax.set_title(f"Scenario: {scenario_id}")
             plt.subplots_adjust(wspace=0.05)
-
             plt.savefig(f"{output_dir}/temp_{timestep}.png", dpi=300, bbox_inches="tight")
             plt.close()
 
