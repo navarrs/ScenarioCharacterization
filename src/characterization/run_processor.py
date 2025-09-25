@@ -26,14 +26,14 @@ def run(cfg: DictConfig) -> None:
     make_output_paths(cfg.copy())
     print_config(cfg, theme="native")
 
-    logger.info("Instatiating dataset: %s", cfg.dataset._target_)
+    logger.info("Instantiating dataset: %s", cfg.dataset._target_)
     dataset: BaseDataset = hydra.utils.instantiate(cfg.dataset)
 
-    logger.info("Instatiating characterizer: %s", cfg.characterizer._target_)
+    logger.info("Instantiating characterizer: %s", cfg.characterizer._target_)
 
     characterizer: BaseFeature | BaseScorer = hydra.utils.instantiate(cfg.characterizer)
 
-    logger.info("Instatiating processor: %s", cfg.processor._target_)
+    logger.info("Instantiating processor: %s", cfg.processor._target_)
     processor: BaseProcessor = hydra.utils.instantiate(cfg.processor, dataset=dataset, characterizer=characterizer)
 
     try:
