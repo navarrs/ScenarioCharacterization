@@ -407,7 +407,8 @@ class BaseVisualizer(ABC):
         if max_score > min_score:
             agent_scores = np.clip((agent_scores - min_score) / (max_score - min_score), a_min=amin, a_max=amax)
         else:
-            agent_scores = 1.0 - 2 * np.ones_like(agent_scores) / len(agent_scores)
+            # If all scores are identical, assign equal scores to all agents
+            agent_scores = np.ones_like(agent_scores) / len(agent_scores)
 
         agent_scores[ego_index] = amax
         return agent_scores
