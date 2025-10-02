@@ -1,6 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 from glob import glob
+from enum import Enum
 
 import numpy as np
 from characterization.schemas import DynamicMapData, Scenario, ScenarioScores, StaticMapData
@@ -16,6 +17,9 @@ from warnings import warn
 
 logger = get_logger(__name__)
 
+class SupportedPanes(Enum):
+    ALL_AGENTS = 0
+    HIGHLIGHT_RELEVANT_AGENTS = 1
 
 class BaseVisualizer(ABC):
     def __init__(self, config: DictConfig) -> None:
@@ -63,9 +67,17 @@ class BaseVisualizer(ABC):
             error_message = "agent_colors must be provided in the configuration."
             raise AssertionError(error_message)
 
+        # Set up panes to plot. It will fail if an invalid pane is provided.
+        panes = config.get("panes_to_plot", ["ALL_AGENTS"])
+        self.panes_to_plot = [SupportedPanes[pane] for pane in panes]
+        self.num_panes_to_plot = len(self.panes_to_plot)
+
+        self.num_workers = config.get("num_workers", 10)
+
+        self.add_title = config.get("add_title", True)
         self.update_limits = config.get("update_limits", False)
         self.buffer_distance = config.get("distance_to_ego_zoom_in", 5.0)  # in meters
-        self.distance_to_ego_zoom_in = config.get("distance_to_ego_zoom_in", 50.0)  # in meters
+        self.distance_to_ego_zoom_in = config.get("distance_to_ego_zoom_in", 100.0)  # in meters
 
     def plot_map_data(self, ax: Axes, scenario: Scenario, num_windows: int = 1) -> None:
         """Plots the map data.
@@ -96,6 +108,7 @@ class BaseVisualizer(ABC):
         show_relevant: bool = False,
         start_timestep: int = 0,
         end_timestep: int = -1,
+        title: str = "",
     ) -> None:
         """Plots agent trajectories for a scenario, with optional highlighting and score-based transparency.
 
@@ -106,6 +119,7 @@ class BaseVisualizer(ABC):
             show_relevant (bool, optional): If True, highlights relevant and SDC agents. Defaults to False.
             start_timestep (int): starting timestep to plot the sequences.
             end_timestep (int): ending timestep to plot the sequences.
+            title (str, optional): Title for the plot. Defaults to "".
         """
         agent_data = scenario.agent_data
         agent_relevance = agent_data.agent_relevance
@@ -149,6 +163,7 @@ class BaseVisualizer(ABC):
             heading = ahead[end_timestep]
             length = alen[end_timestep]
             width = awid[end_timestep]
+            atype = "TYPE_RELEVANT" if atype == "TYPE_RELEVAN" else atype
             color = self.agent_colors[atype]
 
             # Plot the trajectory
@@ -156,6 +171,9 @@ class BaseVisualizer(ABC):
 
             # Plot the agent
             self.plot_agent(ax, pos[-1, 0], pos[-1, 1], heading, length, width, score, color, plot_rectangle=True)
+
+        if self.add_title:
+            ax.set_title(title)
 
     def plot_agent(  # noqa: PLR0913
         self,
@@ -405,11 +423,15 @@ class BaseVisualizer(ABC):
         max_score = np.nanmax(agent_scores)
 
         if max_score > min_score:
-            agent_scores = np.clip((agent_scores - min_score) / (max_score - min_score), a_min=amin, a_max=amax)
+            agent_scores = (agent_scores - min_score) / (max_score - min_score)
         else:
             # If all scores are identical, assign equal scores to all agents
             agent_scores = np.ones_like(agent_scores) / len(agent_scores)
 
+        # Clip scores to avoid zero alpha values
+        agent_scores = np.clip(agent_scores, a_min=amin, a_max=amax)
+
+        # Set ego-agent to maximum alpha
         agent_scores[ego_index] = amax
         return agent_scores
 
