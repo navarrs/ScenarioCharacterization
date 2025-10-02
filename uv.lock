@@ -1852,6 +1852,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pyright"
+version = "1.1.406"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "nodeenv" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f7/16/6b4fbdd1fef59a0292cbb99f790b44983e390321eccbc5921b4d161da5d1/pyright-1.1.406.tar.gz", hash = "sha256:c4872bc58c9643dac09e8a2e74d472c62036910b3bd37a32813989ef7576ea2c", size = 4113151, upload-time = "2025-10-02T01:04:45.488Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f6/a2/e309afbb459f50507103793aaef85ca4348b66814c86bc73908bdeb66d12/pyright-1.1.406-py3-none-any.whl", hash = "sha256:1d81fb43c2407bf566e97e57abb01c811973fdb21b2df8df59f870f688bdca71", size = 5980982, upload-time = "2025-10-02T01:04:43.137Z" },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -1995,7 +2008,7 @@ wheels = [
 
 [[package]]
 name = "scenario-characterization"
-version = "0.2.7"
+version = "0.2.9"
 source = { editable = "." }
 dependencies = [
     { name = "colorlog" },
@@ -2021,6 +2034,7 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "pre-commit" },
+    { name = "pyright" },
 ]
 viz = [
     { name = "matplotlib", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -2045,6 +2059,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=1.5.3" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.2.0" },
     { name = "pydantic", specifier = ">=2.9.5" },
+    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.405" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "scipy", specifier = ">=1.9.1" },
     { name = "seaborn", specifier = ">=0.12.0" },

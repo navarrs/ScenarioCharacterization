@@ -1,6 +1,7 @@
-_target_: characterization.utils.viz.scenario.ScenarioVisualizer
+_target_: characterization.utils.viz.animated_scenario.AnimatedScenarioVisualizer
 config:
   scenario_type: ${scenario_type}
+  num_workers: 8
   add_title: false
   update_limits: true
 
@@ -39,7 +40,3 @@ config:
     TYPE_VEHICLE: "blue"
     TYPE_SDC: "red"
     TYPE_RELEVANT: "orange"
-
-  panes_to_plot:
-    # - ALL_AGENTS
-    - HIGHLIGHT_RELEVANT_AGENTS
