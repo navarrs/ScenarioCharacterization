@@ -12,6 +12,8 @@ from natsort import natsorted
 from omegaconf import DictConfig
 from PIL import Image
 
+from warnings import warn
+
 logger = get_logger(__name__)
 
 
@@ -75,13 +77,13 @@ class BaseVisualizer(ABC):
         """
         # Plot static map information
         if scenario.static_map_data is None:
-            logger.warning("Scenario does not contain map_polylines, skipping static map visualization.")
+            warn("Scenario does not contain map_polylines, skipping static map visualization.", UserWarning)
         else:
             self.plot_static_map_data(ax, static_map_data=scenario.static_map_data, num_windows=num_windows)
 
         # Plot dynamic map information
         if scenario.dynamic_map_data is None:
-            logger.warning("Scenario does not contain dynamic_map_info, skipping dynamic map visualization.")
+            warn("Scenario does not contain dynamic_map_info, skipping dynamic map visualization.", UserWarning)
         else:
             self.plot_dynamic_map_data(ax, dynamic_map_data=scenario.dynamic_map_data, num_windows=num_windows)
 
