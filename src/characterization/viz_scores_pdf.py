@@ -110,7 +110,6 @@ def run(cfg: DictConfig) -> None:  # noqa: PLR0912
             percentiles_high = np.append(percentiles, scene_scores_df[key].max())
             percentile_ranges = zip(percentiles_low, percentiles_high, strict=False)
 
-            Path(scenarios_path).mkdir(parents=True, exist_ok=True)
             for min_value, max_value in percentile_ranges:
                 rows = viz_utils.get_sample_to_plot(
                     scene_scores_df,
@@ -135,7 +134,7 @@ def run(cfg: DictConfig) -> None:  # noqa: PLR0912
                     scenario_input_filepath = str(Path(cfg.paths.scenario_base_path) / f"sample_{scenario_id}.pkl")
                     scenario_data = from_pickle(scenario_input_filepath)  # nosec B301
                     scenario = dataset.transform_scenario_data(scenario_data)
-                    visualizer.visualize_scenario(scenario, scores=scores, output_dir=scenarios_path)
+                    _ = visualizer.visualize_scenario(scenario, scores=scores, output_dir=scenarios_path)
 
 
 if __name__ == "__main__":

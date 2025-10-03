@@ -1,8 +1,8 @@
 # ![WIP](https://img.shields.io/badge/status-WIP-orange) ScenarioCharacterization
 
 A generalizable, automated scenario characterization framework for trajectory datasets.
-Currently, this is a re-implementation of the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift).
 
+Currently, this is a re-implementation of the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift), as part of an internship project at StackAV.
 Repository: [github.com/navarrs/ScenarioCharacterization](https://github.com/navarrs/ScenarioCharacterization)
 
 This repository currently uses:
@@ -39,3 +39,18 @@ uv run pip install -e ".[waymo]"
 - [Schemas](./docs/SCHEMAS.md): Guidelines for creating dataset adapters and processors that comply with the required input/output schemas.
 - [Characterization](./docs/CHARACTERIZATION.md): Details on supported scenario characterization and visualization tools, and how to use them.
 - [Example](./docs/EXAMPLE.md): Step-by-step usage example using the [Waymo Open Motion Dataset](https://waymo.com/open).
+
+# Citing
+
+```
+@INPROCEEDINGS{stoler2024safeshift,
+  author={Stoler, Benjamin and Navarro, Ingrid and Jana, Meghdeep and Hwang, Soonmin and Francis, Jonathan and Oh, Jean},
+  booktitle={2024 IEEE Intelligent Vehicles Symposium (IV)},
+  title={SafeShift: Safety-Informed Distribution Shifts for Robust Trajectory Prediction in Autonomous Driving},
+  year={2024},
+  volume={},
+  number={},
+  pages={1179-1186},
+  keywords={Meters;Collaboration;Predictive models;Robustness;Iron;Trajectory;Safety},
+  doi={10.1109/IV55156.2024.10588828}}
+```

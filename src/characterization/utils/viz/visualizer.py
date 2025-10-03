@@ -2,6 +2,7 @@ import os
 from abc import ABC, abstractmethod
 from glob import glob
 from enum import Enum
+from pathlib import Path
 
 import numpy as np
 from characterization.schemas import DynamicMapData, Scenario, ScenarioScores, StaticMapData
@@ -72,8 +73,13 @@ class BaseVisualizer(ABC):
         self.panes_to_plot = [SupportedPanes[pane] for pane in panes]
         self.num_panes_to_plot = len(self.panes_to_plot)
 
+        # Number of workers for processing animations in parallel
         self.num_workers = config.get("num_workers", 10)
+        self.fps = config.get("fps", 10)
+        self.time_scale_factor = config.get("time_scale_factor", 1.0)
+        self.display_time = config.get("display_time", True)
 
+        # Other visualization options
         self.add_title = config.get("add_title", True)
         self.update_limits = config.get("update_limits", False)
         self.buffer_distance = config.get("distance_to_ego_zoom_in", 5.0)  # in meters
@@ -368,10 +374,10 @@ class BaseVisualizer(ABC):
 
     @staticmethod
     def to_gif(
-        output_dir: str,
-        output_filepath: str,
+        output_dir: Path,
+        output_filepath: Path,
         *,
-        duration: int = 100,
+        fps: int = 10,
         disposal: int = 2,
         loop: int = 0,
     ) -> None:
@@ -380,7 +386,7 @@ class BaseVisualizer(ABC):
         Args:
             output_dir (str): directory where temporary scenario files have been saved.
             output_filepath (str): output filepath to save the GIF.
-            duration (int): duration of each frame.
+            fps (int): frames per second for the GIF.
             disposal (int): specifies how the previous frame should be treated before displaying the next frame.
                 (Default value is 2 (restores background color, clear the previous frame))
             loop (int): number of times the GIF should loop.
@@ -388,6 +394,8 @@ class BaseVisualizer(ABC):
         # Load all the temporary files
         files = glob(f"{output_dir}/temp_*.png")  # noqa: PTH207
         imgs = [Image.open(f) for f in natsorted(files)]
+
+        duration = 1000 / fps
 
         # Saves them into a GIF
         imgs[0].save(
@@ -501,8 +509,8 @@ class BaseVisualizer(ABC):
         self,
         scenario: Scenario,
         scores: ScenarioScores | None = None,
-        output_dir: str = "temp",
-    ) -> None:
+        output_dir: Path = Path("./temp"),
+    ) -> Path:
         """Visualizes a single scenario and saves the output to a file.
 
         This method should be implemented by subclasses to provide scenario-specific visualization,
@@ -513,4 +521,7 @@ class BaseVisualizer(ABC):
             scenario (Scenario): encapsulates the scenario to visualize.
             scores (ScenarioScores | None): encapsulates the scenario and agent scores.
             output_dir (str): the directory where to save the scenario visualization.
+
+        Returns:
+            Path: The path to the saved visualization file.
         """
