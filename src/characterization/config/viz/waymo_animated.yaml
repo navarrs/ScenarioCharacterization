@@ -2,7 +2,7 @@ _target_: characterization.utils.viz.animated_scenario.AnimatedScenarioVisualize
 config:
   scenario_type: ${scenario_type}
   num_workers: 8
-  add_title: false
+  add_title: true
   update_limits: true
 
   static_map_keys:

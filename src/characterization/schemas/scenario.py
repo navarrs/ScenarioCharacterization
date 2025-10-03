@@ -55,6 +55,7 @@ class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     Attributes:
         scenario_id (str): Unique identifier for the scenario.
         timestamps_seconds (list[float]): List of timestamps in seconds for each timestep in the scenario.
+        frequency_hz (float): Frequency of the scenario data in Hertz (Hz).
         current_time_index (int): Current index in the timestamps list.
         ego_vehicle_id (int): Unique identifier for the ego vehicle in the scenario.
         ego_vehicle_index (int): Index of the ego vehicle in the scenario.
@@ -72,6 +73,7 @@ class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
 
     scenario_id: str
     timestamps_seconds: list[float]
+    frequency_hz: float
     current_time_index: int
     ego_vehicle_id: int
     ego_vehicle_index: int

@@ -1,4 +1,5 @@
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 from omegaconf import DictConfig
@@ -19,7 +20,12 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
         super().__init__(config)
 
     def plot_single_step(
-        self, scenario: Scenario, scores: ScenarioScores | None, output_dir: str, timestep: int
+        self,
+        scenario: Scenario,
+        scores: ScenarioScores | None,
+        output_dir: Path,
+        timestep: int,
+        timestamps: list[float],
     ) -> None:
         """Plots a single timestep of the scenario.
 
@@ -28,6 +34,7 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
             scores (ScenarioScores | None): encapsulates the scenario and agent scores.
             output_dir (str): the directory where to save the scenario visualization.
             timestep (int): the timestep to visualize.
+            timestamps (list[float]): the timestamps corresponding to the timestep.
         """
         _, ax = plt.subplots(1, 1, figsize=(5, 5))
         scenario_id = scenario.metadata.scenario_id
@@ -36,6 +43,19 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
         self.plot_map_data(ax, scenario)
 
         self.plot_sequences(ax, scenario, scores, show_relevant=True, end_timestep=timestep)
+
+        # Add timestamp annotation in the upper right corner
+        if self.display_time and len(timestamps) > 1:
+            timestamp_str = f"t-elapsed: {timestamps[-1]:.2f}s (t-scale={self.time_scale_factor})"
+            ax.annotate(
+                timestamp_str,
+                xy=(0.98, 0.98),
+                xycoords="axes fraction",
+                fontsize=8,
+                ha="right",
+                va="top",
+                bbox={"boxstyle": "round,pad=0.3", "fc": "gray", "ec": "gray", "alpha": 0.3},
+            )
 
         # Prepare and save plot
         self.set_axes(ax, scenario)
@@ -50,8 +70,8 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
         self,
         scenario: Scenario,
         scores: ScenarioScores | None = None,
-        output_dir: str = "temp",
-    ) -> None:
+        output_dir: Path = Path("./temp"),
+    ) -> Path:
         """Visualizes a single scenario and saves the output to a file.
 
         WaymoAnimatedVisualizer visualizes the scenario as an per-timestep animation.
@@ -60,6 +80,9 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
             scenario (Scenario): encapsulates the scenario to visualize.
             scores (ScenarioScores | None): encapsulates the scenario and agent scores.
             output_dir (str): the directory where to save the scenario visualization.
+
+        Returns:
+            Path: The path to the saved visualization file.
         """
         scenario_id = scenario.metadata.scenario_id
         suffix = (
@@ -67,18 +90,40 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
             if scores is None or scores.safeshift_scores is None or scores.safeshift_scores.scene_score is None
             else f"_{round(scores.safeshift_scores.scene_score, 2)}"
         )
-        output_filepath = f"{output_dir}/{scenario_id}{suffix}.gif"
-        logger.info("Visualizing scenario to %s", output_filepath)
+        output_filepath = output_dir / f"{scenario_id}{suffix}.gif"
 
+        timestamp_seconds = scenario.metadata.timestamps_seconds
+        scenario_fps = min(self.fps, scenario.metadata.frequency_hz)
         total_timesteps = scenario.metadata.track_length
+        total_time = timestamp_seconds[-1] - timestamp_seconds[0]
+        num_frames = scenario_fps * total_time * self.time_scale_factor
+        step_size = max(1, total_timesteps // int(num_frames))
+
+        logger.info(
+            "Saving scenario to %s [Num. timesteps: %d, Total time: %.2fs, Generating ~%d frames with step size %d]",
+            output_filepath,
+            total_timesteps,
+            total_time,
+            int(num_frames),
+            step_size,
+        )
+
         with ProcessPoolExecutor(max_workers=self.num_workers) as executor:
             futures = [
-                executor.submit(self.plot_single_step, scenario, scores, output_dir, timestep)
-                for timestep in range(2, total_timesteps)
+                executor.submit(
+                    self.plot_single_step,
+                    scenario,
+                    scores,
+                    output_dir,
+                    timestep,
+                    timestamp_seconds[timestep - step_size : timestep + 1],
+                )
+                for timestep in range(2, total_timesteps, step_size)
             ]
 
         # tqdm progress bar
         for _ in tqdm(as_completed(futures), total=len(futures), desc="Generating plots"):
             pass
 
-        BaseVisualizer.to_gif(output_dir, output_filepath)
+        BaseVisualizer.to_gif(output_dir, output_filepath, fps=self.fps)
+        return output_filepath

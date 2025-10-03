@@ -292,9 +292,11 @@ class WaymoData(BaseDataset):
         agent_data.agent_relevance = agent_relevance
 
         # Repack meta information
+        freq = np.round(1 / np.mean(np.diff(timestamps))).item()
         metadata = ScenarioMetadata(
             scenario_id=scenario_data["scenario_id"],
             timestamps_seconds=timestamps,
+            frequency_hz=min(freq, 10.0),
             current_time_index=scenario_data["current_time_index"],
             ego_vehicle_id=agent_data.agent_ids[ego_vehicle_index],
             ego_vehicle_index=ego_vehicle_index,

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 
@@ -19,8 +21,8 @@ class ScenarioVisualizer(BaseVisualizer):
         self,
         scenario: Scenario,
         scores: ScenarioScores | None = None,
-        output_dir: str = "temp",
-    ) -> None:
+        output_dir: Path = Path("./temp"),
+    ) -> Path:
         """Visualizes a single scenario and saves the output to a file.
 
         WaymoVisualizer visualizes the scenario on two windows:
@@ -31,6 +33,9 @@ class ScenarioVisualizer(BaseVisualizer):
             scenario (Scenario): encapsulates the scenario to visualize.
             scores (ScenarioScores | None): encapsulates the scenario and agent scores.
             output_dir (str): the directory where to save the scenario visualization.
+
+        Returns:
+            Path: The path to the saved visualization file.
         """
         scenario_id = scenario.metadata.scenario_id
         suffix = (
@@ -38,7 +43,7 @@ class ScenarioVisualizer(BaseVisualizer):
             if scores is None or scores.safeshift_scores is None or scores.safeshift_scores.scene_score is None
             else f"_{round(scores.safeshift_scores.scene_score, 2)}"
         )
-        output_filepath = f"{output_dir}/{scenario_id}{suffix}.png"
+        output_filepath = output_dir / f"{scenario_id}{suffix}.png"
         logger.info("Visualizing scenario to %s", output_filepath)
 
         # Plot static and dynamic map information in the scenario
@@ -71,3 +76,4 @@ class ScenarioVisualizer(BaseVisualizer):
         plt.subplots_adjust(wspace=0.05)
         plt.savefig(output_filepath, dpi=300, bbox_inches="tight")
         plt.close()
+        return output_filepath
