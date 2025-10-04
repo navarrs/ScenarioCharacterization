@@ -2,15 +2,9 @@
 
 A generalizable, automated scenario characterization framework for trajectory datasets.
 
-<div align="center" style="display: flex; justify-content: center; gap: 32px;">
-  <div style="display: inline-block; text-align: center;">
-    <strong>Interaction, Low Score</strong><br>
-    <img src="./assets/animated_scenario_low.gif" alt="Interaction Low Score" width="500">
-  </div>
-   <div style="display: inline-block; text-align: center;">
-    <strong>Interaction, High Score</strong><br>
-    <img src="./assets/animated_scenario_high.gif" alt="Interaction Low Score" width="500">
-  </div>
+<div style="display: inline-block; text-align: center;">
+  <strong>Interaction, High Score</strong><br>
+  <img src="./assets/animated_scenario_high.gif" width="500">
 </div>
 
 Currently, this is a re-implementation of the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift), as part of an internship project at StackAV.
