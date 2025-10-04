@@ -1,9 +1,10 @@
 # ![WIP](https://img.shields.io/badge/status-WIP-orange) ScenarioCharacterization
 
+> **Note:** This project is a work in progress.
+
 A generalizable, automated scenario characterization framework for trajectory datasets.
 
-<div style="display: inline-block; text-align: center;">
-  <strong>Interaction, High Score</strong><br>
+<div align="center" style="display: flex; justify-content: center; gap: 32px;">
   <img src="./assets/animated_scenario_high.gif" width="500">
 </div>
 
@@ -17,8 +18,6 @@ This repository currently uses:
 - [Pydantic](https://docs.pydantic.dev/latest/) for input/output data validation.
 
 ## Installation
-
-> **Note:** This project is a work in progress.
 
 ### Install the package
 ```
