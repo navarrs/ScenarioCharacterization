@@ -2,7 +2,19 @@
 
 A generalizable, automated scenario characterization framework for trajectory datasets.
 
+<div align="center" style="display: flex; justify-content: center; gap: 32px;">
+  <div style="display: inline-block; text-align: center;">
+    <strong>Interaction, Low Score</strong><br>
+    <img src="./assets/animated_scenario_low.gif" alt="Interaction Low Score" width="500">
+  </div>
+   <div style="display: inline-block; text-align: center;">
+    <strong>Interaction, High Score</strong><br>
+    <img src="./assets/animated_scenario_high.gif" alt="Interaction Low Score" width="500">
+  </div>
+</div>
+
 Currently, this is a re-implementation of the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift), as part of an internship project at StackAV.
+
 Repository: [github.com/navarrs/ScenarioCharacterization](https://github.com/navarrs/ScenarioCharacterization)
 
 This repository currently uses:
@@ -40,7 +52,7 @@ uv run pip install -e ".[waymo]"
 - [Characterization](./docs/CHARACTERIZATION.md): Details on supported scenario characterization and visualization tools, and how to use them.
 - [Example](./docs/EXAMPLE.md): Step-by-step usage example using the [Waymo Open Motion Dataset](https://waymo.com/open).
 
-# Citing
+## Citing
 
 ```
 @INPROCEEDINGS{stoler2024safeshift,
