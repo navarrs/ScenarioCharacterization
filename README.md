@@ -1,8 +1,15 @@
 # ![WIP](https://img.shields.io/badge/status-WIP-orange) ScenarioCharacterization
 
+> **Note:** This project is a work in progress.
+
 A generalizable, automated scenario characterization framework for trajectory datasets.
 
+<div align="center" style="display: flex; justify-content: center; gap: 32px;">
+  <img src="./assets/animated_scenario_high.gif" width="500">
+</div>
+
 Currently, this is a re-implementation of the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift), as part of an internship project at StackAV.
+
 Repository: [github.com/navarrs/ScenarioCharacterization](https://github.com/navarrs/ScenarioCharacterization)
 
 This repository currently uses:
@@ -11,8 +18,6 @@ This repository currently uses:
 - [Pydantic](https://docs.pydantic.dev/latest/) for input/output data validation.
 
 ## Installation
-
-> **Note:** This project is a work in progress.
 
 ### Install the package
 ```
@@ -40,7 +45,7 @@ uv run pip install -e ".[waymo]"
 - [Characterization](./docs/CHARACTERIZATION.md): Details on supported scenario characterization and visualization tools, and how to use them.
 - [Example](./docs/EXAMPLE.md): Step-by-step usage example using the [Waymo Open Motion Dataset](https://waymo.com/open).
 
-# Citing
+## Citing
 
 ```
 @INPROCEEDINGS{stoler2024safeshift,
