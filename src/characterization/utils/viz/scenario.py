@@ -40,7 +40,10 @@ class ScenarioVisualizer(BaseVisualizer):
         scenario_id = scenario.metadata.scenario_id
         suffix = (
             ""
-            if scores is None or scores.safeshift_scores is None or scores.safeshift_scores.scene_score is None
+            if SupportedPanes.HIGHLIGHT_RELEVANT_AGENTS not in self.panes_to_plot
+            or scores is None
+            or scores.safeshift_scores is None
+            or scores.safeshift_scores.scene_score is None
             else f"_{round(scores.safeshift_scores.scene_score, 2)}"
         )
         output_filepath = output_dir / f"{scenario_id}{suffix}.png"
