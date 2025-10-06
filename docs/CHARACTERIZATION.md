@@ -4,7 +4,7 @@ The processor classes are designed to take a set of input scenarios and produce 
 
 ---
 
-## ![WIP](https://img.shields.io/badge/status-WIP-orange) Feature Processor
+## Feature Processor
 
 The feature processor uses a feature class specified in the `characterizer` configuration to compute specialized features for input scenarios defined in the `paths` configuration.
 
@@ -31,7 +31,6 @@ Currently supported features:
 - Agent waiting period (interval an agent waits near a conflict point)
 - **WIP:** Agent speed limit difference (difference between agent speed and speed limit)
 - **WIP:** Agent in-lane deviation
-- **WIP:** Trajectory anomaly (distance to closest behavior primitive)
 
 ### Interaction Features
 
@@ -46,11 +45,10 @@ Currently supported features:
 - Time headway
 - Time to collision
 - Deceleration Rate to Avoid a Crash (DRAC)
-- **WIP:** Trajectory-pair anomaly
 
 ---
 
-## ![WIP](https://img.shields.io/badge/status-WIP-orange) Score Processor
+## Score Processor
 
 The score processor uses a list of features specified in the `characterizer` configuration to compute specialized scores for input scenarios.
 
@@ -83,7 +81,7 @@ uv run -m characterization.run_processor characterizer=interaction_scores
 
 ---
 
-## ![WIP](https://img.shields.io/badge/status-WIP-orange) Visualizer
+## Visualizer
 
 The visualizer computes a density function over scored scenarios and generates scenario samples across specified percentiles.
 
