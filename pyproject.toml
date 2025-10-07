@@ -7,6 +7,8 @@ name = "scenario-characterization"
 version = "0.2.12"
 authors = [
     {name="Ingrid Navarro", email="ingridn@cmu.edu"},
+    {name="Duan Yutong (dyt-stackav)"},
+    {name="Alonso Cano", email="acanovil@cmu.edu"},
 ]
 description = "Automated Scenario Characterization Toolkit."
 readme = "README.md"
