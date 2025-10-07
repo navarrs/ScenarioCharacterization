@@ -1,3 +1,5 @@
+import pathlib
+import tempfile
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
@@ -108,13 +110,20 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
             step_size,
         )
 
-        with ProcessPoolExecutor(max_workers=self.num_workers) as executor:
+        # use a temporary dir to save individual frames rather than
+        # the output_dir to avoid contamination with multiple runs
+        # as temp* files are globbed
+        with (
+            tempfile.TemporaryDirectory() as tmp_dir,
+            ProcessPoolExecutor(max_workers=self.num_workers) as executor,
+        ):
+            tmp_dir_path = pathlib.Path(tmp_dir)
             futures = [
                 executor.submit(
                     self.plot_single_step,
                     scenario,
                     scores,
-                    output_dir,
+                    tmp_dir_path,
                     timestep,
                     timestamp_seconds[timestep - step_size : timestep + 1],
                 )
@@ -125,5 +134,5 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
         for _ in tqdm(as_completed(futures), total=len(futures), desc="Generating plots"):
             pass
 
-        BaseVisualizer.to_gif(output_dir, output_filepath, fps=self.fps)
+        BaseVisualizer.to_gif(tmp_dir_path, output_filepath, fps=self.fps)
         return output_filepath
