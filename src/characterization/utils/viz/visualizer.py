@@ -1,9 +1,10 @@
-import os
+"""Base class for scenario visualizers."""
+
 from abc import ABC, abstractmethod
 from glob import glob
 from enum import Enum
 from pathlib import Path
-
+import time
 import numpy as np
 from characterization.schemas import DynamicMapData, Scenario, ScenarioScores, StaticMapData
 from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, AgentTrajectoryMasker, MIN_VALID_POINTS
@@ -374,7 +375,7 @@ class BaseVisualizer(ABC):
 
     @staticmethod
     def to_gif(
-        output_dir: Path,
+        tmp_dir_frames: Path,
         output_filepath: Path,
         *,
         fps: int = 10,
@@ -384,15 +385,16 @@ class BaseVisualizer(ABC):
         """Saves scenario as a GIF.
 
         Args:
-            output_dir (str): directory where temporary scenario files have been saved.
-            output_filepath (str): output filepath to save the GIF.
+            tmp_dir_frames (Path): temporary directory where scenario image frames have been saved.
+            output_filepath (Path): output filepath to save the GIF.
             fps (int): frames per second for the GIF.
             disposal (int): specifies how the previous frame should be treated before displaying the next frame.
                 (Default value is 2 (restores background color, clear the previous frame))
             loop (int): number of times the GIF should loop.
         """
+        t_i = time.time()
         # Load all the temporary files
-        files = glob(f"{output_dir}/temp_*.png")  # noqa: PTH207
+        files = glob(f"{tmp_dir_frames}/temp_*.png")  # noqa: PTH207
         imgs = [Image.open(f) for f in natsorted(files)]
 
         duration = 1000 / fps
@@ -408,9 +410,8 @@ class BaseVisualizer(ABC):
             loop=loop,
         )
 
-        # Removes the temporary files
-        for f in files:
-            os.remove(f)  # noqa: PTH107
+        t_f = time.time()
+        logger.info("Saved GIF to %s [Time taken: %.2fs]", output_filepath, t_f - t_i)
 
     @staticmethod
     def get_normalized_agent_scores(
