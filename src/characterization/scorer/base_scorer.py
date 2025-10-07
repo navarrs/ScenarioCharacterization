@@ -5,7 +5,7 @@ import numpy as np
 from omegaconf import DictConfig
 
 from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores
-from characterization.utils.common import EPS, AgentTrajectoryMasker
+from characterization.utils.common import SMALL_EPS, AgentTrajectoryMasker
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 
 
@@ -72,7 +72,7 @@ class BaseScorer(ABC):
         # between the agent and the relevant agents
         agent_to_agent_dists = np.nan_to_num(agent_to_agent_dists, nan=np.inf)
         relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]  # Shape (num_agents, num_relevant_agents)
-        min_dist = relevant_agents_dists.min(axis=1) + EPS  # Avoid division by zero
+        min_dist = relevant_agents_dists.min(axis=1) + SMALL_EPS  # Avoid division by zero
         argmin_dist = relevant_agents_dists.argmin(axis=1)
 
         # weights

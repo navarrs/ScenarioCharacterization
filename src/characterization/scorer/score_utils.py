@@ -1,6 +1,6 @@
 import numpy as np
 
-from characterization.utils.common import EPS
+from characterization.utils.common import SMALL_EPS
 
 SUPPORTED_SCORERS = ["individual", "interaction", "safeshift"]
 
@@ -91,9 +91,9 @@ def simple_interaction_score(
     Returns:
         float: The aggregated score for the agent pair.
     """
-    inv_mttcp = 1.0 / (mttcp + EPS)
-    inv_thw = 1.0 / (thw + EPS)
-    inv_ttc = 1.0 / (ttc + EPS)
+    inv_mttcp = 1.0 / (mttcp + SMALL_EPS)
+    inv_thw = 1.0 / (thw + SMALL_EPS)
+    inv_ttc = 1.0 / (ttc + SMALL_EPS)
     return (
         collision_weight * collision
         + mttcp_weight * min(mttcp_detection, inv_mttcp)

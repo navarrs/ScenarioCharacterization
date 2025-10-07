@@ -8,6 +8,7 @@ from characterization.utils.common import (
     Float32NDArray1D,
     Float32NDArray2D,
     Float32NDArray3D,
+    Float32NDArray4D,
     Int32NDArray1D,
     Int32NDArray2D,
 )
@@ -144,6 +145,9 @@ class StaticMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         agent_distances_to_conflict_points (Float32NDArray3D | None): 3D array of shape (N, C, T) representing the
             distances from each agent to each conflict point at each timestep, where N is the number of agents, C is the
             number of conflict points, and T is the number of timesteps. Distances are in meters.
+        agent_closest_lanes (Float32NDArray4D | None): 4D array of shape (N, T, K, 6) representing the K closest lanes
+            to each agent at each timestep, where N is the number of agents, T is the number of timesteps, and K is the
+            number of closest lanes.
     """
 
     map_polylines: Float32NDArray2D | None = None
@@ -165,6 +169,7 @@ class StaticMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     # Optional information that can be derived from existing map information
     map_conflict_points: Float32NDArray2D | None = None
     agent_distances_to_conflict_points: Float32NDArray3D | None = None
+    agent_closest_lanes: Float32NDArray4D | None = None
 
     # To allow numpy and other arbitrary types in the model
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
