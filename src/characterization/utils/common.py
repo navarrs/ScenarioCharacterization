@@ -15,6 +15,18 @@ SUPPORTED_CRITERIA = ["critical", "average"]
 MIN_VALID_POINTS = 2
 
 
+def mph_to_ms(mph: float) -> float:
+    """Converts miles per hour (mph) to meters per second (m/s).
+
+    Args:
+        mph (float): Speed in miles per hour.
+
+    Returns:
+        float: Speed in meters per second.
+    """
+    return mph * 0.44704  # 1 mph = 0.44704 m/s
+
+
 # Validator factory
 def validate_array(
     expected_dtype: Any,  # noqa: ANN401
@@ -259,9 +271,9 @@ class LaneMasker:
         return self._lane_to_agent_metadata[..., self._LANE_POINT_XY_POS]
 
     @property
-    def lane_idx(self) -> NDArray[np.float32]:
+    def lane_idx(self) -> NDArray[int]:
         """Returns the lane indices of the closest lanes to the agent."""
-        return self._lane_to_agent_metadata[..., self._LANE_IDX]
+        return self._lane_to_agent_metadata[..., self._LANE_IDX].astype(int)
 
     @property
     def lane_dist_and_idx(self) -> NDArray[np.float32]:

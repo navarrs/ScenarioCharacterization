@@ -28,10 +28,11 @@ characterizer:
 
     score_clip:
       min: 0.0
-      max: 150.0
+      max: 350.0
 
     weights:
       speed: 0.1
+      speed_diff: 1.0
       acceleration: 1.0
       deceleration: 1.0
       jerk: 1.0
@@ -46,13 +47,14 @@ characterizer:
       drac: 0.2
 
     detections:
-      speed: 10
-      acceleration: 10
-      deceleration: 10
-      jerk: 10
-      waiting_period: 8
-      waiting_intervals: 8
-      waiting_distances: 8
+      speed: 30 # in m/s, i.e. ~108 km/h ~70 mph
+      speed_diff: 8 # in m/s, i.e. ~30 km/h over the speed limit
+      acceleration: 10 # in m/s^2
+      deceleration: 10 # in m/s^2
+      jerk: 10 # in m/s^3
+      waiting_period: 8 # in seconds
+      waiting_intervals: 8 # in number of intervals
+      waiting_distances: 8 # in meters
 
       mttcp: 4
       thw: 4

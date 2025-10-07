@@ -372,10 +372,11 @@ def find_closest_lanes(
     agent_data = scenario.agent_data
     agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
     agent_positions = agent_trajectories.agent_xyz_pos
+    num_timesteps = agent_positions.shape[1]
     agent_valid = agent_trajectories.agent_valid
 
     closest_lanes_data = np.full(
-        shape=(agent_data.num_agents, agent_positions.shape[0], k_closest, 6), fill_value=np.inf, dtype=np.float32
+        shape=(agent_data.num_agents, num_timesteps, k_closest, 6), fill_value=np.inf, dtype=np.float32
     )
     for n in range(agent_data.num_agents):
         agent_closest_lanes = compute_k_closest_lanes(

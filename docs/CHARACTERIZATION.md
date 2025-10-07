@@ -29,8 +29,8 @@ Currently supported features:
 - Agent acceleration
 - Agent jerk
 - Agent waiting period (interval an agent waits near a conflict point)
-- **WIP:** Agent speed limit difference (difference between agent speed and speed limit)
-- **WIP:** Agent in-lane deviation
+- Agent speed limit difference (difference between agent speed and speed limit)
+- **TODO:** Agent in-lane deviation
 
 ### Interaction Features
 

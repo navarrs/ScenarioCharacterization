@@ -9,6 +9,9 @@ def simple_individual_score(
     speed: float = 0.0,
     speed_weight: float = 1.0,
     speed_detection: float = 1.0,
+    speed_diff: float = 0.0,
+    speed_diff_weight: float = 1.0,
+    speed_diff_detection: float = 1.0,
     acceleration: float = 0.0,
     acceleration_weight: float = 1.0,
     acceleration_detection: float = 1.0,
@@ -28,6 +31,9 @@ def simple_individual_score(
         speed (float): Speed of the agent.
         speed_weight (float): Weight for the speed feature.
         speed_detection (float): Detection threshold for the speed feature.
+        speed_diff (float): Speed difference between the agent and the speed limit.
+        speed_diff_weight (float): Weight for the speed difference feature.
+        speed_diff_detection (float): Detection threshold for the speed difference feature.
         acceleration (float): Acceleration of the agent.
         acceleration_weight (float): Weight for the acceleration feature.
         acceleration_detection (float): Detection threshold for the acceleration feature.
@@ -47,6 +53,7 @@ def simple_individual_score(
     # Detection values are roughly obtained from: https://arxiv.org/abs/2202.07438
     return (
         speed_weight * min(speed_detection, speed)
+        + speed_diff_weight * min(speed_diff_detection, speed_diff)
         + acceleration_weight * min(acceleration_detection, acceleration)
         + deceleration_weight * min(deceleration_detection, deceleration)
         + jerk_weight * min(jerk_detection, jerk)
