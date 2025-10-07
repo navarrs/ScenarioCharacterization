@@ -18,3 +18,9 @@ config:
   conflict_points:
     intersection_threshold: 0.5 # meters
     resample_factor: 3
+
+  closest_lanes_path: ${paths.output_paths.closest_lanes_cache_path}
+  closest_lanes:
+    num_lanes: 16
+    threshold_distance: 10 # meters
+    subsample_factor: 2

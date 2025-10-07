@@ -1,7 +1,7 @@
 import numpy as np
 from shapely import LineString
 
-from characterization.utils.common import EPS, MIN_VALID_POINTS, InteractionAgent
+from characterization.utils.common import MIN_VALID_POINTS, SMALL_EPS, InteractionAgent
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -231,13 +231,13 @@ def compute_thw(
     i_idx = np.where(leading_agent == 0)[0]
     if len(i_idx) > 0:
         d_i = position_i[i_idx] - position_j[i_idx] - length_i[i_idx]
-        thw[i_idx] = d_i / (speed_j[i_idx] + EPS)
+        thw[i_idx] = d_i / (speed_j[i_idx] + SMALL_EPS)
 
     # ...where j is the agent ahead
     j_idx = np.where(leading_agent == 1)[0]
     if len(j_idx) > 0:
         d_j = position_j[j_idx] - position_i[j_idx] - length_j[j_idx]
-        thw[j_idx] = d_j / (speed_i[j_idx] + EPS)
+        thw[j_idx] = d_j / (speed_i[j_idx] + SMALL_EPS)
 
     if return_only_finite:
         thw = thw[np.isfinite(thw)]
@@ -293,7 +293,7 @@ def compute_ttc(
     i_idx = np.intersect1d(i_leads, j_faster)
     if len(i_idx) > 0:
         d_ij = position_j[i_idx] - position_i[i_idx] - length_i[i_idx]
-        ttc[i_idx] = d_ij / (speed_j[i_idx] - speed_i[i_idx] + EPS)
+        ttc[i_idx] = d_ij / (speed_j[i_idx] - speed_i[i_idx] + SMALL_EPS)
 
     # ...where j is the agent ahead and i's speed is higher
     j_leads = np.where(leading_agent == 1)[0]
@@ -301,7 +301,7 @@ def compute_ttc(
     j_idx = np.intersect1d(j_leads, i_faster)
     if len(j_idx) > 0:
         d_ji = position_i[j_idx] - position_j[j_idx] - length_j[j_idx]
-        ttc[j_idx] = d_ji / (speed_i[j_idx] - speed_j[j_idx] + EPS)
+        ttc[j_idx] = d_ji / (speed_i[j_idx] - speed_j[j_idx] + SMALL_EPS)
 
     if return_only_finite:
         ttc = ttc[np.isfinite(ttc)]
@@ -358,7 +358,7 @@ def compute_drac(
     if len(i_idx) > 0:
         d_ij = np.abs(position_j[i_idx] - position_i[i_idx] - length_i[i_idx])
         v_ji = speed_j[i_idx] - speed_i[i_idx]
-        drac[i_idx] = (v_ji**2) / (2 * d_ij + EPS)
+        drac[i_idx] = (v_ji**2) / (2 * d_ij + SMALL_EPS)
 
     # ...where j is the agent ahead and i's speed is higher
     j_leads = np.where(leading_agent == 1)[0]
@@ -367,7 +367,7 @@ def compute_drac(
     if len(j_idx) > 0:
         d_ji = np.abs(position_i[j_idx] - position_j[j_idx] - length_j[j_idx])
         v_ij = speed_i[j_idx] - speed_j[j_idx]
-        drac[j_idx] = (v_ij**2) / (2 * d_ji + EPS)
+        drac[j_idx] = (v_ij**2) / (2 * d_ji + SMALL_EPS)
 
     # TODO: account for the leader deceleration rate
     if return_nonzero_only:

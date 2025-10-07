@@ -9,3 +9,4 @@ output_paths:
   scores_cache_path: ${paths.cache_path}/scores/${scenario_type}_${characterizer.config.return_criterion}
   vis_cache_path: ${paths.cache_path}/visualization/${scenario_type}_${characterizer.config.return_criterion}
   conflict_points_cache_path: ${paths.cache_path}/conflict_points/
+  closest_lanes_cache_path: ${paths.cache_path}/closest_lanes/

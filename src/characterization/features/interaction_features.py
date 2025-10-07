@@ -7,8 +7,8 @@ import characterization.features.interaction_utils as interaction
 from characterization.features.base_feature import BaseFeature
 from characterization.schemas import Interaction, Scenario, ScenarioFeatures
 from characterization.utils.common import (
-    EPS,
     MIN_VALID_POINTS,
+    SMALL_EPS,
     AgentTrajectoryMasker,
     InteractionStatus,
     ReturnCriterion,
@@ -97,7 +97,7 @@ class InteractionFeatures(BaseFeature):
         agent_heights = agent_trajectories.agent_heights.squeeze(-1)
 
         # NOTE: this is also computed as a feature in the individual features.
-        agent_velocities = np.linalg.norm(agent_trajectories.agent_xy_vel, axis=-1) + EPS
+        agent_velocities = np.linalg.norm(agent_trajectories.agent_xy_vel, axis=-1) + SMALL_EPS
         agent_headings = np.rad2deg(agent_trajectories.agent_headings)
         conflict_points = map_data.map_conflict_points if map_data is not None else None
         dists_to_conflict_points = map_data.agent_distances_to_conflict_points if map_data is not None else None

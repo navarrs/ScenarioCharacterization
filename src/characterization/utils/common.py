@@ -8,10 +8,23 @@ from pydantic import BeforeValidator
 
 from characterization.utils.ad_types import AgentType
 
-EPS = 1e-6
+SMALL_EPS = 1e-6
+BIG_EPS = 1e6
 SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
 SUPPORTED_CRITERIA = ["critical", "average"]
 MIN_VALID_POINTS = 2
+
+
+def mph_to_ms(mph: float) -> float:
+    """Converts miles per hour (mph) to meters per second (m/s).
+
+    Args:
+        mph (float): Speed in miles per hour.
+
+    Returns:
+        float: Speed in meters per second.
+    """
+    return mph * 0.44704  # 1 mph = 0.44704 m/s
 
 
 # Validator factory
@@ -40,6 +53,7 @@ def validate_array(
 BooleanNDArray2D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 2))]
 BooleanNDArray3D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 3))]
 Float64NDArray3D = Annotated[NDArray[np.float64], BeforeValidator(validate_array(np.float64, 3))]
+Float32NDArray4D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 4))]
 Float32NDArray3D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 3))]
 Float32NDArray2D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 2))]
 Float32NDArray1D = Annotated[NDArray[np.float32], BeforeValidator(validate_array(np.float32, 1))]
@@ -103,9 +117,9 @@ class AgentTrajectoryMasker:
     # Agent valid mask
     _TRAJECTORY_VALID: ClassVar[list[bool]] = [False, False, False, False, False, False, False, False, False, True]
 
-    _agent_trajectory: np.ndarray
+    _agent_trajectory: NDArray[np.float32]
 
-    def __init__(self, trajectory: np.ndarray) -> None:
+    def __init__(self, trajectory: NDArray[np.float32]) -> None:
         """Initializes the AgentTrajectoryMasker with trajectory data.
 
         Args:
@@ -136,60 +150,135 @@ class AgentTrajectoryMasker:
 
     # Trajectory accessors
     @property
-    def agent_trajectories(self) -> np.ndarray:
+    def agent_trajectories(self) -> NDArray[np.float32]:
         """Returns the full agent trajectory data."""
         return self._agent_trajectory
 
     @property
-    def agent_dims(self) -> np.ndarray:
+    def agent_dims(self) -> NDArray[np.float32]:
         """Returns the agents dimensions: length, width, height."""
         return self._agent_trajectory[..., self._TRAJECTORY_DIMS]
 
     @property
-    def agent_lengths(self) -> np.ndarray:
+    def agent_lengths(self) -> NDArray[np.float32]:
         """Returns the length."""
         return self._agent_trajectory[..., self._TRAJECTORY_LENGTHS]
 
     @property
-    def agent_widths(self) -> np.ndarray:
+    def agent_widths(self) -> NDArray[np.float32]:
         """Returns the width."""
         return self._agent_trajectory[..., self._TRAJECTORY_WIDTHS]
 
     @property
-    def agent_heights(self) -> np.ndarray:
+    def agent_heights(self) -> NDArray[np.float32]:
         """Returns the height."""
         return self._agent_trajectory[..., self._TRAJECTORY_HEIGHTS]
 
     @property
-    def agent_headings(self) -> np.ndarray:
+    def agent_headings(self) -> NDArray[np.float32]:
         """Returns the heading."""
         return self._agent_trajectory[..., self._TRAJECTORY_HEADING]
 
     @property
-    def agent_xyz_pos(self) -> np.ndarray:
+    def agent_xyz_pos(self) -> NDArray[np.float32]:
         """Returns the (x, y, z) position."""
         return self._agent_trajectory[..., self._TRAJECTORY_XYZ_POS]
 
     @property
-    def agent_xy_pos(self) -> np.ndarray:
+    def agent_xy_pos(self) -> NDArray[np.float32]:
         """Returns the (x, y) position."""
         return self._agent_trajectory[..., self._TRAJECTORY_XY_POS]
 
     @property
-    def agent_xy_vel(self) -> np.ndarray:
+    def agent_xy_vel(self) -> NDArray[np.float32]:
         """Returns the (x, y) velocity."""
         return self._agent_trajectory[..., self._TRAJECTORY_XY_VEL]
 
     @property
-    def agent_valid(self) -> np.ndarray:
+    def agent_valid(self) -> NDArray[np.float32]:
         """Returns the valid mask."""
         valid = self._agent_trajectory[..., self._TRAJECTORY_VALID]
         return np.nan_to_num(valid, nan=0.0)
 
     @property
-    def agent_state(self) -> np.ndarray:
+    def agent_state(self) -> NDArray[np.float32]:
         """Returns all features except the valid mask."""
         return self._agent_trajectory[..., self._TRAJECTORY_STATE]
+
+
+class LaneMasker:
+    """Masks for indexing lane data from the reformatted by the dataloader classes.
+
+    The class expects an input of shape (N, L, T, D=6) or (L, T, D=6) where N is the number of agents, L is the number
+    of lanes, and T is the number of timesteps. D is the number of features per lane point, organized as follows:
+    timesteps and D is the number of features per lane point, organized as follows:
+        idx 0: closest lane distance to the agent in meters.
+        idx 1: lane point index of the closest lane point to the agent.
+        idx 2 to 4: the lane point's (x, y, z) coordinates.
+        idx 5: lane index.
+    """
+
+    # Lane Distances
+    _LANE_DISTS: ClassVar[list[bool]] = [True, False, False, False, False, False]
+
+    # Lane Point Index
+    _LANE_POINT_IDX: ClassVar[list[bool]] = [False, True, False, False, False, False]
+
+    # Lane Point (x, y, z) position masks
+    _LANE_POINT_XYZ_POS: ClassVar[list[bool]] = [False, False, True, True, True, False]
+    _LANE_POINT_XY_POS: ClassVar[list[bool]] = [False, False, True, True, False, False]
+
+    # Lane Index
+    _LANE_IDX: ClassVar[list[bool]] = [False, False, False, False, False, True]
+
+    # Lane and distance
+    _LANE_DIST_AND_IDX: ClassVar[list[bool]] = [True, False, False, False, False, True]
+
+    _lane_to_agent_metadata: NDArray[np.float32]
+
+    def __init__(self, lane_to_agent_metadata: NDArray[np.float32]) -> None:
+        """Initializes the LaneMasker with lane to agent metadata.
+
+        Args:
+            lane_to_agent_metadata (np.ndarray): The lane to agent metadata of shape (N, T, D=6) or (T, D=6).
+        """
+        self._lane_to_agent_metadata = lane_to_agent_metadata
+
+    # Lane metadata accessors
+    @property
+    def lane_to_agent_metadata(self) -> NDArray[np.float32]:
+        """Returns the lane to agent metadata."""
+        return self._lane_to_agent_metadata
+
+    @property
+    def lane_dists(self) -> NDArray[np.float32]:
+        """Returns the closest lane distances to the agent."""
+        return self._lane_to_agent_metadata[..., self._LANE_DISTS]
+
+    @property
+    def lane_point_idx(self) -> NDArray[np.float32]:
+        """Returns the lane point indices of the closest lane points to the agent."""
+        return self._lane_to_agent_metadata[..., self._LANE_POINT_IDX]
+
+    @property
+    def lane_point_xyz_pos(self) -> NDArray[np.float32]:
+        """Returns the (x, y, z) position of the closest lane points to the agent."""
+        return self._lane_to_agent_metadata[..., self._LANE_POINT_XYZ_POS]
+
+    @property
+    def lane_point_xy_pos(self) -> NDArray[np.float32]:
+        """Returns the (x, y) position of the closest lane points to the agent."""
+        return self._lane_to_agent_metadata[..., self._LANE_POINT_XY_POS]
+
+    @property
+    def lane_idx(self) -> NDArray[int]:
+        """Returns the lane indices of the closest lanes to the agent."""
+        return self._lane_to_agent_metadata[..., self._LANE_IDX].astype(int)
+
+    @property
+    def lane_dist_and_idx(self) -> NDArray[np.float32]:
+        """Returns the closest lane distances and lane indices to the agent."""
+        return self._lane_to_agent_metadata[..., self._LANE_DIST_AND_IDX]
 
 
 class InteractionAgent:

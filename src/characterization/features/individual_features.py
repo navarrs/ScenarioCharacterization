@@ -4,7 +4,7 @@ from omegaconf import DictConfig
 import characterization.features.individual_utils as individual
 from characterization.features.base_feature import BaseFeature
 from characterization.schemas import Individual, Scenario, ScenarioFeatures
-from characterization.utils.common import MIN_VALID_POINTS, AgentTrajectoryMasker, ReturnCriterion
+from characterization.utils.common import MIN_VALID_POINTS, AgentTrajectoryMasker, LaneMasker, ReturnCriterion
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
 
@@ -79,7 +79,11 @@ class IndividualFeatures(BaseFeature):
         stationary_speed = metadata.stationary_speed
 
         map_data = scenario.static_map_data
-        conflict_points = map_data.map_conflict_points if map_data is not None else None
+        conflict_points, closest_lanes, lane_speed_limits = None, None, None
+        if map_data is not None:
+            conflict_points = map_data.map_conflict_points
+            closest_lanes = map_data.agent_closest_lanes
+            lane_speed_limits = map_data.lane_speed_limits_mph
 
         # Meta information to be included within ScenarioFeatures. For an agent to be valid it needs to have at least
         # two valid timestamps. The indeces of such agents will be added to `valid_idxs` list.
@@ -109,7 +113,9 @@ class IndividualFeatures(BaseFeature):
             # Compute agent features
 
             # Speed Profile
-            speeds, speed_limit_diffs = individual.compute_speed(velocities)
+            # TODO: Add a agent-lane deviation feature
+            closest_lane_n = LaneMasker(closest_lanes[n, mask]) if closest_lanes is not None else None
+            speeds, speed_limit_diffs = individual.compute_speed_meta(velocities, closest_lane_n, lane_speed_limits)
             if speeds is None or speed_limit_diffs is None:
                 continue
 
