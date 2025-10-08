@@ -37,7 +37,7 @@ def run(cfg: DictConfig) -> None:
     processor: BaseProcessor = hydra.utils.instantiate(cfg.processor, dataset=dataset, characterizer=characterizer)
 
     try:
-        logger.info("Generating scenario features...")
+        logger.info("Running scenario processor...")
         processor.run()
     except AssertionError:
         logger.exception("Error Processing Data")

@@ -110,29 +110,25 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
             step_size,
         )
 
-        # use a temporary dir to save individual frames rather than
-        # the output_dir to avoid contamination with multiple runs
-        # as temp* files are globbed
-        with (
-            tempfile.TemporaryDirectory() as tmp_dir,
-            ProcessPoolExecutor(max_workers=self.num_workers) as executor,
-        ):
+        # Use a temporary dir to save individual frames rather than the output_dir to avoid contamination with multiple
+        # runs as temp* files are globbed
+        with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_dir_path = pathlib.Path(tmp_dir)
-            futures = [
-                executor.submit(
-                    self.plot_single_step,
-                    scenario,
-                    scores,
-                    tmp_dir_path,
-                    timestep,
-                    timestamp_seconds[timestep - step_size : timestep + 1],
-                )
-                for timestep in range(2, total_timesteps, step_size)
-            ]
+            with ProcessPoolExecutor(max_workers=self.num_workers) as executor:
+                futures = [
+                    executor.submit(
+                        self.plot_single_step,
+                        scenario,
+                        scores,
+                        tmp_dir_path,
+                        timestep,
+                        timestamp_seconds[timestep - step_size : timestep + 1],
+                    )
+                    for timestep in range(2, total_timesteps, step_size)
+                ]
 
-        # tqdm progress bar
-        for _ in tqdm(as_completed(futures), total=len(futures), desc="Generating plots"):
-            pass
-
-        BaseVisualizer.to_gif(tmp_dir_path, output_filepath, fps=self.fps)
+            # tqdm progress bar
+            for _ in tqdm(as_completed(futures), total=len(futures), desc="Generating plots"):
+                pass
+            BaseVisualizer.to_gif(tmp_dir_path, output_filepath, fps=self.fps)
         return output_filepath

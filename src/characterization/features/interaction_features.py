@@ -38,7 +38,7 @@ class InteractionFeatures(BaseFeature):
         super().__init__(config)
 
     @staticmethod
-    def compute_interaction_features(scenario: Scenario, return_criterion: ReturnCriterion) -> Interaction:
+    def compute_interaction_features(scenario: Scenario, return_criterion: ReturnCriterion) -> Interaction | None:
         """Compute comprehensive pairwise interaction features for all agent combinations.
 
         Args:
@@ -64,9 +64,7 @@ class InteractionFeatures(BaseFeature):
                 - interaction_status: Processing status for each agent pair (computed/invalid/stationary)
                 - interaction_agent_indices: Agent pair indices (i, j) for each interaction
                 - interaction_agent_types: Agent type pairs for each interaction
-
-        Raises:
-            ValueError: If no agent combinations are found (scenario has fewer than 2 agents).
+                Returns None if scenario has fewer than 2 agents.
 
         Note:
             - Agent pairs must have overlapping valid timesteps to be processed
@@ -85,8 +83,8 @@ class InteractionFeatures(BaseFeature):
 
         agent_combinations = list(itertools.combinations(range(agent_data.num_agents), 2))
         if len(agent_combinations) == 0:
-            error_message = "No agent combinations found. Ensure that the scenario has at least two agents."
-            raise ValueError(error_message)
+            logger.error("No agent combinations found. Ensure that the scenario has at least two agents.")
+            return None
 
         agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
         agent_types = agent_data.agent_types
@@ -103,7 +101,7 @@ class InteractionFeatures(BaseFeature):
         dists_to_conflict_points = map_data.agent_distances_to_conflict_points if map_data is not None else None
 
         # Meta information
-        stationary_speed = metadata.stationary_speed
+        stationary_speed = metadata.max_stationary_speed
         agent_to_agent_max_distance = metadata.agent_to_agent_max_distance
         agent_to_conflict_point_max_distance = metadata.agent_to_conflict_point_max_distance
         agent_to_agent_distance_breach = metadata.agent_to_agent_distance_breach

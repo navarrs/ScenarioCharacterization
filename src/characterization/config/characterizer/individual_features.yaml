@@ -1,16 +1,20 @@
 # @package _global_
 defaults:
-  - features.yaml
+  - default.yaml
 
-characterizer:
-  _target_: characterization.features.individual_features.IndividualFeatures
+processor:
+  _target_: characterization.processors.feature_processor.FeatureProcessor
   config:
-    return_criterion: ${return_criterion} # Can be 'critical', 'average', or 'none'
     features:
       - speed
+      - speed_limit_diff
       - acceleration
       - deceleration
       - jerk
       - waiting_period
       - waiting_interval
       - waiting_distance
+      - trajectory_type
+
+characterizer:
+  _target_: characterization.features.individual_features.IndividualFeatures

@@ -60,7 +60,7 @@ class SafeShiftScorer(BaseScorer):
         # Combine the scores
         agent_scores = scores_ind.copy() + scores_int.copy()
         scene_score = np.clip(
-            scene_score_int + scene_score_ind, a_min=2.0 * self.score_clip.min, a_max=2.0 * self.score_clip.max
+            0.5 * (scene_score_int + scene_score_ind), a_min=self.score_clip.min, a_max=self.score_clip.max
         )
         return ScenarioScores(
             metadata=scenario.metadata,

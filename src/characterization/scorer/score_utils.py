@@ -1,6 +1,6 @@
 import numpy as np
 
-from characterization.utils.common import SMALL_EPS
+from characterization.utils.common import SMALL_EPS, TRAJECTORY_TYPE_WEIGHTS, TrajectoryType
 
 SUPPORTED_SCORERS = ["individual", "interaction", "safeshift"]
 
@@ -24,6 +24,8 @@ def simple_individual_score(
     waiting_period: float = 0.0,
     waiting_period_weight: float = 1.0,
     waiting_period_detection: float = 1.0,
+    trajectory_type: TrajectoryType = TrajectoryType.TYPE_UNSET,
+    trajectory_type_weight: float = 0.1,
 ) -> float:
     """Aggregates a simple score for an agent using weighted feature values.
 
@@ -46,6 +48,8 @@ def simple_individual_score(
         waiting_period (float): Waiting period of the agent.
         waiting_period_weight (float): Weight for the waiting period feature.
         waiting_period_detection (float): Detection threshold for the waiting period feature.
+        trajectory_type (TrajectoryType): Trajectory type of the agent.
+        trajectory_type_weight (float): Weight for the trajectory type feature.
 
     Returns:
         float: The aggregated score for the agent.
@@ -58,6 +62,7 @@ def simple_individual_score(
         + deceleration_weight * min(deceleration_detection, deceleration)
         + jerk_weight * min(jerk_detection, jerk)
         + waiting_period_weight * min(waiting_period_detection, waiting_period)
+        + trajectory_type_weight * TRAJECTORY_TYPE_WEIGHTS[trajectory_type]
     )
 
 

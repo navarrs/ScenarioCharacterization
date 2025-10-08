@@ -4,7 +4,13 @@ from omegaconf import DictConfig
 import characterization.features.individual_utils as individual
 from characterization.features.base_feature import BaseFeature
 from characterization.schemas import Individual, Scenario, ScenarioFeatures
-from characterization.utils.common import MIN_VALID_POINTS, AgentTrajectoryMasker, LaneMasker, ReturnCriterion
+from characterization.utils.common import (
+    MIN_VALID_POINTS,
+    AgentTrajectoryMasker,
+    LaneMasker,
+    ReturnCriterion,
+    TrajectoryType,
+)
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
 
@@ -72,11 +78,12 @@ class IndividualFeatures(BaseFeature):
 
         agent_positions = agent_trajectories.agent_xyz_pos
         agent_velocities = agent_trajectories.agent_xy_vel
+        agent_headings = np.rad2deg(agent_trajectories.agent_headings)
         agent_valid = agent_trajectories.agent_valid.squeeze(-1).astype(bool)
 
         metadata = scenario.metadata
         scenario_timestamps = metadata.timestamps_seconds
-        stationary_speed = metadata.stationary_speed
+        stationary_speed = metadata.max_stationary_speed
 
         map_data = scenario.static_map_data
         conflict_points, closest_lanes, lane_speed_limits = None, None, None
@@ -98,6 +105,7 @@ class IndividualFeatures(BaseFeature):
         scenario_waiting_periods = []
         scenario_waiting_intervals = []
         scenario_waiting_distances = []
+        scenario_trajectory_types = [TrajectoryType.TYPE_UNSET] * agent_data.num_agents
 
         # NOTE: Handling sequentially since each agent may have different valid masks which will
         # result in trajectories of different lengths.
@@ -108,6 +116,7 @@ class IndividualFeatures(BaseFeature):
 
             velocities = agent_velocities[n][mask, :]
             positions = agent_positions[n][mask, :]
+            headings = agent_headings[n][mask]
             timestamps = np.asarray(scenario_timestamps)[mask]
 
             # Compute agent features
@@ -136,6 +145,9 @@ class IndividualFeatures(BaseFeature):
                 conflict_points,
                 stationary_speed,
             )
+
+            # Trajectory Type
+            trajectory_type = individual.compute_trajectory_type(positions, speeds, headings, metadata)
 
             match return_criterion:
                 case ReturnCriterion.CRITICAL:
@@ -169,10 +181,12 @@ class IndividualFeatures(BaseFeature):
             scenario_waiting_periods.append(waiting_period)
             scenario_waiting_intervals.append(waiting_interval)
             scenario_waiting_distances.append(waiting_distance)
+            scenario_trajectory_types[n] = trajectory_type
 
         return Individual(
             valid_idxs=np.array(scenario_valid_idxs, dtype=np.int32) if scenario_valid_idxs else None,
             agent_types=agent_data.agent_types if agent_data.agent_types else None,
+            agent_trajectory_types=scenario_trajectory_types,
             speed=np.array(scenario_speeds, dtype=np.float32) if scenario_speeds else None,
             speed_limit_diff=(
                 np.array(scenario_speed_limit_diffs, dtype=np.float32) if scenario_speed_limit_diffs else None

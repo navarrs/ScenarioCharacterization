@@ -1,7 +1,13 @@
 from pydantic import BaseModel
 
 from characterization.utils.ad_types import AgentType
-from characterization.utils.common import Float32NDArray1D, Float32NDArray2D, Int32NDArray1D, InteractionStatus
+from characterization.utils.common import (
+    Float32NDArray1D,
+    Float32NDArray2D,
+    Int32NDArray1D,
+    InteractionStatus,
+    TrajectoryType,
+)
 
 from .scenario import ScenarioMetadata
 
@@ -26,6 +32,7 @@ class Individual(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     # Agent meta
     valid_idxs: Int32NDArray1D | None = None
     agent_types: list[AgentType] | None = None
+    agent_trajectory_types: list[TrajectoryType]
 
     # Individual Features
     speed: Float32NDArray1D | None = None
