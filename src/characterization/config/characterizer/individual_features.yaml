@@ -15,6 +15,7 @@ processor:
       - waiting_interval
       - waiting_distance
       - trajectory_type
+      - kalman_difficulty
 
 characterizer:
   _target_: characterization.features.individual_features.IndividualFeatures

@@ -23,6 +23,7 @@ processor:
         - waiting_interval
         - waiting_distance
         - trajectory_type
+        - kalman_difficulty
         - separation
         - intersection
         - collision
@@ -38,6 +39,7 @@ characterizer:
       max: 200.0
 
     weights:
+      # Individual features
       speed: 0.1
       speed_diff: 0.2
       acceleration: 1.0
@@ -46,8 +48,12 @@ characterizer:
       waiting_period: 1.0
       waiting_intervals: 1.0
       waiting_distances: 1.0
-      trajectory_type: 0.1
 
+      # Individual features from Unitraj
+      trajectory_type: 0.1
+      kalman_difficulty: 1.0
+
+      # Interaction features
       collision: 2.0
       mttcp: 2.0
       thw: 1.0
@@ -63,6 +69,7 @@ characterizer:
       waiting_period: 8 # in seconds
       waiting_intervals: 8 # in number of intervals
       waiting_distances: 8 # in meters
+      kalman_difficulty: 80.0
 
       mttcp: 4
       thw: 4
