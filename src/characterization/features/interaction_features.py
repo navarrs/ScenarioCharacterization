@@ -103,7 +103,7 @@ class InteractionFeatures(BaseFeature):
         dists_to_conflict_points = map_data.agent_distances_to_conflict_points if map_data is not None else None
 
         # Meta information
-        stationary_speed = metadata.stationary_speed
+        stationary_speed = metadata.max_stationary_speed
         agent_to_agent_max_distance = metadata.agent_to_agent_max_distance
         agent_to_conflict_point_max_distance = metadata.agent_to_conflict_point_max_distance
         agent_to_agent_distance_breach = metadata.agent_to_agent_distance_breach

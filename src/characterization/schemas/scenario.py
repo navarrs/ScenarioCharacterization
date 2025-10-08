@@ -63,7 +63,15 @@ class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         objects_of_interest (list): List of objects of interest in the scenario.
         track_length (int): Length of the track in the scenario.
         dataset (str): Name of the dataset from which the scenario is derived.
-        stationary_speed (float | None): Speed threshold below which an agent is considered stationary.
+        max_stationary_speed (float | None): Speed threshold below which an agent is considered stationary.
+        max_stationary_displacement (float | None): Maximum displacement threshold for an agent to be considered
+            stationary over the scenario duration.
+        max_straight_lateral_displacement (float | None): Maximum lateral displacement threshold for an agent to be
+            considered moving straight.
+        min_uturn_longitudinal_displacement (float | None): Minimum longitudinal displacement threshold for an agent to
+            be considered making a U-turn.
+        max_straight_absolute_heading_diff (float | None): Maximum absolute heading difference threshold for an agent to
+            be considered moving straight.
         agent_to_agent_max_distance (float | None): Maximum distance between agents to consider them for interaction.
         agent_to_conflict_point_max_distance (float | None): Maximum distance from an agent to a conflict point to
             consider it relevant.
@@ -82,8 +90,15 @@ class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     track_length: int
     dataset: str
 
-    # Thresholds
-    stationary_speed: float = 0.25  # m/s
+    # Thresholds.
+    # Obtained from: https://github.com/vita-epfl/UniTraj/blob/main/unitraj/datasets/common_utils.py#L400
+    max_stationary_speed: float = 2.0  # m/s
+    max_stationary_displacement: float = 5.0  # meters
+    max_straight_lateral_displacement: float = 5.0  # meters
+    min_uturn_longitudinal_displacement: float = -5.0  # meters
+    max_straight_absolute_heading_diff: float = 30.0  # degrees
+
+    # Optional thresholds for scenario characterization
     agent_to_agent_max_distance: float = 50.0  # meters
     agent_to_conflict_point_max_distance: float = 2.0  # meters
     agent_to_agent_distance_breach: float = 1.0  # meters

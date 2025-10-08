@@ -472,3 +472,40 @@ class InteractionAgent:
         self._width = np.empty((0,), dtype=np.float32)
         self._height = np.empty((0,), dtype=np.float32)
         self._agent_type = AgentType.TYPE_UNSET
+
+
+class TrajectoryType(Enum):
+    """Trajectory Types for WOMD."""
+
+    TYPE_UNSET = -1
+    TYPE_STATIONARY = 0
+    TYPE_STRAIGHT = 1
+    TYPE_STRAIGHT_RIGHT = 2
+    TYPE_STRAIGHT_LEFT = 3
+    TYPE_RIGHT_U_TURN = 4
+    TYPE_RIGHT_TURN = 5
+    TYPE_LEFT_U_TURN = 6
+    TYPE_LEFT_TURN = 7
+
+
+# Weights for different trajectory types are loosely set based on Figure 3 (a) of https://arxiv.org/pdf/2403.15098
+# Weight per class is set as (100% - class frequency %) * 0.10
+TRAJECTORY_TYPE_WEIGHTS = {
+    TrajectoryType.TYPE_UNSET: 0.0,
+    # Stationary agents correspond to less than 10% of the data
+    TrajectoryType.TYPE_STATIONARY: 9.0,
+    # Straight-moving agents correspond to ~50% of the data.
+    TrajectoryType.TYPE_STRAIGHT: 5.0,
+    # Straight-right agents correspond less than ~10% of the data.
+    TrajectoryType.TYPE_STRAIGHT_RIGHT: 9.0,
+    # Straight-left agents correspond to ~10% of the data.
+    TrajectoryType.TYPE_STRAIGHT_LEFT: 9.0,
+    # Right-turn agents correspond to less than 20% of the data.
+    TrajectoryType.TYPE_RIGHT_TURN: 8.0,
+    # Left-turn agents correspond to less than 20% of the data.
+    TrajectoryType.TYPE_LEFT_TURN: 8.0,
+    # Right-U-turn agents correspond to less than 10% of the data.
+    TrajectoryType.TYPE_RIGHT_U_TURN: 9.0,
+    # Left-U-turn agents correspond to less than 10% of the data.
+    TrajectoryType.TYPE_LEFT_U_TURN: 9.0,
+}

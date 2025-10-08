@@ -88,6 +88,8 @@ class IndividualScorer(BaseScorer):
                 waiting_period=features.waiting_period[n] if features.waiting_period is not None else 0.0,
                 waiting_period_weight=self.weights.waiting_period,
                 waiting_period_detection=self.detections.waiting_period,
+                trajectory_type=features.agent_trajectory_types[n],
+                trajectory_type_weight=self.weights.trajectory_type,
             )
         # As a safeguard, replace NaNs with zeros
         scores = np.nan_to_num(scores, nan=0.0)
