@@ -74,19 +74,25 @@ def from_pickle(data_file: str) -> dict:  # pyright: ignore[reportMissingTypeArg
         return pickle.load(f)  # nosec B301
 
 
-def to_pickle(output_path: str, input_data: dict, tag: str) -> None:  # pyright: ignore[reportMissingTypeArgument]
+def to_pickle(output_path: str, input_data: dict, tag: str, *, overwrite: bool = True) -> None:  # pyright: ignore[reportMissingTypeArgument]
     """Saves data to a pickle file, merging with existing data if present.
 
     Args:
         output_path (str): Directory where the pickle file will be saved.
         input_data (dict): The data to save.
         tag (str): The tag to use for the output file name.
+        overwrite (bool, optional): Whether to overwrite existing data. Defaults to True.
 
     Returns:
         None
     """
     data = {}
     data_file = os.path.join(output_path, f"{tag}.pkl")
+    if overwrite:
+        with open(data_file, "wb") as f:
+            pickle.dump(input_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+        return
+
     if os.path.exists(data_file):
         with open(data_file, "rb") as f:
             data = pickle.load(f)  # nosec B301

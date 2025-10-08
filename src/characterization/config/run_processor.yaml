@@ -7,6 +7,7 @@ defaults:
 
 seed: 42
 save: true
+overwrite: false
 
 num_scenarios: null
 num_shards: 0

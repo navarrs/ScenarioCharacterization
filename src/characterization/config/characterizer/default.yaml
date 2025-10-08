@@ -9,14 +9,37 @@ processor:
       shuffle: ${shuffle}
 
       save: ${save}
+      overwrite: ${overwrite}
       output_path: ${paths.output_paths.feature_cache_path}
       feature_path: ${paths.output_paths.feature_cache_path}
 
+      features:
+        - speed
+        - speed_limit_diff
+        - acceleration
+        - deceleration
+        - jerk
+        - waiting_period
+        - waiting_interval
+        - waiting_distance
+        - trajectory_type
+        - separation
+        - intersection
+        - collision
+        - mttcp
+        - thw
+        - ttc
+        - drac
+
 characterizer:
   config:
+    score_clip:
+      min: 0.0
+      max: 200.0
+
     weights:
       speed: 0.1
-      speed_diff: 1.0
+      speed_diff: 0.2
       acceleration: 1.0
       deceleration: 1.0
       jerk: 1.0
@@ -45,21 +68,3 @@ characterizer:
       thw: 4
       ttc: 4
       drac: 2
-
-    features:
-      - speed
-      - speed_limit_diff
-      - acceleration
-      - deceleration
-      - jerk
-      - waiting_period
-      - waiting_interval
-      - waiting_distance
-      - trajectory_type
-      - separation
-      - intersection
-      - collision
-      - mttcp
-      - thw
-      - ttc
-      - drac
