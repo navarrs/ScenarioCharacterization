@@ -394,16 +394,16 @@ class BaseVisualizer(ABC):
         """
         t_i = time.time()
         # Load all the temporary files
-        files = glob(f"{tmp_dir_frames}/temp_*.png")  # noqa: PTH207
-        imgs = [Image.open(f) for f in natsorted(files)]
+        files = natsorted(glob(f"{tmp_dir_frames}/temp_*.png"))  # noqa: PTH207
+        images_to_append = (Image.open(f) for f in files[1:])
 
         duration = 1000 / fps
 
         # Saves them into a GIF
-        imgs[0].save(
+        Image.open(files[0]).save(
             output_filepath,
             format="GIF",
-            append_images=imgs[1:],
+            append_images=images_to_append,
             save_all=True,  # Ensures all frames are saved. Needed for preserving animation.
             duration=duration,
             disposal=disposal,
