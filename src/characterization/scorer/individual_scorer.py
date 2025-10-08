@@ -90,6 +90,9 @@ class IndividualScorer(BaseScorer):
                 waiting_period_detection=self.detections.waiting_period,
                 trajectory_type=features.agent_trajectory_types[n],
                 trajectory_type_weight=self.weights.trajectory_type,
+                kalman_difficulty=features.kalman_difficulty[n] if features.kalman_difficulty is not None else 0.0,
+                kalman_difficulty_weight=self.weights.kalman_difficulty,
+                kalman_difficulty_detection=self.detections.kalman_difficulty,
             )
         # As a safeguard, replace NaNs with zeros
         scores = np.nan_to_num(scores, nan=0.0)

@@ -26,6 +26,9 @@ def simple_individual_score(
     waiting_period_detection: float = 1.0,
     trajectory_type: TrajectoryType = TrajectoryType.TYPE_UNSET,
     trajectory_type_weight: float = 0.1,
+    kalman_difficulty: float = 0.0,
+    kalman_difficulty_weight: float = 1.0,
+    kalman_difficulty_detection: float = 1.0,
 ) -> float:
     """Aggregates a simple score for an agent using weighted feature values.
 
@@ -50,6 +53,9 @@ def simple_individual_score(
         waiting_period_detection (float): Detection threshold for the waiting period feature.
         trajectory_type (TrajectoryType): Trajectory type of the agent.
         trajectory_type_weight (float): Weight for the trajectory type feature.
+        kalman_difficulty (float): Kalman difficulty of the agent.
+        kalman_difficulty_weight (float): Weight for the kalman difficulty feature.
+        kalman_difficulty_detection (float): Detection threshold for the kalman difficulty feature.
 
     Returns:
         float: The aggregated score for the agent.
@@ -63,6 +69,7 @@ def simple_individual_score(
         + jerk_weight * min(jerk_detection, jerk)
         + waiting_period_weight * min(waiting_period_detection, waiting_period)
         + trajectory_type_weight * TRAJECTORY_TYPE_WEIGHTS[trajectory_type]
+        + kalman_difficulty_weight * min(kalman_difficulty_detection, kalman_difficulty)
     )
 
 

@@ -9,7 +9,6 @@ from characterization.utils.common import (
     AgentTrajectoryMasker,
     LaneMasker,
     ReturnCriterion,
-    TrajectoryType,
 )
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
@@ -84,6 +83,7 @@ class IndividualFeatures(BaseFeature):
         metadata = scenario.metadata
         scenario_timestamps = metadata.timestamps_seconds
         stationary_speed = metadata.max_stationary_speed
+        current_time_index = metadata.current_time_index
 
         map_data = scenario.static_map_data
         conflict_points, closest_lanes, lane_speed_limits = None, None, None
@@ -105,7 +105,8 @@ class IndividualFeatures(BaseFeature):
         scenario_waiting_periods = []
         scenario_waiting_intervals = []
         scenario_waiting_distances = []
-        scenario_trajectory_types = [TrajectoryType.TYPE_UNSET] * agent_data.num_agents
+        scenario_trajectory_types = []
+        scenario_kalman_difficulties = []
 
         # NOTE: Handling sequentially since each agent may have different valid masks which will
         # result in trajectories of different lengths.
@@ -149,6 +150,9 @@ class IndividualFeatures(BaseFeature):
             # Trajectory Type
             trajectory_type = individual.compute_trajectory_type(positions, speeds, headings, metadata)
 
+            # Kalman Difficulty
+            kalman_difficulty = individual.compute_kalman_difficulty(agent_positions[n], mask, current_time_index + 1)
+
             match return_criterion:
                 case ReturnCriterion.CRITICAL:
                     speed = speeds.max()
@@ -181,7 +185,8 @@ class IndividualFeatures(BaseFeature):
             scenario_waiting_periods.append(waiting_period)
             scenario_waiting_intervals.append(waiting_interval)
             scenario_waiting_distances.append(waiting_distance)
-            scenario_trajectory_types[n] = trajectory_type
+            scenario_trajectory_types.append(trajectory_type)
+            scenario_kalman_difficulties.append(kalman_difficulty)
 
         return Individual(
             valid_idxs=np.array(scenario_valid_idxs, dtype=np.int32) if scenario_valid_idxs else None,
@@ -200,6 +205,9 @@ class IndividualFeatures(BaseFeature):
             ),
             waiting_distance=(
                 np.array(scenario_waiting_distances, dtype=np.float32) if scenario_waiting_distances else None
+            ),
+            kalman_difficulty=(
+                np.array(scenario_kalman_difficulties, dtype=np.float32) if scenario_kalman_difficulties else None
             ),
         )
 

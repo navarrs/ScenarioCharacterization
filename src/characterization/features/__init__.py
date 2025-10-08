@@ -14,6 +14,7 @@ SUPPORTED_FEATURES = [
     "waiting_interval",
     "waiting_distance",
     "trajectory_type",
+    "kalman_difficulty",
     "separation",
     "intersection",
     "collision",

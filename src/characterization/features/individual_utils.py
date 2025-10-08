@@ -2,7 +2,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from characterization.schemas import ScenarioMetadata
-from characterization.utils.common import SMALL_EPS, LaneMasker, TrajectoryType, mph_to_ms
+from characterization.utils.common import MIN_VALID_POINTS, SMALL_EPS, LaneMasker, TrajectoryType, mph_to_ms
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -307,3 +307,236 @@ def compute_trajectory_type(
 
     # Default to left turn classification
     return _classify_left_trajectory(longitudinal_displacement, min_uturn_longitudinal_displacement)
+
+
+def _compute_average_velocity(positions: NDArray[np.float32]) -> float:
+    """Compute average velocity from position differences."""
+    velocity_sum = 0.0
+    for i in range(len(positions) - 1):
+        velocity_sum += positions[i + 1] - positions[i]
+    return velocity_sum / (len(positions) - 1)
+
+
+class KalmanState:
+    """Container for Kalman filter state variables."""
+
+    def __init__(self, size: int) -> None:
+        """Initialize KalmanState with position arrays.
+
+        Args:
+            size (int): The number of time steps to allocate for the state.
+        """
+        self.x = np.zeros(size + 1, dtype=np.float32)  # Position estimates (x)
+        self.y = np.zeros(size + 1, dtype=np.float32)  # Position estimates (y)
+
+
+class KalmanCovariance:
+    """Container for Kalman filter covariance matrices."""
+
+    def __init__(self, size: int) -> None:
+        """Initialize KalmanCovariance with covariance arrays.
+
+        Args:
+            size (int): The number of time steps to allocate for the covariance.
+        """
+        self.pos_x = np.zeros(size + 1, dtype=np.float32)  # Position uncertainty (x)
+        self.pos_y = np.zeros(size + 1, dtype=np.float32)  # Position uncertainty (y)
+        self.vel_x = np.zeros(size + 1, dtype=np.float32)  # Velocity uncertainty (x)
+        self.vel_y = np.zeros(size + 1, dtype=np.float32)  # Velocity uncertainty (y)
+
+
+class KalmanGains:
+    """Container for Kalman gain matrices."""
+
+    def __init__(self, size: int) -> None:
+        """Initialize KalmanGains with gain arrays.
+
+        Args:
+            size (int): The number of time steps to allocate for the gains.
+        """
+        self.pos_x = np.zeros(size + 1, dtype=np.float32)  # Kalman gain for position (x)
+        self.pos_y = np.zeros(size + 1, dtype=np.float32)  # Kalman gain for position (y)
+        self.vel_x = np.zeros(size + 1, dtype=np.float32)  # Kalman gain for velocity (x)
+        self.vel_y = np.zeros(size + 1, dtype=np.float32)  # Kalman gain for velocity (y)
+
+
+def _initialize_kalman_state(size: int, initial_x: float, initial_y: float) -> KalmanState:
+    """Initialize Kalman filter state with initial position."""
+    state = KalmanState(size)
+    state.x[0] = initial_x
+    state.y[0] = initial_y
+    return state
+
+
+def _initialize_kalman_covariance(size: int) -> KalmanCovariance:
+    """Initialize Kalman filter covariance matrices with unit uncertainty."""
+    covariance = KalmanCovariance(size)
+    # Initialize with unit Gaussian uncertainty
+    covariance.pos_x[0] = 1.0
+    covariance.pos_y[0] = 1.0
+    covariance.vel_x[0] = 1.0
+    covariance.vel_y[0] = 1.0
+    return covariance
+
+
+def _initialize_kalman_gains(size: int) -> KalmanGains:
+    """Initialize Kalman gain matrices."""
+    return KalmanGains(size)
+
+
+def _kalman_prediction_step(
+    state: KalmanState,
+    covariance: KalmanCovariance,
+    timestep: int,
+    velocity_x: float,
+    velocity_y: float,
+    process_noise: float,
+) -> None:
+    """Perform Kalman filter prediction step (time update)."""
+    k = timestep
+
+    # Predict next state using constant velocity model
+    state.x[k + 1] = state.x[k] + velocity_x
+    state.y[k + 1] = state.y[k] + velocity_y
+
+    # Update covariance matrices (add process noise)
+    covariance.pos_x[k + 1] = covariance.pos_x[k] + covariance.vel_x[k] + process_noise
+    covariance.pos_y[k + 1] = covariance.pos_y[k] + covariance.vel_y[k] + process_noise
+    covariance.vel_x[k + 1] = covariance.vel_x[k] + process_noise
+    covariance.vel_y[k + 1] = covariance.vel_y[k] + process_noise
+
+
+def _kalman_correction_step(
+    state: KalmanState,
+    covariance: KalmanCovariance,
+    gains: KalmanGains,
+    timestep: int,
+    observed_x: NDArray[np.float32],
+    observed_y: NDArray[np.float32],
+    measurement_noise: float,
+) -> None:
+    """Perform Kalman filter correction step (measurement update)."""
+    k = timestep + 1
+
+    # Calculate Kalman gains
+    gains.pos_x[k] = covariance.pos_x[k] / (covariance.pos_x[k] + measurement_noise)
+    gains.pos_y[k] = covariance.pos_y[k] / (covariance.pos_y[k] + measurement_noise)
+
+    # Update state estimates with observations
+    position_error_x = observed_x[k] - state.x[k]
+    position_error_y = observed_y[k] - state.y[k]
+
+    state.x[k] = state.x[k] + gains.pos_x[k] * position_error_x
+    state.y[k] = state.y[k] + gains.pos_y[k] * position_error_y
+
+    # Update covariance matrices
+    covariance.pos_x[k] = covariance.pos_x[k] - gains.pos_x[k] * covariance.pos_x[k]
+    covariance.pos_y[k] = covariance.pos_y[k] - gains.pos_y[k] * covariance.pos_y[k]
+
+    # Update velocity gains and covariance (simplified model)
+    gains.vel_x[k] = covariance.vel_x[k] / (covariance.vel_x[k] + measurement_noise)
+    gains.vel_y[k] = covariance.vel_y[k] / (covariance.vel_y[k] + measurement_noise)
+
+    covariance.vel_x[k] = covariance.vel_x[k] - gains.vel_x[k] * covariance.vel_x[k]
+    covariance.vel_y[k] = covariance.vel_y[k] - gains.vel_y[k] * covariance.vel_y[k]
+
+
+def estimate_kalman_filter(
+    history: NDArray[np.float32],
+    prediction_horizon: int,
+    process_noise: float = 0.00001,
+    measurement_noise: float = 0.0001,
+) -> NDArray[np.float32]:
+    """Predict future position using a simplified Kalman filter for constant velocity motion.
+
+    This implements a basic Kalman filter assuming constant velocity motion model. The state vector contains
+        [position_x, position_y, velocity_x, velocity_y].
+
+    Code adapted from: https://github.com/vita-epfl/UniTraj/blob/main/unitraj/datasets/common_utils.py#L258
+
+    Args:
+        history: Historical positions with shape [length_of_history, 2].
+        prediction_horizon: Number of time steps into the future to predict.
+        process_noise: Process noise covariance (Q) representing uncertainty in the motion model.
+        measurement_noise: Measurement noise covariance (R) representing uncertainty in the observations.
+
+    Returns:
+        Predicted future position as [x, y] coordinates.
+    """
+    if history.shape[0] < MIN_VALID_POINTS:
+        # Not enough history for prediction, return last known position
+        return history[-1]
+
+    # Extract position observations
+    num_timesteps = history.shape[0]
+    observed_x = history[:, 0]
+    observed_y = history[:, 1]
+
+    # Calculate average velocity from history
+    avg_velocity_x = _compute_average_velocity(observed_x)
+    avg_velocity_y = _compute_average_velocity(observed_y)
+
+    # Initialize Kalman filter state and covariance matrices
+    state = _initialize_kalman_state(num_timesteps, observed_x[0], observed_y[0])
+    covariance = _initialize_kalman_covariance(num_timesteps)
+    kalman_gains = _initialize_kalman_gains(num_timesteps)
+
+    # Run Kalman filter through historical observations
+    for timestep in range(num_timesteps - 1):
+        _kalman_prediction_step(state, covariance, timestep, avg_velocity_x, avg_velocity_y, process_noise)
+        _kalman_correction_step(state, covariance, kalman_gains, timestep, observed_x, observed_y, measurement_noise)
+
+    # Make final prediction for future position
+    final_timestep = num_timesteps - 1
+    predicted_x = state.x[final_timestep] + avg_velocity_x * prediction_horizon
+    predicted_y = state.y[final_timestep] + avg_velocity_y * prediction_horizon
+    return np.array([predicted_x, predicted_y], dtype=np.float32)
+
+
+def compute_kalman_difficulty(
+    positions: NDArray[np.float32],
+    mask: NDArray[np.bool_],
+    last_observed_time_index: int,
+    scale_factor: float = 100.0,
+    ndim: int = 2,
+) -> float:
+    """Compute trajectory prediction difficulty using Kalman filter error.
+
+    This function measures how difficult it is to predict an agent's future trajectory by comparing Kalman filter
+    predictions against ground truth future positions. Higher scores indicate more unpredictable/difficult trajectories.
+
+    Args:
+        positions: Agent positions over time with shape [T, 3].
+        mask: Boolean mask indicating valid timesteps with shape [T].
+        last_observed_time_index: Index separating observed from future positions.
+        scale_factor: Scaling factor to normalize difficulty scores. Defaults to 100.0.
+        ndim: Number of spatial dimensions to consider (2 for x,y or 3 for x,y,z). Defaults to 2.
+
+    Returns:
+        Normalized difficulty score. Higher values indicate more unpredictable trajectories.
+        Returns 0.0 if insufficient data for prediction.
+    """
+    # Split data into past (observed) and future (ground truth) segments
+    past_mask = mask[:last_observed_time_index]
+    future_mask = mask[last_observed_time_index:]
+
+    # Extract valid positions from each segment
+    past_positions = positions[:last_observed_time_index, :ndim][past_mask]
+    # Check if we have sufficient data for prediction
+    if future_mask.sum() == 0 or past_positions.shape[0] < MIN_VALID_POINTS:
+        return 0.0
+
+    # Get the prediction target (last valid future position)
+    last_valid_future_index = np.where(future_mask)[0][-1]
+
+    # Generate Kalman filter prediction
+    predicted_position = estimate_kalman_filter(past_positions, last_valid_future_index + 1)
+
+    # Compute prediction error
+    prediction_target = positions[last_observed_time_index:, :ndim][future_mask][-1]
+    prediction_error = np.linalg.norm(predicted_position - prediction_target).item()
+
+    # Scale error by trajectory length to account for prediction difficulty
+    trajectory_length_factor = last_valid_future_index + 1
+    # Normalize by scale factor
+    return (prediction_error * trajectory_length_factor) / scale_factor
