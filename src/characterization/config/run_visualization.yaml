@@ -26,6 +26,9 @@ percentiles:
   - 50
   - 90
 
+# OOD test set percentile to split by
+test_percentile: 80
+
 min_scenarios_to_plot: 1
 viz_scenarios: true
 tag: 'full'

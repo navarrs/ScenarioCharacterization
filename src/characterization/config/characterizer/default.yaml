@@ -1,6 +1,6 @@
 processor:
     config:
-      score_wrt_ego_only: true
+      score_wrt_ego_only: false
       return_criterion: ${return_criterion} # Can be 'critical', 'average', or 'none'
       scenario_type: ${scenario_type}
 

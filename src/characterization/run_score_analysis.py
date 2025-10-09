@@ -1,12 +1,12 @@
+import json
 from pathlib import Path
 
 import hydra
 import pandas as pd
 from omegaconf import DictConfig
 
-import characterization.utils.viz.utils as viz_utils
-from characterization.scorer import SUPPORTED_SCORERS
-from characterization.utils.common import SUPPORTED_SCENARIO_TYPES
+from characterization.scorer import score_utils
+from characterization.utils import common
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -27,29 +27,30 @@ def run(cfg: DictConfig) -> None:
     Raises:
         ValueError: If unsupported scorers are specified in the configuration.
     """
-    Path(cfg.output_dir).mkdir(parents=True, exist_ok=True)
+    output_dir = Path(cfg.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     # Verify scenario types are supported
     unsupported_scenario_types = [
-        scenario_type for scenario_type in cfg.scenario_types if scenario_type not in SUPPORTED_SCENARIO_TYPES
+        scenario_type for scenario_type in cfg.scenario_types if scenario_type not in common.SUPPORTED_SCENARIO_TYPES
     ]
     if unsupported_scenario_types:
-        msg = f"Scenario types {unsupported_scenario_types} not in supported list {SUPPORTED_SCENARIO_TYPES}"
+        msg = f"Scenario types {unsupported_scenario_types} not in supported list {common.SUPPORTED_SCENARIO_TYPES}"
         raise ValueError(msg)
     # Verify scorer type is supported
-    unsupported_scores = [scorer for scorer in cfg.scores if scorer not in SUPPORTED_SCORERS]
+    unsupported_scores = [scorer for scorer in cfg.scores if scorer not in score_utils.SUPPORTED_SCORERS]
     if unsupported_scores:
-        msg = f"Scorers {unsupported_scores} not in supported list {SUPPORTED_SCORERS}"
+        msg = f"Scorers {unsupported_scores} not in supported list {score_utils.SUPPORTED_SCORERS}"
         raise ValueError(msg)
 
-    scenario_ids = viz_utils.get_valid_scenario_ids(cfg.scenario_types, cfg.criteria, cfg.scores_path)
+    scenario_ids = score_utils.get_valid_scenario_ids(cfg.scenario_types, cfg.criteria, cfg.scores_path)
     if not scenario_ids:
         msg = f"No valid scenarios found in {cfg.scores_path} for {cfg.scenario_types} and criteria {cfg.criteria}"
         raise ValueError(msg)
 
     # Generate score histogram and density plot
     logger.info("Loading the scores")
-    scene_scores, _, _ = viz_utils.load_scenario_scores(
+    scene_scores, _, _ = score_utils.load_scenario_scores(
         scenario_ids,
         cfg.scenario_types,
         cfg.scores,
@@ -59,9 +60,17 @@ def run(cfg: DictConfig) -> None:
 
     logger.info("Visualizing density function for scores: %s", cfg.scores)
     scene_scores_df = pd.DataFrame(scene_scores)
-    output_filepath = Path(cfg.output_dir) / f"{cfg.tag}_score_density_plot.png"
+    output_filepath = output_dir / f"{cfg.tag}_score_density_plot.png"
     logger.info("Saving density plot: %s", output_filepath)
-    viz_utils.plot_histograms_from_dataframe(scene_scores_df, output_filepath, cfg.dpi)
+    score_utils.plot_histograms_from_dataframe(scene_scores_df, output_filepath, cfg.dpi)
+
+    logger.info("Generating score split files")
+    scenario_splits = score_utils.get_scenario_splits(scene_scores_df, cfg.test_percentile, add_jaccard_index=True)
+
+    output_filepath = output_dir / "scenario_splits.json"
+    with output_filepath.open("w") as f:
+        json.dump(scenario_splits, f, indent=4)
+    logger.info("Saved scenario splits to %s", output_filepath)
 
 
 if __name__ == "__main__":

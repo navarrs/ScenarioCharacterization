@@ -5,7 +5,7 @@ from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores,
 from characterization.scorer.base_scorer import BaseScorer
 from characterization.utils.io_utils import get_logger
 
-from .score_utils import INDIVIDUAL_SCORE_FUNCTIONS
+from .score_functions import INDIVIDUAL_SCORE_FUNCTIONS
 
 logger = get_logger(__name__)
 
