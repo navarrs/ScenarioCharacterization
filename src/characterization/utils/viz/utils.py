@@ -1,5 +1,7 @@
 import os
 from itertools import product
+from pathlib import Path
+from typing import Any
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -52,7 +54,7 @@ def get_valid_scenario_ids(scenario_types: str, criteria: str, base_path: str) -
 
 def plot_histograms_from_dataframe(
     df: pd.DataFrame,
-    output_filepath: str = "temp.png",
+    output_filepath: Path = Path("temp.png"),
     dpi: int = 30,
     alpha: float = 0.5,
 ) -> None:
@@ -60,7 +62,7 @@ def plot_histograms_from_dataframe(
 
     Args:
         df (pd.DataFrame): DataFrame containing numeric data to plot.
-        output_filepath (str): Path to save the output plot image.
+        output_filepath (Path): Path to save the output plot image.
         dpi (int): Dots per inch for the saved figure.
         alpha (float): Transparency level for the histograms (0 = transparent, 1 = solid).
 
@@ -103,7 +105,7 @@ def plot_histograms_from_dataframe(
 
 def load_scores(
     scenario_ids: list[str],
-    scores_path: str,
+    scores_path: Path,
     prefix: str,
 ) -> dict[str, ScenarioScores]:
     """Loads scenario scores from the specified path and updates the scores DataFrame.
@@ -118,8 +120,54 @@ def load_scores(
     """
     scores_dict = {}
     for scenario_id in track(scenario_ids, description=f"Loading {prefix} scores"):
-        filepath = os.path.join(scores_path, scenario_id)
+        filepath = str(scores_path / scenario_id)
         scores = from_pickle(filepath)  # nosec B301
         scores = ScenarioScores.model_validate(scores)
         scores_dict[scenario_id] = scores
     return scores_dict
+
+
+def load_scenario_scores(
+    scenario_ids: list[str],
+    scenario_types: list[str],
+    scenario_scorers: list[str],
+    criteria: list[str],
+    scores_path: Path
+) -> tuple[dict[str, Any], ...]:
+    """Loads scenario scores for given scenario types, scorers, and criteria.
+
+    Args:
+        scenario_ids (list[str]): List of scenario IDs to load scores for.
+        scenario_types (list[str]): List of scenario types.
+        scenario_scorers (list[str]): List of scenario scorers.
+        criteria (list[str]): List of criteria.
+        scores_path (Path): Path to the directory containing score files.
+
+    Returns:
+        Tuple containing three dictionaries:
+            - scene_scores: Dictionary mapping score keys to lists of scene scores.
+            - agent_scores: Dictionary mapping score keys to lists of agent scores.
+            - scenario_scores: Dictionary mapping scenario IDs to their corresponding ScenarioScores.
+    """
+    scenario_scores = {}
+    scene_scores = {"scenario_ids": scenario_ids}
+    agent_scores = {"scenario_ids": scenario_ids}
+
+    for scenario_type, scorer, criterion in product(scenario_types, scenario_scorers, criteria):
+        key = f"{scenario_type}_{criterion}_{scorer}"
+        scene_scores[key] = []
+        key = f"{scenario_type}_{criterion}_{scorer}"
+        agent_scores[key] = []
+
+    for scenario_type, criterion in product(scenario_types, criteria):
+        key = f"{scenario_type}_{criterion}"
+        scenario_scores_path = scores_path / key
+        scenario_scores[key] = load_scores(scenario_ids, scenario_scores_path, key)
+
+        for scores in scenario_scores[key].values():
+            for scorer in scenario_scorers:
+                key = f"{scenario_type}_{criterion}_{scorer}"
+                scores_key = f"{scorer}_scores"
+                scene_scores[key].append(scores[scores_key].scene_score)
+                agent_scores[key].append(scores[scores_key].agent_scores)
+    return scene_scores, agent_scores, scenario_scores
