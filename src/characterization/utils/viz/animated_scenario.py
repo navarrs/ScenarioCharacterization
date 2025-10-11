@@ -1,6 +1,6 @@
 import pathlib
 import tempfile
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -114,7 +114,7 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
         # runs as temp* files are globbed
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_dir_path = pathlib.Path(tmp_dir)
-            with ProcessPoolExecutor(max_workers=self.num_workers) as executor:
+            with ThreadPoolExecutor(max_workers=self.num_workers) as executor:
                 futures = [
                     executor.submit(
                         self.plot_single_step,
