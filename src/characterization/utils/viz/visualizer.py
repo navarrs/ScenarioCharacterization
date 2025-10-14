@@ -395,6 +395,9 @@ class BaseVisualizer(ABC):
         t_i = time.time()
         # Load all the temporary files
         files = natsorted(glob(f"{tmp_dir_frames}/temp_*.png"))  # noqa: PTH207
+        if not files:
+            err_msg = f"No frames found in {tmp_dir_frames}, cannot create GIF."
+            raise RuntimeError(err_msg)
         images_to_append = (Image.open(f) for f in files[1:])
 
         duration = 1000 / fps

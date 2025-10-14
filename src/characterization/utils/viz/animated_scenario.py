@@ -21,13 +21,13 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
         """Initializes the AnimatedScenarioVisualizer with the given configuration."""
         super().__init__(config)
 
-    def plot_single_step(
+    def _plot_single_step(
         self,
         scenario: Scenario,
         scores: ScenarioScores | None,
         output_dir: Path,
-        timestep: int,
-        timestamps: list[float],
+        timestep_idx: int,
+        timestamp: float,
     ) -> None:
         """Plots a single timestep of the scenario.
 
@@ -35,8 +35,8 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
             scenario (Scenario): encapsulates the scenario to visualize.
             scores (ScenarioScores | None): encapsulates the scenario and agent scores.
             output_dir (str): the directory where to save the scenario visualization.
-            timestep (int): the timestep to visualize.
-            timestamps (list[float]): the timestamps corresponding to the timestep.
+            timestep_idx (int): the timestep index (in the timestamps array) to visualize.
+            timestamp (float): the timestamp corresponding to the timestep.
         """
         _, ax = plt.subplots(1, 1, figsize=(5, 5))
         scenario_id = scenario.metadata.scenario_id
@@ -44,11 +44,11 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
         # Plot static and dynamic map information in the scenario
         self.plot_map_data(ax, scenario)
 
-        self.plot_sequences(ax, scenario, scores, show_relevant=True, end_timestep=timestep)
+        self.plot_sequences(ax, scenario, scores, show_relevant=True, end_timestep=timestep_idx)
 
         # Add timestamp annotation in the upper right corner
-        if self.display_time and len(timestamps) > 1:
-            timestamp_str = f"t-elapsed: {timestamps[-1]:.2f}s (t-scale={self.time_scale_factor})"
+        if self.display_time:
+            timestamp_str = f"t-elapsed: {timestamp:.2f}s (t-scale={self.time_scale_factor})"
             ax.annotate(
                 timestamp_str,
                 xy=(0.98, 0.98),
@@ -65,7 +65,7 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
             ax.set_title(f"Scenario: {scenario_id}")
 
         plt.subplots_adjust(wspace=0.05)
-        plt.savefig(f"{output_dir}/temp_{timestep}.png", dpi=300, bbox_inches="tight")
+        plt.savefig(f"{output_dir}/temp_{timestep_idx}.png", dpi=300, bbox_inches="tight")
         plt.close()
 
     def visualize_scenario(
@@ -117,14 +117,20 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
             with ThreadPoolExecutor(max_workers=self.num_workers) as executor:
                 futures = [
                     executor.submit(
-                        self.plot_single_step,
+                        self._plot_single_step,
                         scenario,
                         scores,
                         tmp_dir_path,
                         timestep,
-                        timestamp_seconds[timestep - step_size : timestep + 1],
+                        timestamp_seconds[timestep],
                     )
-                    for timestep in range(2, total_timesteps, step_size)
+                    # For simplicity, the frames between the last timestamp
+                    # and the end of the scenario are ignored (range does not
+                    # include total_timesteps-1 when step_size > 1).
+                    # This is fine for typical scenarios around 30 s at 100 Hz
+                    # where we lose ~100 frames or up to 1 s, representing
+                    # ~3% of the scenario duration.
+                    for timestep in range(0, total_timesteps, step_size)
                 ]
 
             # tqdm progress bar
