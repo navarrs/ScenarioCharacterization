@@ -182,3 +182,4 @@ tmp/
 pyproject.txt
 .vscode/
 /data/*
+visualization
