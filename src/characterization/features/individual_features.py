@@ -43,7 +43,11 @@ class IndividualFeatures(BaseFeature):
         super().__init__(config)
 
     @staticmethod
-    def compute_individual_features(scenario: Scenario, return_criterion: ReturnCriterion) -> Individual:
+    def compute_individual_features(
+        scenario: Scenario,
+        return_criterion: ReturnCriterion,
+        detections: dict[str, float],  # noqa: ARG004
+    ) -> Individual:
         """Compute individual motion features for all valid agents in a scenario.
 
         Args:
@@ -54,6 +58,7 @@ class IndividualFeatures(BaseFeature):
             return_criterion (ReturnCriterion): Determines feature aggregation method:
                 - CRITICAL: Returns maximum values for most features, minimum for waiting_distance
                 - AVERAGE: Returns mean values for all features
+            detections (dict[str, float]): Detection parameters for feature computations.
 
         Returns:
             Individual: Structured object containing computed features for valid agents:
@@ -107,6 +112,7 @@ class IndividualFeatures(BaseFeature):
         scenario_waiting_distances = []
         scenario_trajectory_types = []
         scenario_kalman_difficulties = []
+        scenario_critical_times = []
 
         # NOTE: Handling sequentially since each agent may have different valid masks which will
         # result in trajectories of different lengths.
@@ -163,6 +169,12 @@ class IndividualFeatures(BaseFeature):
                     waiting_period = waiting_periods.max()
                     waiting_interval = waiting_intervals.max()
                     waiting_distance = waiting_distances.min()
+                    # Critical times
+                    # breakpoint()
+                    speed_limit_diff_t = timestamps[speed_limit_diffs.argmax()]
+                    acceleration_t = timestamps[accelerations.argmax()]
+                    deceleration_t = timestamps[decelerations.argmax()]
+                    critical_time = np.nanmin([speed_limit_diff_t, acceleration_t, deceleration_t])
                 case ReturnCriterion.AVERAGE:
                     speed = speeds.mean()
                     speed_limit_diff = speed_limit_diffs.mean()
@@ -172,6 +184,7 @@ class IndividualFeatures(BaseFeature):
                     waiting_period = waiting_periods.mean()
                     waiting_interval = waiting_intervals.mean()
                     waiting_distance = waiting_distances.mean()
+                    critical_time = np.inf  # note: not relevant for average criterion
                 case _:
                     error_message = f"Unknown return criteria: {return_criterion}"
                     raise ValueError(error_message)
@@ -187,6 +200,7 @@ class IndividualFeatures(BaseFeature):
             scenario_waiting_distances.append(waiting_distance)
             scenario_trajectory_types.append(trajectory_type)
             scenario_kalman_difficulties.append(kalman_difficulty)
+            scenario_critical_times.append(critical_time)
 
         return Individual(
             valid_idxs=np.array(scenario_valid_idxs, dtype=np.int32) if scenario_valid_idxs else None,
@@ -209,6 +223,7 @@ class IndividualFeatures(BaseFeature):
             kalman_difficulty=(
                 np.array(scenario_kalman_difficulties, dtype=np.float32) if scenario_kalman_difficulties else None
             ),
+            critical_time=(np.array(scenario_critical_times, dtype=np.float32) if scenario_critical_times else None),
         )
 
     def compute(self, scenario: Scenario) -> ScenarioFeatures:
@@ -241,6 +256,8 @@ class IndividualFeatures(BaseFeature):
 
         return ScenarioFeatures(
             metadata=scenario.metadata,
-            individual_features=IndividualFeatures.compute_individual_features(scenario, self.return_criterion),
+            individual_features=IndividualFeatures.compute_individual_features(
+                scenario, self.return_criterion, self.detections
+            ),
             agent_to_agent_closest_dists=agent_to_agent_closest_dists,
         )

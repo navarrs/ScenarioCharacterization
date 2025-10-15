@@ -20,3 +20,4 @@ shuffle: false
 
 scenario_type: 'gt'
 return_criterion: 'critical'
+score_wrt_ego_only: false

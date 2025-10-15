@@ -1,6 +1,5 @@
 processor:
     config:
-      score_wrt_ego_only: false
       return_criterion: ${return_criterion} # Can be 'critical', 'average', or 'none'
       scenario_type: ${scenario_type}
 
@@ -34,6 +33,7 @@ processor:
 
 characterizer:
   config:
+    score_wrt_ego_only: ${score_wrt_ego_only}
     score_clip:
       min: 0.0
       max: 200.0

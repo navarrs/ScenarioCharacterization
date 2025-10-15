@@ -60,6 +60,7 @@ class InteractionScorer(BaseScorer):
         weights = self.get_weights(scenario, scenario_features)
 
         interaction_agent_indices = features.interaction_agent_indices
+        agent_critical_times = np.full(shape=(scenario.agent_data.num_agents,), fill_value=np.inf, dtype=np.float32)
         if self.score_wrt_ego_only:
             interaction_agent_indices = [
                 (i, j) for i, j in interaction_agent_indices if scenario.metadata.ego_vehicle_index in (i, j)
@@ -89,13 +90,24 @@ class InteractionScorer(BaseScorer):
             scores[i] += weights[i] * agent_pair_score
             scores[j] += weights[j] * agent_pair_score
 
+            # Update the agents' critical times
+            if features.critical_time is not None:
+                agent_critical_times[i] = min(agent_critical_times[i], features.critical_time[n])
+                agent_critical_times[j] = min(agent_critical_times[j], features.critical_time[n])
+
         # Replace NaNs with zeros as a safeguard
         scores = np.nan_to_num(scores, nan=0.0)
 
         # Normalize the scores
         denom = max(np.where(scores > 0.0)[0].shape[0], 1)
         scene_score = np.clip(scores.sum() / denom, a_min=self.score_clip.min, a_max=self.score_clip.max)
-        return Score(agent_scores=scores, scene_score=scene_score)
+        scene_critical_time = agent_critical_times.min()
+        return Score(
+            agent_scores=scores,
+            agent_critical_times=agent_critical_times,
+            scene_score=scene_score,
+            scene_critical_time=scene_critical_time,
+        )
 
     def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> ScenarioScores:
         """Computes interaction scores for agent pairs and a scene-level score from scenario features.

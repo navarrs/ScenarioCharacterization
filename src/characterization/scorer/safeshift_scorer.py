@@ -59,12 +59,30 @@ class SafeShiftScorer(BaseScorer):
 
         # Combine the scores
         agent_scores = scores_ind.copy() + scores_int.copy()
-        scene_score = np.clip(
-            0.5 * (scene_score_int + scene_score_ind), a_min=self.score_clip.min, a_max=self.score_clip.max
+        scene_score = np.clip(scene_score_int + scene_score_ind, a_min=self.score_clip.min, a_max=self.score_clip.max)
+
+        # Get the agents' critical times
+        agent_critical_times = np.full(shape=(scenario.agent_data.num_agents,), fill_value=np.inf, dtype=np.float32)
+        individual_critical_times = individual_scores.agent_critical_times
+        interaction_critical_times = interaction_scores.agent_critical_times
+        agent_critical_times = np.minimum(
+            agent_critical_times if individual_critical_times is None else individual_critical_times,
+            agent_critical_times if interaction_critical_times is None else interaction_critical_times,
+        )
+
+        # Compute the scene critical time
+        scene_critical_time = min(
+            float("inf") if individual_scores.scene_critical_time is None else individual_scores.scene_critical_time,
+            float("inf") if interaction_scores.scene_critical_time is None else interaction_scores.scene_critical_time,
         )
         return ScenarioScores(
             metadata=scenario.metadata,
             individual_scores=individual_scores,
             interaction_scores=interaction_scores,
-            safeshift_scores=Score(agent_scores=agent_scores, scene_score=scene_score),
+            safeshift_scores=Score(
+                agent_scores=agent_scores,
+                agent_critical_times=agent_critical_times,
+                scene_score=scene_score,
+                scene_critical_time=scene_critical_time,
+            ),
         )

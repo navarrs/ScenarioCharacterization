@@ -67,6 +67,7 @@ class IndividualScorer(BaseScorer):
         weights = self.get_weights(scenario, scenario_features)
 
         valid_idxs = features.valid_idxs
+        agent_critical_times = np.full(shape=(scenario.agent_data.num_agents,), fill_value=np.inf, dtype=np.float32)
         for n in range(valid_idxs.shape[0]):
             valid_idx = valid_idxs[n]
             scores[valid_idx] = weights[valid_idx] * self.score_function(
@@ -94,13 +95,23 @@ class IndividualScorer(BaseScorer):
                 kalman_difficulty_weight=self.weights.kalman_difficulty,
                 kalman_difficulty_detection=self.detections.kalman_difficulty,
             )
+            agent_critical_times[valid_idx] = (
+                features.critical_time[n] if features.critical_time is not None else np.inf
+            )
+
         # As a safeguard, replace NaNs with zeros
         scores = np.nan_to_num(scores, nan=0.0)
 
         # Normalize the scores
         denom = max(np.where(scores > 0.0)[0].shape[0], 1)
         scene_score = np.clip(scores.sum() / denom, a_min=self.score_clip.min, a_max=self.score_clip.max)
-        return Score(agent_scores=scores, scene_score=scene_score)
+        scene_critical_time = agent_critical_times.min()
+        return Score(
+            agent_scores=scores,
+            agent_critical_times=agent_critical_times,
+            scene_score=scene_score,
+            scene_critical_time=scene_critical_time,
+        )
 
     def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> ScenarioScores:
         """Computes individual agent scores and a scene-level score from scenario features.

@@ -28,6 +28,7 @@ class Individual(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         waiting_interval (Float32NDArray1D | None): Waiting interval of each agent at each timestep.
         waiting_distance (Float32NDArray1D | None): Waiting distance of each agent at each timestep.
         kalman_difficulty (Float32NDArray1D | None): Kalman filter difficulty value for each agent.
+        critical_time (Float32NDArray1D | None): Critical time for each agent at each timestep.
     """
 
     # Agent meta
@@ -45,6 +46,7 @@ class Individual(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     waiting_interval: Float32NDArray1D | None = None
     waiting_distance: Float32NDArray1D | None = None
     kalman_difficulty: Float32NDArray1D | None = None
+    critical_time: Float32NDArray1D | None = None
 
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
@@ -65,6 +67,11 @@ class Interaction(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         intersection (Float32NDArray1D | None): Intersection distance between agents at each timestep.
         collision (Float32NDArray1D | None): Collision distance between agents at each timestep.
         mttcp (Float32NDArray1D | None): Minimum time to conflict point (mTTCP) for each agent at each timestep.
+        thw (Float32NDArray1D | None): Time headway (THW) for each agent at each timestep.
+        ttc (Float32NDArray1D | None): Time to collision (TTC
+        drac (Float32NDArray1D | None): Deceleration rate to avoid collision (DRAC) for each agent at each timestep.
+        critical_time (Float32NDArray1D | None): Critical time for each agent at each timestep.
+
         interaction_status (list[InteractionStatus] | None):
             list of interaction statuses for each agent pair in the scenario.
         interaction_agent_indices (list[tuple[int, int]] | None):
@@ -81,6 +88,7 @@ class Interaction(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     thw: Float32NDArray1D | None = None
     ttc: Float32NDArray1D | None = None
     drac: Float32NDArray1D | None = None
+    critical_time: Float32NDArray1D | None = None
 
     # leader_follower: Float32NDArray1D | None = None
     # valid_headings: Float32NDArray1D | None = None

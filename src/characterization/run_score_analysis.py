@@ -12,7 +12,7 @@ from characterization.utils.io_utils import get_logger
 logger = get_logger(__name__)
 
 
-@hydra.main(config_path="config", config_name="run_visualization", version_base="1.3")
+@hydra.main(config_path="config", config_name="run_analysis", version_base="1.3")
 def run(cfg: DictConfig) -> None:
     """Runs the scenario score visualization pipeline using the provided configuration.
 
@@ -50,7 +50,7 @@ def run(cfg: DictConfig) -> None:
 
     # Generate score histogram and density plot
     logger.info("Loading the scores")
-    scene_scores, _, _ = score_utils.load_scenario_scores(
+    scene_scores, agent_scores, scene_critical_times, agent_critical_times, _ = score_utils.load_scenario_scores(
         scenario_ids,
         cfg.scenario_types,
         cfg.scores,
@@ -63,6 +63,23 @@ def run(cfg: DictConfig) -> None:
     output_filepath = output_dir / f"{cfg.tag}_score_density_plot.png"
     logger.info("Saving density plot: %s", output_filepath)
     score_utils.plot_histograms_from_dataframe(scene_scores_df, output_filepath, cfg.dpi)
+
+    logger.info("Visualizing score-time heatmap for: %s", cfg.scores)
+    scene_critical_times_df = pd.DataFrame(scene_critical_times)
+    output_filepath = output_dir / f"{cfg.tag}_score_time_heatmap.png"
+    logger.info("Saving score-time heatmap: %s", output_filepath)
+    score_utils.plot_score_vs_critical_time_heatmap_from_dataframe(
+        scene_scores_df, scene_critical_times_df, output_filepath, cfg.dpi
+    )
+
+    logger.info("Visualizing agent score-time heatmap for: %s", cfg.scores)
+    agent_scores_df = pd.DataFrame(agent_scores)
+    agent_critical_times_df = pd.DataFrame(agent_critical_times)
+    output_filepath = output_dir / f"{cfg.tag}_agent_score_time_heatmap.png"
+    logger.info("Saving agent score-time heatmap: %s", output_filepath)
+    score_utils.plot_score_vs_critical_time_heatmap_from_dataframe(
+        agent_scores_df, agent_critical_times_df, output_filepath, cfg.dpi
+    )
 
     logger.info("Generating score split files")
     scenario_splits = score_utils.get_scenario_splits(scene_scores_df, cfg.test_percentile, add_jaccard_index=True)

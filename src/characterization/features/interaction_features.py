@@ -8,6 +8,8 @@ from characterization.features.base_feature import BaseFeature
 from characterization.schemas import Interaction, Scenario, ScenarioFeatures
 from characterization.utils.common import (
     MIN_VALID_POINTS,
+    SAFE_DECELERATION,
+    SAFE_TIME_GAP,
     SMALL_EPS,
     AgentTrajectoryMasker,
     InteractionStatus,
@@ -76,6 +78,7 @@ class InteractionFeatures(BaseFeature):
         metadata = scenario.metadata
         agent_data = scenario.agent_data
         map_data = scenario.static_map_data
+        scenario_timestamps = metadata.timestamps_seconds
 
         # TODO: Refactor method to use AgentTrajectoryMasker instead of InteractionAgent
         agent_i = interaction.InteractionAgent()
@@ -122,6 +125,7 @@ class InteractionFeatures(BaseFeature):
         scenario_thws = np.full(num_interactions, np.nan, dtype=np.float32)
         scenario_ttcs = np.full(num_interactions, np.nan, dtype=np.float32)
         scenario_dracs = np.full(num_interactions, np.nan, dtype=np.float32)
+        scenario_critical_times = np.full(num_interactions, np.inf, dtype=np.float32)
 
         # Compute distance to conflict points
         for n, (i, j) in enumerate(agent_combinations):
@@ -135,6 +139,7 @@ class InteractionFeatures(BaseFeature):
                 # No valid data for this pair of agents
                 scenario_interaction_statuses[n] = InteractionStatus.MASK_NOT_VALID
                 continue
+            timestamps = np.asarray(scenario_timestamps)[mask]
 
             # TODO: Refactor to use AgentMasker since this is doing redundant stuff that the masker already does.
             agent_i.position, agent_j.position = agent_positions[i][mask], agent_positions[j][mask]
@@ -179,9 +184,9 @@ class InteractionFeatures(BaseFeature):
             # we currently assume that agents are sharing the same lane.
             valid_headings = interaction.find_valid_headings(agent_i, agent_j, heading_threshold)
             if valid_headings.shape[0] < MIN_VALID_POINTS:
-                thw = np.full(1, np.inf, dtype=np.float32)
-                ttc = np.full(1, np.inf, dtype=np.float32)
-                drac = np.full(1, np.inf, dtype=np.float32)
+                thws = np.full(1, np.inf, dtype=np.float32)
+                ttcs = np.full(1, np.inf, dtype=np.float32)
+                dracs = np.full(1, np.inf, dtype=np.float32)
                 scenario_interaction_statuses[n] = InteractionStatus.PARTIAL_INVALID_HEADING
             else:
                 # At this point agents are sharing a lane and have at least two steps with headings within the defined
@@ -190,9 +195,9 @@ class InteractionFeatures(BaseFeature):
                 leading_agent = interaction.find_leading_agent(agent_i, agent_j, valid_headings)
 
                 # Now compute leader-follower interaction state
-                thw = interaction.compute_thw(agent_i, agent_j, leading_agent, valid_headings)
-                ttc = interaction.compute_ttc(agent_i, agent_j, leading_agent, valid_headings)
-                drac = interaction.compute_drac(agent_i, agent_j, leading_agent, valid_headings)
+                thws = interaction.compute_thw(agent_i, agent_j, leading_agent, valid_headings)
+                ttcs = interaction.compute_ttc(agent_i, agent_j, leading_agent, valid_headings)
+                dracs = interaction.compute_drac(agent_i, agent_j, leading_agent, valid_headings)
 
                 scenario_interaction_statuses[n] = InteractionStatus.COMPUTED_OK
 
@@ -202,9 +207,16 @@ class InteractionFeatures(BaseFeature):
                     intersection = intersections.sum()
                     collision = collisions.sum()
                     mttcp = mttcps.min()
-                    ttc = ttc.min()
-                    thw = thw.min()
-                    drac = drac.max()
+                    ttc = ttcs.min()
+                    thw = thws.min()
+                    drac = dracs.max()
+                    # Critical times
+                    collision_idx = np.argmax(collisions > 0) if np.any(collisions > 0) else -1
+                    collision_t = timestamps[collision_idx] if collision_idx != -1 else np.inf
+                    ttc_t = timestamps[ttcs.argmin()] if not np.all(np.isinf(ttcs)) and ttc <= SAFE_TIME_GAP else np.inf
+                    thw_t = timestamps[thws.argmin()] if not np.all(np.isinf(thws)) and ttc <= SAFE_TIME_GAP else np.inf
+                    drac_t = timestamps[dracs.argmax()] if drac > SAFE_DECELERATION else np.inf
+                    critical_time = np.nanmin([collision_t, ttc_t, thw_t, drac_t])
                 case ReturnCriterion.AVERAGE:
                     # NOTE: whenever there are valid values within a trajectory, this return the mean over those values
                     # and not the entire trajectory.
@@ -212,9 +224,10 @@ class InteractionFeatures(BaseFeature):
                     intersection = intersections.mean()
                     collision = collisions.mean()
                     mttcp = mttcps.mean()
-                    ttc = ttc.mean()
-                    thw = thw.mean()
-                    drac = drac.mean()
+                    ttc = ttcs.mean()
+                    thw = thws.mean()
+                    drac = dracs.mean()
+                    critical_time = np.inf
                 case _:
                     error_message = f"Criterion: {return_criterion} not supported. Expected 'critical' or 'average'."
                     raise ValueError(error_message)
@@ -227,6 +240,7 @@ class InteractionFeatures(BaseFeature):
             scenario_thws[n] = thw
             scenario_ttcs[n] = ttc
             scenario_dracs[n] = drac
+            scenario_critical_times[n] = critical_time
 
         return Interaction(
             separation=scenario_separations,
@@ -239,6 +253,7 @@ class InteractionFeatures(BaseFeature):
             interaction_status=scenario_interaction_statuses,
             interaction_agent_indices=scenario_agent_pair_indeces,
             interaction_agent_types=scenario_agents_pair_types,
+            critical_time=scenario_critical_times,
         )
 
     def compute(self, scenario: Scenario) -> ScenarioFeatures:

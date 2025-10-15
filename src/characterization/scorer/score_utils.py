@@ -116,6 +116,78 @@ def plot_histograms_from_dataframe(
     plt.close()
 
 
+def plot_score_vs_critical_time_heatmap_from_dataframe(
+    df_scores: pd.DataFrame,
+    df_critical_times: pd.DataFrame,
+    output_filepath: Path = Path("temp.png"),
+    dpi: int = 30,
+    alpha: float = 0.8,
+) -> None:
+    """Plots overlapping histograms and density curves for each numeric column in a DataFrame.
+
+    Args:
+        df_scores (pd.DataFrame): DataFrame containing numeric score data to plot.
+        df_critical_times (pd.DataFrame): DataFrame containing numeric critical time data to plot
+        output_filepath (Path): Path to save the output plot image.
+        dpi (int): Dots per inch for the saved figure.
+        alpha (float): Transparency level for the histograms (0 = transparent, 1 = solid).
+
+    Raises:
+        ValueError: If no numeric columns are found in the DataFrame.
+    """
+    # Select numeric columns, excluding the specified one
+    assert set(df_scores.columns[1:]) == set(df_critical_times.columns[1:]), (
+        "df_scores and df_critical_times must have the same numeric columns to plot"
+    )
+    columns_to_plot = df_scores.columns[1:]
+    num_columns_to_plot = len(columns_to_plot)
+
+    if num_columns_to_plot == 0:
+        error_message = "No numeric columns found in the DataFrame to plot."
+        raise ValueError(error_message)
+
+    plt.figure(figsize=(10, 6))
+
+    _, axes = plt.subplots(1, num_columns_to_plot, figsize=(6 * num_columns_to_plot, 6), squeeze=False)
+    x_bins = np.arange(0, 11, 2)  # Temporal binning
+    for i, col in enumerate(columns_to_plot):
+        # 2D histogram for heatmap data
+
+        scores, critical_times = df_scores[col], df_critical_times[col]
+        # Only concatenate if the values in the dataframes are numpy arrays
+        if isinstance(scores.iloc[0], np.ndarray):
+            # If each row is a numpy array, flatten all elements into a single column
+            scores = np.concatenate(df_scores[col].values)
+            critical_times = np.concatenate(df_critical_times[col].values)
+            # Now each element is a new row, and scores/critical_times are 1D arrays
+
+        critical_times = np.clip(critical_times, 0, 10)  # Clip to max 10s
+        max_score = scores.max().round() + 1
+        y_bins = np.arange(0, max_score, max_score / 10)  # Score binning
+        heatmap_data, xedges, yedges = np.histogram2d(critical_times, scores, bins=[x_bins, y_bins])
+
+        ax = axes[0, i]
+        sns.heatmap(
+            heatmap_data.T,
+            ax=ax,
+            cmap="rocket",
+            cbar=True,
+            xticklabels=[str(x) for x in np.round(xedges[:-1], 2)],
+            yticklabels=[str(y) for y in np.round(yedges[:-1], 2)],
+            alpha=alpha,
+        )
+        ax.set_xlabel("Critical Times")
+        ax.set_ylabel("Scores")
+        ax.set_title(f"Scores vs Critical Times ({col})")
+        # Invert y-axis so 0 is at the bottom
+        ax.invert_yaxis()
+
+    sns.despine(top=True, right=True)
+    plt.tight_layout()
+    plt.savefig(output_filepath, dpi=dpi)
+    plt.close()
+
+
 def load_scores(
     scenario_ids: list[str],
     scores_path: Path,
@@ -160,30 +232,36 @@ def load_scenario_scores(
         Tuple containing three dictionaries:
             - scene_scores: Dictionary mapping score keys to lists of scene scores.
             - agent_scores: Dictionary mapping score keys to lists of agent scores.
+            - scene_critical_times: Dictionary mapping score keys to lists of scene critical times.
+            - agent_critical_times: Dictionary mapping score keys to lists of agent critical times.
             - scenario_scores: Dictionary mapping scenario IDs to their corresponding ScenarioScores.
     """
     scenario_scores = {}
     scene_scores = {"scenario_ids": scenario_ids}
     agent_scores = {"scenario_ids": scenario_ids}
+    agent_critical_times = {"scenario_ids": scenario_ids}
+    scene_critical_times = {"scenario_ids": scenario_ids}
 
     for scenario_type, scorer, criterion in product(scenario_types, scenario_scorers, criteria):
         key = f"{scenario_type}_{criterion}_{scorer}"
         scene_scores[key] = []
-        key = f"{scenario_type}_{criterion}_{scorer}"
+        scene_critical_times[key] = []
         agent_scores[key] = []
+        agent_critical_times[key] = []
 
     for scenario_type, criterion in product(scenario_types, criteria):
         key = f"{scenario_type}_{criterion}"
         scenario_scores_path = scores_path / key
         scenario_scores[key] = load_scores(scenario_ids, scenario_scores_path, key)
-
         for scores in scenario_scores[key].values():
             for scorer in scenario_scorers:
                 key = f"{scenario_type}_{criterion}_{scorer}"
                 scores_key = f"{scorer}_scores"
                 scene_scores[key].append(scores[scores_key].scene_score)
+                scene_critical_times[key].append(scores[scores_key].scene_critical_time)
                 agent_scores[key].append(scores[scores_key].agent_scores)
-    return scene_scores, agent_scores, scenario_scores
+                agent_critical_times[key].append(scores[scores_key].agent_critical_times)
+    return scene_scores, agent_scores, scene_critical_times, agent_critical_times, scenario_scores
 
 
 def compute_jaccard_index(set1: set[Any], set2: set[Any]) -> float:

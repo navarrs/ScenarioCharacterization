@@ -13,10 +13,14 @@ class Score(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     Attributes:
         agent_scores (Float32NDArray1D | None): Individual scores for each agent in the scenario.
         scene_score (float | None): Overall score for the scene based on individual agent scores.
+        critical_time (Float32NDArray1D | None): Critical time metric associated with the score.
     """
 
     agent_scores: Float32NDArray1D | None = None
+    agent_critical_times: Float32NDArray1D | None = None
+
     scene_score: float | None = None
+    scene_critical_time: float | None = None
 
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
