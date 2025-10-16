@@ -5,11 +5,9 @@ from omegaconf import DictConfig
 
 import characterization.features.interaction_utils as interaction
 from characterization.features.base_feature import BaseFeature
-from characterization.schemas import Interaction, Scenario, ScenarioFeatures
+from characterization.schemas import FeatureDetections, Interaction, Scenario, ScenarioFeatures
 from characterization.utils.common import (
     MIN_VALID_POINTS,
-    SAFE_DECELERATION,
-    SAFE_TIME_GAP,
     SMALL_EPS,
     AgentTrajectoryMasker,
     InteractionStatus,
@@ -40,7 +38,11 @@ class InteractionFeatures(BaseFeature):
         super().__init__(config)
 
     @staticmethod
-    def compute_interaction_features(scenario: Scenario, return_criterion: ReturnCriterion) -> Interaction | None:
+    def compute_interaction_features(
+        scenario: Scenario,
+        return_criterion: ReturnCriterion,
+        feature_detections: FeatureDetections,
+    ) -> Interaction | None:
         """Compute comprehensive pairwise interaction features for all agent combinations.
 
         Args:
@@ -53,6 +55,8 @@ class InteractionFeatures(BaseFeature):
                 - CRITICAL: Returns minimum separation/TTC/THW/mTTCP, maximum DRAC,
                   sum of intersections/collisions over valid trajectory segments
                 - AVERAGE: Returns mean values for all features over valid trajectory segments
+
+            feature_detections (FeatureDetections): Thresholds for detecting critical interaction events.
 
         Returns:
             Interaction: Structured object containing computed interaction features:
@@ -213,9 +217,17 @@ class InteractionFeatures(BaseFeature):
                     # Critical times
                     collision_idx = np.argmax(collisions > 0) if np.any(collisions > 0) else -1
                     collision_t = timestamps[collision_idx] if collision_idx != -1 else np.inf
-                    ttc_t = timestamps[ttcs.argmin()] if not np.all(np.isinf(ttcs)) and ttc <= SAFE_TIME_GAP else np.inf
-                    thw_t = timestamps[thws.argmin()] if not np.all(np.isinf(thws)) and ttc <= SAFE_TIME_GAP else np.inf
-                    drac_t = timestamps[dracs.argmax()] if drac > SAFE_DECELERATION else np.inf
+                    ttc_t = (
+                        timestamps[ttcs.argmin()]
+                        if not np.all(np.isinf(ttcs)) and ttc <= feature_detections.ttc
+                        else np.inf
+                    )
+                    thw_t = (
+                        timestamps[thws.argmin()]
+                        if not np.all(np.isinf(thws)) and thw <= feature_detections.thw
+                        else np.inf
+                    )
+                    drac_t = timestamps[dracs.argmax()] if drac >= feature_detections.drac else np.inf
                     critical_time = np.nanmin([collision_t, ttc_t, thw_t, drac_t])
                 case ReturnCriterion.AVERAGE:
                     # NOTE: whenever there are valid values within a trajectory, this return the mean over those values
@@ -288,6 +300,8 @@ class InteractionFeatures(BaseFeature):
 
         return ScenarioFeatures(
             metadata=scenario.metadata,
-            interaction_features=InteractionFeatures.compute_interaction_features(scenario, self.return_criterion),
+            interaction_features=InteractionFeatures.compute_interaction_features(
+                scenario, self.return_criterion, self.detections
+            ),
             agent_to_agent_closest_dists=agent_to_agent_closest_dists,
         )

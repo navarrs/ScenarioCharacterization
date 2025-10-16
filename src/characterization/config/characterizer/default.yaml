@@ -75,4 +75,4 @@ characterizer:
       mttcp: 4
       thw: 4
       ttc: 4
-      drac: 2
+      drac: 3 # in m/s^2

@@ -14,6 +14,11 @@ class FeatureDetections(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         waiting_intervals (float): Waiting intervals threshold in number of intervals.
         waiting_distances (float): Waiting distances threshold in meters.
         kalman_difficulty (float): Kalman filter difficulty threshold.
+
+        mttcp (float): Minimum time to collision with a pedestrian threshold in seconds.
+        thw (float): Time headway threshold in seconds.
+        ttc (float): Time to collision threshold in seconds.
+        drac (float): Deceleration rate to avoid collision threshold in m/s^2.
     """
 
     speed: float = 30.0  # in m/s, i.e. ~108 km/h ~70 mph
@@ -25,6 +30,11 @@ class FeatureDetections(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     waiting_intervals: float = 8.0  # in number of intervals
     waiting_distances: float = 8.0  # in meters
     kalman_difficulty: float = 80.0
+
+    mttcp: float = 4.0  # in seconds
+    thw: float = 4.0  # in seconds
+    ttc: float = 4.0  # in seconds
+    drac: float = 3.0  # in m/s^2
 
     @classmethod
     def from_dict(cls, data: dict[str, float] | None) -> "FeatureDetections":

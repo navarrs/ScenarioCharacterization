@@ -76,6 +76,8 @@ class SafeShiftFeatures(BaseFeature):
             individual_features=IndividualFeatures.compute_individual_features(
                 scenario, self.return_criterion, self.detections
             ),
-            interaction_features=InteractionFeatures.compute_interaction_features(scenario, self.return_criterion),
+            interaction_features=InteractionFeatures.compute_interaction_features(
+                scenario, self.return_criterion, self.detections
+            ),
             agent_to_agent_closest_dists=compute_agent_to_agent_closest_dists(agent_positions),
         )
