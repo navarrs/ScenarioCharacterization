@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 from omegaconf import DictConfig
 
-from characterization.schemas import Scenario, ScenarioFeatures
+from characterization.schemas import FeatureDetections, Scenario, ScenarioFeatures
 from characterization.utils.common import ReturnCriterion
 
 
@@ -25,7 +25,7 @@ class BaseFeature(ABC):
         """
         self.config = config
         self.features = config.get("features", None)
-        self.detections = self.config.get("detections", None)
+        self.detections = FeatureDetections.from_dict(config.get("detections", None))
         self.characterizer_type = "feature"
         self.return_criterion = ReturnCriterion[config.get("return_criterion", "critical").upper()]
         self.compute_agent_to_agent_closest_dists = config.get("compute_agent_to_agent_closest_dists", False)

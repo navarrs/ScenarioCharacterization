@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -40,7 +42,7 @@ def compute_speed_meta(
     return speeds, speeds_limit_diff
 
 
-def compute_acceleration_profile(speed: np.ndarray, timestamps: np.ndarray) -> tuple[np.ndarray | None, ...]:
+def compute_acceleration_profile(speed: np.ndarray, timestamps: np.ndarray) -> tuple[Any, ...]:
     """Computes the acceleration profile from the speed (m/s) and time delta.
 
     Args:
@@ -53,8 +55,10 @@ def compute_acceleration_profile(speed: np.ndarray, timestamps: np.ndarray) -> t
                 are present.
             acceleration (np.ndarray or None): The sum of positive acceleration intervals, or None if NaN values are
                 present.
+            acceleration_se (list[tuple[int, int]] or None): The start and end indices of each acceleration interval,
             deceleration (np.ndarray or None): The sum of negative acceleration intervals (absolute value), or None if
                 NaN values are present.
+            deceleration_se (list[tuple[int, int]] or None): The start and end indices of each deceleration interval.
 
     Raises:
         ValueError: If speed and timestamps do not have the same shape.
@@ -75,26 +79,30 @@ def compute_acceleration_profile(speed: np.ndarray, timestamps: np.ndarray) -> t
 
     if np.isnan(acceleration_raw).any():
         logger.warning("Nan value in agent acceleration: %s", acceleration_raw)
-        return None, None, None
+        return None, None, None, None, None
 
     dr_idx = np.where(acceleration_raw < 0.0)[0]
 
+    # Initialize the acceleration and deceleration arrays as zeros
+    acceleration = np.zeros_like(acceleration_raw)
+    deceleration = np.zeros_like(acceleration_raw)
+    acceleration_se = [(0, 0)]
+    deceleration_se = [(0, 0)]
+
     # If the agent is accelerating or maintaining acceleration
     if dr_idx.shape[0] == 0:
-        deceleration = np.zeros(shape=(1,))
         acceleration = acceleration_raw.copy()
     # If the agent is decelerating
     elif dr_idx.shape[0] == acceleration_raw.shape[0]:
         deceleration = acceleration_raw.copy()
-        acceleration = np.zeros(shape=(1,))
     # If both
     else:
-        deceleration, _ = get_acc_sums(acceleration_raw, dr_idx)
+        deceleration, deceleration_se = get_acc_sums(acceleration_raw, dr_idx)
 
         ar_idx = np.where(acceleration_raw >= 0.0)[0]
-        acceleration, _ = get_acc_sums(acceleration_raw, ar_idx)
+        acceleration, acceleration_se = get_acc_sums(acceleration_raw, ar_idx)
 
-    return acceleration_raw, acceleration, np.abs(deceleration)
+    return acceleration_raw, acceleration, acceleration_se, np.abs(deceleration), deceleration_se
 
 
 def compute_jerk(speed: np.ndarray, timestamps: np.ndarray) -> np.ndarray | None:

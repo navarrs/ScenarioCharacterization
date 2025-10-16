@@ -3,7 +3,7 @@ from omegaconf import DictConfig
 
 import characterization.features.individual_utils as individual
 from characterization.features.base_feature import BaseFeature
-from characterization.schemas import Individual, Scenario, ScenarioFeatures
+from characterization.schemas import FeatureDetections, Individual, Scenario, ScenarioFeatures
 from characterization.utils.common import (
     MIN_VALID_POINTS,
     AgentTrajectoryMasker,
@@ -46,7 +46,7 @@ class IndividualFeatures(BaseFeature):
     def compute_individual_features(
         scenario: Scenario,
         return_criterion: ReturnCriterion,
-        detections: dict[str, float],  # noqa: ARG004
+        feature_detections: FeatureDetections,
     ) -> Individual:
         """Compute individual motion features for all valid agents in a scenario.
 
@@ -58,7 +58,7 @@ class IndividualFeatures(BaseFeature):
             return_criterion (ReturnCriterion): Determines feature aggregation method:
                 - CRITICAL: Returns maximum values for most features, minimum for waiting_distance
                 - AVERAGE: Returns mean values for all features
-            detections (dict[str, float]): Detection parameters for feature computations.
+            feature_detections (FeatureDetections): Detection parameters for feature computations.
 
         Returns:
             Individual: Structured object containing computed features for valid agents:
@@ -137,7 +137,9 @@ class IndividualFeatures(BaseFeature):
 
             # Acceleration/Deceleration Profile
             # NOTE: acc and dec are accumulated abs acceleration and deceleration profiles.
-            _, accelerations, decelerations = individual.compute_acceleration_profile(speeds, timestamps)
+            _, accelerations, acc_se, decelerations, dec_se = individual.compute_acceleration_profile(
+                speeds, timestamps
+            )
             if accelerations is None or decelerations is None:
                 continue
 
@@ -170,11 +172,19 @@ class IndividualFeatures(BaseFeature):
                     waiting_interval = waiting_intervals.max()
                     waiting_distance = waiting_distances.min()
                     # Critical times
-                    # breakpoint()
-                    speed_limit_diff_t = timestamps[speed_limit_diffs.argmax()]
-                    acceleration_t = timestamps[accelerations.argmax()]
-                    deceleration_t = timestamps[decelerations.argmax()]
-                    critical_time = np.nanmin([speed_limit_diff_t, acceleration_t, deceleration_t])
+                    speed_t = timestamps[speeds.argmax()] if speed >= feature_detections.speed else np.inf
+                    speed_limit_diff_t = (
+                        timestamps[speed_limit_diffs.argmax()]
+                        if speed_limit_diff >= feature_detections.speed_limit_diff
+                        else np.inf
+                    )
+                    acceleration_t = (
+                        acc_se[accelerations.argmax()][0] if acceleration >= feature_detections.acceleration else np.inf
+                    )
+                    deceleration_t = (
+                        dec_se[decelerations.argmax()][0] if deceleration >= feature_detections.deceleration else np.inf
+                    )
+                    critical_time = np.nanmin([speed_t, speed_limit_diff_t, acceleration_t, deceleration_t])
                 case ReturnCriterion.AVERAGE:
                     speed = speeds.mean()
                     speed_limit_diff = speed_limit_diffs.mean()
