@@ -363,7 +363,7 @@ def find_closest_lanes(
 
     max_lane_points = np.max(lane_idxs[:, 1] - lane_idxs[:, 0])
     lanes = np.full((len(lane_idxs), max_lane_points, ndim), np.inf, dtype=np.float32)
-    for i, (start, end) in enumerate(lane_idxs):
+    for i, (start, end) in enumerate(lane_idxs):  # pyright: ignore[reportGeneralTypeIssues]
         lane_points = polylines[start:end][:, :ndim]
         lanes[i, : lane_points.shape[0], :] = lane_points
     lanes = lanes[:, ::subsample_factor]

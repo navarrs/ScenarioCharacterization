@@ -160,6 +160,7 @@ deprecateTypingAliases = true              # Check for deprecated typing aliases
 # Set to false
 # keep-sorted start
 enableTypeIgnoreComments = false           # Disable support for '# type: ignore' in favor of '# pyright: ignore'
+reportMissingTypeStubs = false             # Report Missing stubs
 reportUnknownArgumentType = false          # Argument type could not be inferred
 reportUnknownMemberType = false            # Attribute exists but type is unknown
 reportUnknownParameterType = false         # Parameter type could not be inferred
