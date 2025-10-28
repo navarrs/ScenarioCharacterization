@@ -1,3 +1,5 @@
+from warnings import warn
+
 import numpy as np
 from omegaconf import DictConfig
 
@@ -7,8 +9,6 @@ from characterization.scorer.base_scorer import BaseScorer
 from characterization.utils.io_utils import get_logger
 
 from .score_utils import INTERACTION_SCORE_FUNCTIONS
-
-from warnings import warn
 
 logger = get_logger(__name__)
 
@@ -55,7 +55,7 @@ class InteractionScorer(BaseScorer):
         features = scenario_features.interaction_features
         if features is None or features.interaction_agent_indices is None or features.interaction_status is None:
             warning_message = "interaction_features is None. Scores will default to zero(s)"
-            warn(warning_message, UserWarning)
+            warn(warning_message, UserWarning, stacklevel=2)
             return Score(agent_scores=scores, scene_score=0.0)
 
         # Get the agent weights

@@ -1,4 +1,5 @@
 import itertools
+from warnings import warn
 
 import numpy as np
 from omegaconf import DictConfig
@@ -15,8 +16,6 @@ from characterization.utils.common import (
 )
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
-
-from warnings import warn
 
 logger = get_logger(__name__)
 
@@ -85,7 +84,8 @@ class InteractionFeatures(BaseFeature):
 
         agent_combinations = list(itertools.combinations(range(agent_data.num_agents), 2))
         if len(agent_combinations) == 0:
-            warn("No agent combinations found. Ensure that the scenario has at least two agents.", UserWarning)
+            warning_message = "No agent combinations found. Ensure that the scenario has at least two agents."
+            warn(warning_message, UserWarning, stacklevel=2)
             return None
 
         agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)

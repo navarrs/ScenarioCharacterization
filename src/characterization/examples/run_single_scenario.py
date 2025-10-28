@@ -28,7 +28,7 @@ dataset = WaymoData(dataset_config)
 
 # This will return the Scenario Schema object
 scenario = dataset.transform_scenario_data(scenario_data)
-print("\nTransformed scenario (fields):", scenario.model_fields.keys())
+print("\nTransformed scenario (fields):", scenario)
 
 # Compute features
 feature_config = DictConfig(
@@ -38,7 +38,7 @@ feature_config = DictConfig(
 )
 feature_processor = IndividualFeatures(feature_config)
 features = feature_processor.compute(scenario)
-print("\nComputed features (fields):\n", features.model_fields.keys())
+print("\nComputed features (fields):\n", features)
 
 # Compute the scenario scores
 scorer_config = DictConfig(

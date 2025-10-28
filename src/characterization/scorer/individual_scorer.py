@@ -1,3 +1,5 @@
+from warnings import warn
+
 import numpy as np
 from omegaconf import DictConfig
 
@@ -6,8 +8,6 @@ from characterization.scorer.base_scorer import BaseScorer
 from characterization.utils.io_utils import get_logger
 
 from .score_utils import INDIVIDUAL_SCORE_FUNCTIONS
-
-from warnings import warn
 
 logger = get_logger(__name__)
 
@@ -58,12 +58,14 @@ class IndividualScorer(BaseScorer):
         features = scenario_features.individual_features
         if features is None:
             warning_message = "individual_features is None. Cannot compute individual scores."
-            warn(warning_message, UserWarning)
+            warn(warning_message, UserWarning, stacklevel=2)
             return Score(agent_scores=scores, scene_score=0.0)
 
         if features.valid_idxs is None:
-            warning_message = "valid_idxs must not be None if individual_features is not None. Score will default to zero(s)."
-            warn(warning_message, UserWarning)
+            warning_message = (
+                "valid_idxs must not be None if individual_features is not None. Score will default to zero(s)."
+            )
+            warn(warning_message, UserWarning, stacklevel=2)
             return Score(agent_scores=scores, scene_score=0.0)
 
         # Get the agent weights
