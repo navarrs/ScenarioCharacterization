@@ -18,7 +18,6 @@ class SafeShiftScorer(BaseScorer):
             config (DictConfig): Configuration for the scorer.
         """
         super().__init__(config)
-
         self.interaction_scorer = InteractionScorer(config)
         self.individual_scorer = IndividualScorer(config)
 
@@ -59,7 +58,11 @@ class SafeShiftScorer(BaseScorer):
 
         # Combine the scores
         agent_scores = scores_ind.copy() + scores_int.copy()
-        scene_score = np.clip(scene_score_int + scene_score_ind, a_min=self.score_clip.min, a_max=self.score_clip.max)
+        scene_score = np.clip(
+            self.aggregated_score_weight * (scene_score_int + scene_score_ind),
+            a_min=self.score_clip.min,
+            a_max=self.score_clip.max,
+        )
 
         # Get the agents' critical times
         agent_critical_times = np.full(shape=(scenario.agent_data.num_agents,), fill_value=np.inf, dtype=np.float32)

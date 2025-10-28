@@ -1,4 +1,5 @@
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import hydra
@@ -27,7 +28,9 @@ def run(cfg: DictConfig) -> None:
     Raises:
         ValueError: If unsupported scorers are specified in the configuration.
     """
-    output_dir = Path(cfg.output_dir)
+    subdir = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
+    subdir = f"{subdir}_{cfg.exp_tag}" if cfg.exp_tag else subdir
+    output_dir = Path(cfg.output_dir) / subdir
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Verify scenario types are supported

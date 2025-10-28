@@ -175,6 +175,8 @@ def plot_score_vs_critical_time_heatmap_from_dataframe(
             xticklabels=[str(x) for x in np.round(xedges[:-1], 2)],
             yticklabels=[str(y) for y in np.round(yedges[:-1], 2)],
             alpha=alpha,
+            annot=heatmap_data.T.astype(int),  # Show integer counts
+            fmt="d",
         )
         ax.set_xlabel("Critical Times")
         ax.set_ylabel("Scores")

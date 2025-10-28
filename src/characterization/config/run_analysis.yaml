@@ -20,6 +20,7 @@ scores:
 
 dpi: 300
 output_dir: ${paths.cache_path}/visualization
+exp_tag: ""
 
 percentiles:
   - 10

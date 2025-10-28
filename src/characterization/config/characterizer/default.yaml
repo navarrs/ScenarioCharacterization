@@ -34,31 +34,53 @@ processor:
 characterizer:
   config:
     score_wrt_ego_only: ${score_wrt_ego_only}
+    aggregated_score_weight: ${aggregated_score_weight}
     score_clip:
       min: 0.0
       max: 200.0
 
     weights:
       # Individual features
-      speed: 0.1
-      speed_diff: 0.2
-      acceleration: 1.0
-      deceleration: 1.0
-      jerk: 1.0
-      waiting_period: 1.0
-      waiting_intervals: 1.0
-      waiting_distances: 1.0
+      speed: 0.0
+      speed_diff: 0.0
+      acceleration: 0.0
+      deceleration: 0.0
+      jerk: 0.0
+      waiting_period: 0.0
+      waiting_intervals: 0.0
+      waiting_distances: 0.0
 
       # Individual features from Unitraj
-      trajectory_type: 0.1
-      kalman_difficulty: 1.0
+      trajectory_type: 0.0
+      kalman_difficulty: 0.0
 
       # Interaction features
-      collision: 2.0
-      mttcp: 2.0
-      thw: 1.0
-      ttc: 1.0
-      drac: 0.2
+      collision: 0.0
+      mttcp: 0.0
+      thw: 0.0
+      ttc: 0.0
+      drac: 1.0
+
+      # # Individual features
+      # speed: 0.1
+      # speed_diff: 0.2
+      # acceleration: 1.0
+      # deceleration: 1.0
+      # jerk: 1.0
+      # waiting_period: 1.0
+      # waiting_intervals: 1.0
+      # waiting_distances: 1.0
+
+      # # Individual features from Unitraj
+      # trajectory_type: 0.1
+      # kalman_difficulty: 1.0
+
+      # # Interaction features
+      # collision: 2.0
+      # mttcp: 2.0
+      # thw: 1.0
+      # ttc: 1.0
+      # drac: 0.2
 
     detections:
       # speed: 30 # in m/s, i.e. ~108 km/h ~70 mph
@@ -72,7 +94,7 @@ characterizer:
       waiting_distances: 8 # in meters
       kalman_difficulty: 80.0
 
-      mttcp: 4
-      thw: 4
-      ttc: 4
+      mttcp: 4 # in s
+      thw: 4 # in s
+      ttc: 4 # in s
       drac: 3 # in m/s^2

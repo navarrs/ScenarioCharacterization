@@ -22,6 +22,7 @@ class BaseScorer(ABC):
         super().__init__()
         self.config = config
         self.characterizer_type = "score"
+        self.aggregated_score_weight = self.config.get("aggregated_score_weight", 0.5)
         self.features = self.config.get("features", None)
         self.detections = self.config.detections
         self.weights = self.config.weights
