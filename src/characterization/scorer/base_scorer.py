@@ -51,6 +51,12 @@ class BaseScorer(ABC):
         Returns:
             np.ndarray: The computed weights for each agent.
         """
+        if scenario.agent_data.num_agents == 1:
+            agent_relevance = scenario.agent_data.agent_relevance
+            if agent_relevance is None:
+                return np.ones(scenario.agent_data.num_agents, dtype=np.float32)
+            return agent_relevance
+
         agent_to_agent_dists = scenario_features.agent_to_agent_closest_dists  # Shape (num_agents, num_agents)
         if agent_to_agent_dists is None:
             agent_data = scenario.agent_data

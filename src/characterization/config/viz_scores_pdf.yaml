@@ -15,7 +15,7 @@ criteria:
 
 scores:
   - individual
-  - interaction
+  # - interaction
   - safeshift
 
 dpi: 300
