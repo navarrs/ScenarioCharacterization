@@ -16,6 +16,8 @@ from characterization.utils.common import (
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
 
+from warnings import warn
+
 logger = get_logger(__name__)
 
 
@@ -83,7 +85,7 @@ class InteractionFeatures(BaseFeature):
 
         agent_combinations = list(itertools.combinations(range(agent_data.num_agents), 2))
         if len(agent_combinations) == 0:
-            logger.error("No agent combinations found. Ensure that the scenario has at least two agents.")
+            warn("No agent combinations found. Ensure that the scenario has at least two agents.", UserWarning)
             return None
 
         agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
