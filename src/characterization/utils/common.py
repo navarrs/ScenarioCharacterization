@@ -34,7 +34,9 @@ def validate_array(
 ) -> Callable[[Any], NDArray]:  # pyright: ignore[reportMissingTypeArgument]
     """Factory function to create a validator for numpy arrays with specific dtype and ndim."""
 
-    def _validator(v: Any) -> NDArray:  # noqa: ANN401 pyright: ignore[reportMissingTypeArgument]
+    def _validator(
+        v: Any,  # noqa: ANN401
+    ) -> NDArray:  # pyright: ignore[reportMissingTypeArgument]
         if not isinstance(v, np.ndarray):
             error_message = f"Expected a numpy.ndarray, got {type(v)}"
             raise TypeError(error_message)

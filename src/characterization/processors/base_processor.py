@@ -16,7 +16,7 @@ class BaseProcessor(ABC):
     def __init__(
         self,
         config: DictConfig,
-        dataset: Dataset,
+        dataset: Dataset,  # pyright: ignore[reportMissingTypeArgument]
         characterizer: BaseFeature | BaseScorer,
     ) -> None:
         """Initializes the BaseProcessor with configuration, dataset, and characterizer.

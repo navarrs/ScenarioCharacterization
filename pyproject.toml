@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scenario-characterization"
-version = "0.2.16"
+version = "0.2.17"
 authors = [
     {name="Ingrid Navarro", email="ingridn@cmu.edu"},
     {name="Duan Yutong (dyt-stackav)"},
@@ -160,6 +160,7 @@ deprecateTypingAliases = true              # Check for deprecated typing aliases
 # Set to false
 # keep-sorted start
 enableTypeIgnoreComments = false           # Disable support for '# type: ignore' in favor of '# pyright: ignore'
+reportMissingTypeStubs = false             # Report Missing stubs
 reportUnknownArgumentType = false          # Argument type could not be inferred
 reportUnknownMemberType = false            # Attribute exists but type is unknown
 reportUnknownParameterType = false         # Parameter type could not be inferred
