@@ -84,6 +84,7 @@ lint.ignore = [
     "D100",             # missing docstring in public module
     "D104",             # missing docstring in public package
     "ERA001",           # eradicate: remove commented-out code
+    "F841",             # local variable assigned but not used (since pyright reportUnusedVariable is enabled)
     "FIX002",           # line contains TODO
     "PLR0913",          # too many arguments in function definition
     "PLR0915",          # too many statements

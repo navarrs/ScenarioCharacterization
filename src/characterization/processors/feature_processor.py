@@ -57,9 +57,10 @@ class FeatureProcessor(BaseProcessor):
         # for scenario_batch in track(self.dataloader, total=len(self.dataloader), description="Processing features"):
         for scenario_batch in tqdm(self.dataloader, total=len(self.dataloader), desc="Processing features..."):
             for scenario in scenario_batch["scenario"]:
+                scenario_id = scenario.metadata.scenario_id
                 features: ScenarioFeatures = self.characterizer.compute(scenario)  # pyright: ignore[reportCallIssue]
 
                 if self.save:
-                    to_pickle(self.output_path, features.model_dump(), scenario.metadata.scenario_id)
+                    to_pickle(self.output_path, features.model_dump(), scenario_id, overwrite=self.overwrite)
 
         logger.info("Finished processing %s features for %s.", self.characterizer.name, self.dataset.name)  # pyright: ignore[reportAttributeAccessIssue]

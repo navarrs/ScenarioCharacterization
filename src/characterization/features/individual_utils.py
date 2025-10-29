@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -14,15 +16,15 @@ def compute_speed_meta(
     """Computes the speed profile of an agent.
 
     Args:
-        velocities (np.ndarray): The velocity vectors of the agent over time (shape: [T, D]).
-        closest_lanes (np.ndarray or None): closest lanes information (shape: [T, K, 6]) or None.
-        lane_speed_limits (np.ndarray or None): Speed limits for each lane (shape: [K,]) or None.
+        velocities (NDArray[np.float32]): The velocity vectors of the agent over time (shape: [T, D]).
+        closest_lanes (NDArray[np.float32] or None): closest lanes information (shape: [T, K, 6]) or None.
+        lane_speed_limits (NDArray[np.float32] or None): Speed limits for each lane (shape: [K,]) or None.
 
     Returns:
         tuple:
-            speeds (np.ndarray or None): The speed time series (shape: [T,]), or None if NaN values are present.
-            speeds_limit_diff (np.ndarray or None): The difference between speed and speed limit (currently zeros),
-                or None if NaN values are present.
+            speeds (NDArray[np.float32] or None): The speed time series (shape: [T,]), or None if NaN values are
+            present. speeds_limit_diff (NDArray[np.float32] or None): The difference between speed and speed limit
+            (currently zeros), or None if NaN values are present.
     """
     speeds = np.linalg.norm(velocities, axis=-1)
     if np.isnan(speeds).any():
@@ -34,27 +36,31 @@ def compute_speed_meta(
     if closest_lanes is not None and lane_speed_limits is not None:
         # closest_lane_dist_and_idx shape: (T, K)
         k_closest_lane_idx = closest_lanes.lane_idx.squeeze(-1)  # shape: (T, K)
-        k_speed_limits = mph_to_ms(lane_speed_limits[k_closest_lane_idx].item())  # shape: (T, K)
+        k_speed_limits = mph_to_ms(
+            lane_speed_limits[k_closest_lane_idx]
+        )  # shape: (T, K) # pyright: ignore[reportArgumentType]
         speeds_limit_diff = np.abs(speeds[:, None] - k_speed_limits).mean(axis=-1)  # shape: (T,)
 
     return speeds, speeds_limit_diff
 
 
-def compute_acceleration_profile(speed: np.ndarray, timestamps: np.ndarray) -> tuple[np.ndarray | None, ...]:
+def compute_acceleration_profile(speed: NDArray[np.float32], timestamps: NDArray[np.float32]) -> tuple[Any, ...]:
     """Computes the acceleration profile from the speed (m/s) and time delta.
 
     Args:
-        speed (np.ndarray): The speed time series (m/s) (shape: [T,]).
-        timestamps (np.ndarray): The timestamps corresponding to each speed measurement (shape: [T,]).
+        speed (NDArray[np.float32]): The speed time series (m/s) (shape: [T,]).
+        timestamps (NDArray[np.float32]): The timestamps corresponding to each speed measurement (shape: [T,]).
 
     Returns:
         tuple:
-            acceleration_raw (np.ndarray or None): The raw acceleration time series (shape: [T,]), or None if NaN values
-                are present.
-            acceleration (np.ndarray or None): The sum of positive acceleration intervals, or None if NaN values are
-                present.
-            deceleration (np.ndarray or None): The sum of negative acceleration intervals (absolute value), or None if
-                NaN values are present.
+            acceleration_raw (NDArray[np.float32] or None): The raw acceleration time series (shape: [T,]), or None
+                if NaN values are present.
+            acceleration (NDArray[np.float32] or None): The sum of positive acceleration intervals, or None if NaN
+                values are present.
+            acceleration_se (list[tuple[int, int]] or None): The start and end indices of each acceleration interval.
+            deceleration (NDArray[np.float32] or None): The sum of negative acceleration intervals (absolute value),
+                or None if NaN values are present.
+            deceleration_se (list[tuple[int, int]] or None): The start and end indices of each deceleration interval.
 
     Raises:
         ValueError: If speed and timestamps do not have the same shape.
@@ -75,37 +81,43 @@ def compute_acceleration_profile(speed: np.ndarray, timestamps: np.ndarray) -> t
 
     if np.isnan(acceleration_raw).any():
         logger.warning("Nan value in agent acceleration: %s", acceleration_raw)
-        return None, None, None
+        return None, None, None, None, None
 
     dr_idx = np.where(acceleration_raw < 0.0)[0]
 
+    # Initialize the acceleration and deceleration arrays as zeros
+    acceleration = np.zeros(shape=(1,), dtype=np.float32)
+    deceleration = np.zeros(shape=(1,), dtype=np.float32)
+    acceleration_se = [(np.inf, np.inf)]
+    deceleration_se = [(np.inf, np.inf)]
+
     # If the agent is accelerating or maintaining acceleration
     if dr_idx.shape[0] == 0:
-        deceleration = np.zeros(shape=(1,))
         acceleration = acceleration_raw.copy()
+        acceleration_se = [(i, i + 1) for i in range(acceleration_raw.shape[0])]
     # If the agent is decelerating
     elif dr_idx.shape[0] == acceleration_raw.shape[0]:
         deceleration = acceleration_raw.copy()
-        acceleration = np.zeros(shape=(1,))
+        deceleration_se = [(i, i + 1) for i in range(acceleration_raw.shape[0])]
     # If both
     else:
-        deceleration, _ = get_acc_sums(acceleration_raw, dr_idx)
+        deceleration, deceleration_se = get_acc_sums(acceleration_raw, dr_idx)
 
         ar_idx = np.where(acceleration_raw >= 0.0)[0]
-        acceleration, _ = get_acc_sums(acceleration_raw, ar_idx)
+        acceleration, acceleration_se = get_acc_sums(acceleration_raw, ar_idx)
 
-    return acceleration_raw, acceleration, np.abs(deceleration)
+    return acceleration_raw, acceleration, acceleration_se, np.abs(deceleration), deceleration_se
 
 
-def compute_jerk(speed: np.ndarray, timestamps: np.ndarray) -> np.ndarray | None:
+def compute_jerk(speed: NDArray[np.float32], timestamps: NDArray[np.float32]) -> NDArray[np.float32] | None:
     """Computes the jerk from the acceleration profile and time delta.
 
     Args:
-        speed (np.ndarray): The speed time series (m/s) (shape: [T,]).
-        timestamps (np.ndarray): The timestamps corresponding to each speed measurement (shape: [T,]).
+        speed (NDArray[np.float32]): The speed time series (m/s) (shape: [T,]).
+        timestamps (NDArray[np.float32]): The timestamps corresponding to each speed measurement (shape: [T,]).
 
     Returns:
-        np.ndarray or None: The jerk time series (m/s^3), or None if NaN values are present.
+        NDArray[np.float32] or None: The jerk time series (m/s^3), or None if NaN values are present.
 
     Raises:
         ValueError: If speed and timestamps do not have the same shape.
@@ -125,19 +137,19 @@ def compute_jerk(speed: np.ndarray, timestamps: np.ndarray) -> np.ndarray | None
 
 
 def compute_waiting_period(
-    position: np.ndarray,
-    speed: np.ndarray,
-    timestamps: np.ndarray,
-    conflict_points: np.ndarray | None,
+    position: NDArray[np.float32],
+    speed: NDArray[np.float32],
+    timestamps: NDArray[np.float32],
+    conflict_points: NDArray[np.float32] | None,
     stationary_speed: float = 0.0,
-) -> tuple[np.ndarray, ...]:
+) -> tuple[NDArray[np.float32], ...]:
     """Computes the waiting period for an agent based on its position and speed.
 
     Args:
-        position (np.ndarray): The positions of the agent over time (shape: [T, 2]).
-        speed (np.ndarray): The speeds of the agent over time (shape: [T,]).
-        timestamps (np.ndarray): The timestamps corresponding to each position/speed (shape: [T,]).
-        conflict_points (np.ndarray or None): The conflict points to check against (shape: [C, 2] or None).
+        position (NDArray[np.float32]): The positions of the agent over time (shape: [T, 2]).
+        speed (NDArray[np.float32]): The speeds of the agent over time (shape: [T,]).
+        timestamps (NDArray[np.float32]): The timestamps corresponding to each position/speed (shape: [T,]).
+        conflict_points (NDArray[np.float32] or None): The conflict points to check against (shape: [C, 2] or None).
         stationary_speed (float, optional): The speed threshold below which the agent is considered stationary. Defaults
             to 0.0.
 
@@ -149,9 +161,9 @@ def compute_waiting_period(
             waiting_distances (np.ndarray): The minimum distance to conflict points during each waiting interval
                 (shape: [N,]).
     """
-    waiting_intervals = np.zeros(shape=(position.shape[0]))
-    waiting_distances = np.inf * np.ones(shape=(position.shape[0]))
-    waiting_period = np.zeros(shape=(position.shape[0]))
+    waiting_intervals = np.zeros(shape=(position.shape[0]), dtype=np.float32)
+    waiting_distances = np.inf * np.ones(shape=(position.shape[0]), dtype=np.float32)
+    waiting_period = np.zeros(shape=(position.shape[0]), dtype=np.float32)
     if conflict_points is None or conflict_points.shape[0] == 0:
         return waiting_period, waiting_intervals, waiting_distances
 

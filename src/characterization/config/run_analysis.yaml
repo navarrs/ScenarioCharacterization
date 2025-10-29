@@ -1,0 +1,35 @@
+defaults:
+  - _self_
+  - run_processor.yaml
+  - viz: waymo_animated
+
+scores_path: ${paths.cache_path}/scores
+
+scenario_types:
+  - gt
+  # - ho
+
+criteria:
+  - critical
+  # - average
+
+scores:
+  - individual
+  - interaction
+  - safeshift
+
+dpi: 300
+output_dir: ${paths.cache_path}/visualization
+exp_tag: ""
+
+percentiles:
+  - 10
+  - 50
+  - 90
+
+# OOD test set percentile to split by
+test_percentile: 80
+
+min_scenarios_to_plot: 1
+viz_scenarios: true
+tag: 'full'
