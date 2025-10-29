@@ -1,6 +1,6 @@
 # ![WIP](https://img.shields.io/badge/status-WIP-orange) ScenarioCharacterization
 
-> **Note:** This project is a work in progress.
+>    **Note:** This project is a work in progress.
 
 A generalizable, automated scenario characterization framework for trajectory datasets.
 

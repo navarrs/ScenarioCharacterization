@@ -185,3 +185,6 @@ pyproject.txt
 visualization
 samples*
 cache*
+src/scripts/cluster.py
+src/scripts/*.png
+src/scripts/*.gif

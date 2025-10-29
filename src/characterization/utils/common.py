@@ -13,6 +13,7 @@ BIG_EPS = 1e6
 SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
 SUPPORTED_CRITERIA = ["critical", "average"]
 MIN_VALID_POINTS = 2
+MAX_DECELERATION = 10.0  # m/s^2,
 
 
 def mph_to_ms(mph: float) -> float:
