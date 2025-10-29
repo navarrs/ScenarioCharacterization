@@ -23,6 +23,7 @@ repos:
       - id: pyright
         name: pyright type check
         entry: pyright
+        # entry: uv run pyright
         language: python
         types: [python]
         args: ["--project", "pyproject.toml", "src"]

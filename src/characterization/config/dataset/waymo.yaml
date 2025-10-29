@@ -1,6 +1,7 @@
 _target_: characterization.utils.datasets.waymo.WaymoData
 config:
   load: true
+  ego_only: ${ego_only}
   seed: ${seed}
   scenario_type: ${scenario_type}
 

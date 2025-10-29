@@ -107,7 +107,7 @@ def run(cfg: DictConfig) -> None:
                     scores = scenario_scores[prefix][scenario_id]
 
                     # agent_scores = agent_scores_df[agent_scores_df["scenario_ids"] == scenario_id][key].to_numpy()
-                    scenario_id = row["scenario_ids"].split(".")[0]
+                    scenario_id = row["scenario_ids"].split(".")[0]  # pyright: ignore[reportAttributeAccessIssue]
 
                     logger.info("Processing %s for scorer %s", scenario_id, key)
                     scenario_input_filepath = str(Path(cfg.paths.scenario_base_path) / f"sample_{scenario_id}.pkl")

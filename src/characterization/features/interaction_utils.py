@@ -41,8 +41,8 @@ def find_valid_headings(
         bool: True if the headings of both agents are within the threshold, False otherwise.
     """
     valid_headings = np.empty(shape=(0,), dtype=bool)
-    if agent_i.heading is None or agent_j.heading is None:
-        return valid_headings
+    # if agent_i.heading is None or agent_j.heading is None:
+    #     return valid_headings
     if not is_sharing_lane(agent_i.lane, agent_j.lane):
         return valid_headings
 

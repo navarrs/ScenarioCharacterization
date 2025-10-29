@@ -1,11 +1,11 @@
 from omegaconf import DictConfig
-from torch.utils.data import Dataset
 from tqdm import tqdm
 
 from characterization.features import BaseFeature
 from characterization.processors.base_processor import BaseProcessor
 from characterization.schemas import ScenarioFeatures
 from characterization.scorer.base_scorer import BaseScorer
+from characterization.utils.datasets import BaseDataset
 from characterization.utils.io_utils import get_logger, to_pickle
 
 logger = get_logger(__name__)
@@ -17,7 +17,7 @@ class FeatureProcessor(BaseProcessor):
     def __init__(
         self,
         config: DictConfig,
-        dataset: Dataset,
+        dataset: BaseDataset,
         characterizer: BaseFeature | BaseScorer,
     ) -> None:
         """Initializes the FeatureProcessor with configuration, dataset, and feature characterizer.
@@ -46,7 +46,12 @@ class FeatureProcessor(BaseProcessor):
         Returns:
             None
         """
-        logger.info("Processing %s %s for %s", self.dataset.name, self.characterizer.name, self.scenario_type)
+        logger.info(
+            "Processing %s %s for %s",
+            self.dataset.name,  # pyright: ignore[reportAttributeAccessIssue]
+            self.characterizer.name,
+            self.scenario_type,
+        )
 
         # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop.
         # for scenario_batch in track(self.dataloader, total=len(self.dataloader), description="Processing features"):
@@ -58,4 +63,4 @@ class FeatureProcessor(BaseProcessor):
                 if self.save:
                     to_pickle(self.output_path, features.model_dump(), scenario_id, overwrite=self.overwrite)
 
-        logger.info("Finished processing %s features for %s.", self.characterizer.name, self.dataset.name)
+        logger.info("Finished processing %s features for %s.", self.characterizer.name, self.dataset.name)  # pyright: ignore[reportAttributeAccessIssue]

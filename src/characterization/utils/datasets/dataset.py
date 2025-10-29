@@ -47,6 +47,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         self.closest_lanes_path = Path(config.closest_lanes_path)
         self.closest_lanes_cfg = config.get("closest_lanes", None)
 
+        self.ego_only = config.get("ego_only", False)
         self.parallel = config.get("parallel", True)
         self.batch_size = config.get("batch_size", 4)
         self.step = config.get("step", 1)

@@ -36,7 +36,7 @@ def compute_speed_meta(
     if closest_lanes is not None and lane_speed_limits is not None:
         # closest_lane_dist_and_idx shape: (T, K)
         k_closest_lane_idx = closest_lanes.lane_idx.squeeze(-1)  # shape: (T, K)
-        k_speed_limits = mph_to_ms(lane_speed_limits[k_closest_lane_idx])  # shape: (T, K)
+        k_speed_limits = mph_to_ms(lane_speed_limits[k_closest_lane_idx].item())  # shape: (T, K)
         speeds_limit_diff = np.abs(speeds[:, None] - k_speed_limits).mean(axis=-1)  # shape: (T,)
 
     return speeds, speeds_limit_diff
