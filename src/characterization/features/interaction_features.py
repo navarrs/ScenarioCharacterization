@@ -219,18 +219,19 @@ class InteractionFeatures(BaseFeature):
                     # Critical times
                     collision_idx = np.argmax(collisions > 0) if np.any(collisions > 0) else -1
                     collision_t = timestamps[collision_idx] if collision_idx != -1 else np.inf
-                    ttc_t = (
+                    ttc_t = (  # pyright: ignore[reportUnusedVariable]
                         timestamps[ttcs.argmin()]
                         if not np.all(np.isinf(ttcs)) and ttc <= feature_detections.ttc
                         else np.inf
                     )
-                    thw_t = (
+                    thw_t = (  # pyright: ignore[reportUnusedVariable]
                         timestamps[thws.argmin()]
                         if not np.all(np.isinf(thws)) and thw <= feature_detections.thw
                         else np.inf
                     )
-                    drac_t = timestamps[dracs.argmax()] if drac >= feature_detections.drac else np.inf
-                    critical_time = np.nanmin([collision_t, ttc_t, thw_t, drac_t])
+                    drac_t = timestamps[dracs.argmax()] if drac >= feature_detections.drac else np.inf  # pyright: ignore[reportUnusedVariable]
+                    # critical_time = np.nanmin([collision_t, ttc_t, thw_t, drac_t])
+                    critical_time = np.nanmin([collision_t])
                 case ReturnCriterion.AVERAGE:
                     # NOTE: whenever there are valid values within a trajectory, this return the mean over those values
                     # and not the entire trajectory.

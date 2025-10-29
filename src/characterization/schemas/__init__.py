@@ -1,4 +1,4 @@
-from .detections import FeatureDetections
+from .detections import FeatureDetections, FeatureWeights
 from .scenario import AgentData, DynamicMapData, Scenario, ScenarioMetadata, StaticMapData, TracksToPredict
 from .scenario_features import Individual, Interaction, ScenarioFeatures
 from .scenario_scores import ScenarioScores, Score
@@ -7,6 +7,7 @@ __all__ = [
     "AgentData",
     "DynamicMapData",
     "FeatureDetections",
+    "FeatureWeights",
     "Individual",
     "Interaction",
     "Scenario",

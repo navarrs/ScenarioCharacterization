@@ -184,7 +184,12 @@ class IndividualFeatures(BaseFeature):
                     deceleration_t = (
                         dec_se[decelerations.argmax()][0] if deceleration >= feature_detections.deceleration else np.inf
                     )
-                    critical_time = np.nanmin([speed_t, speed_limit_diff_t, acceleration_t, deceleration_t])
+                    jerk_t = (
+                        timestamps[jerks.argmax()]
+                        if (jerks is not None and jerk is not None and jerk >= feature_detections.jerk)
+                        else np.inf
+                    )
+                    critical_time = np.nanmin([speed_t, speed_limit_diff_t, acceleration_t, deceleration_t, jerk_t])
                 case ReturnCriterion.AVERAGE:
                     speed = speeds.mean()
                     speed_limit_diff = speed_limit_diffs.mean()

@@ -4,9 +4,12 @@ from abc import ABC, abstractmethod
 import numpy as np
 from omegaconf import DictConfig
 
-from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores
+from characterization.schemas import FeatureDetections, FeatureWeights, Scenario, ScenarioFeatures, ScenarioScores
 from characterization.utils.common import SMALL_EPS, AgentTrajectoryMasker
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
+from characterization.utils.io_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class BaseScorer(ABC):
@@ -24,8 +27,10 @@ class BaseScorer(ABC):
         self.characterizer_type = "score"
         self.aggregated_score_weight = self.config.get("aggregated_score_weight", 0.5)
         self.features = self.config.get("features", None)
-        self.detections = self.config.detections
-        self.weights = self.config.weights
+        self.detections = FeatureDetections.from_dict(config.get("detections", None))
+        logger.info("Feature detections set to: %s", self.detections)
+        self.weights = FeatureWeights.from_dict(config.get("weights", None))
+        logger.info("Feature weights set to: %s", self.weights)
         self.score_clip = self.config.score_clip
         self.score_wrt_ego_only = self.config.get("score_wrt_ego_only", False)
 

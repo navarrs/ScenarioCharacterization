@@ -39,6 +39,7 @@ characterizer:
       min: 0.0
       max: 200.0
 
+    # NOTE: if weights are not specified here, will use default values from FeatureWeights in schemas/detections.py.
     weights:
       # Individual features
       speed: 0.0
@@ -55,11 +56,11 @@ characterizer:
       kalman_difficulty: 0.0
 
       # Interaction features
-      collision: 0.0
+      collision: 1.0
       mttcp: 0.0
       thw: 0.0
       ttc: 0.0
-      drac: 1.0
+      drac: 0.0
 
       # # Individual features
       # speed: 0.1
@@ -82,19 +83,18 @@ characterizer:
       # ttc: 1.0
       # drac: 0.2
 
+    # NOTE: if detections are not specified here, will use default values from FeatureDetections in schemas/detections.py.
     detections:
-      # speed: 30 # in m/s, i.e. ~108 km/h ~70 mph
-      speed: 22 # in m/s, i.e. ~80 km/h ~50 mph
-      speed_diff: 8 # in m/s, i.e. ~30 km/h over the speed limit
-      acceleration: 5 # in m/s^2
+      speed: 13 # in m/s, i.e. ~47 km/h or ~30 mph
+      speed_limit_diff: 5 # in m/s, i.e. ~30 km/h over the speed limit
+      acceleration: 10 # in m/s^2
       deceleration: 5 # in m/s^2
-      jerk: 8 # in m/s^3
-      waiting_period: 8 # in seconds
+      jerk: 1.5 # in m/s^3
+      waiting_period: 4 # in seconds
       waiting_intervals: 8 # in number of intervals
       waiting_distances: 8 # in meters
-      kalman_difficulty: 80.0
-
+      kalman_difficulty: 50.0
       mttcp: 4 # in s
-      thw: 4 # in s
-      ttc: 4 # in s
+      thw: 2 # in s
+      ttc: 2 # in s
       drac: 3 # in m/s^2

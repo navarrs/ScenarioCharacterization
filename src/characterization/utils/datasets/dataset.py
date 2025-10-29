@@ -105,16 +105,26 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
             Any: The conflict points associated with the scenario.
         """
         conflict_points_filepath = self.conflict_points_path / f"{scenario.metadata.scenario_id}.pkl"
-        if conflict_points_filepath.exists():
-            with conflict_points_filepath.open("rb") as f:
-                return pickle.load(f)  # nosec B301
+        if conflict_points_filepath.exists() and conflict_points_filepath.stat().st_size > 0:
+            try:
+                with conflict_points_filepath.open("rb") as f:
+                    return pickle.load(f)  # nosec B301
+            except (EOFError, pickle.UnpicklingError) as e:
+                logger.warning(
+                    "Failed to load conflict points from %s (will recompute): %s",
+                    conflict_points_filepath,
+                    e,
+                )
 
+        # Safely read cfg values (cfg may be None)
         conflict_point_info = find_conflict_points(
             scenario,
-            resample_factor=self.conflict_points_cfg.resample_factor,
-            intersection_threshold=self.conflict_points_cfg.intersection_threshold,
+            resample_factor=self.conflict_points_cfg.get("resample_factor", 1),
+            intersection_threshold=self.conflict_points_cfg.get("intersection_threshold", 0.5),
         )
         if conflict_point_info is not None:
+            # ensure directory exists before writing
+            conflict_points_filepath.parent.mkdir(parents=True, exist_ok=True)
             with conflict_points_filepath.open("wb") as f:
                 pickle.dump(conflict_point_info, f)  # nosec B301
         return conflict_point_info
@@ -129,15 +139,22 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
             Any: The conflict points associated with the scenario.
         """
         closest_lanes_filepath = self.closest_lanes_path / f"{scenario.metadata.scenario_id}.pkl"
-        if closest_lanes_filepath.exists():
-            with closest_lanes_filepath.open("rb") as f:
-                return pickle.load(f)  # nosec B301
+        if closest_lanes_filepath.exists() and closest_lanes_filepath.stat().st_size > 0:
+            try:
+                with closest_lanes_filepath.open("rb") as f:
+                    return pickle.load(f)  # nosec B301
+            except (EOFError, pickle.UnpicklingError) as e:
+                logger.warning(
+                    "Failed to load closest lanes from %s (will recompute): %s",
+                    closest_lanes_filepath,
+                    e,
+                )
 
         closest_lanes_info = find_closest_lanes(
             scenario,
-            k_closest=self.closest_lanes_cfg.num_lanes,
-            threshold_distance=self.closest_lanes_cfg.threshold_distance,
-            subsample_factor=self.closest_lanes_cfg.subsample_factor,
+            k_closest=self.closest_lanes_cfg.get("num_lanes", 16),
+            threshold_distance=self.closest_lanes_cfg.get("threshold_distance", 10.0),
+            subsample_factor=self.closest_lanes_cfg.get("subsample_factor", 2),
         )
         if closest_lanes_info is not None:
             with closest_lanes_filepath.open("wb") as f:
