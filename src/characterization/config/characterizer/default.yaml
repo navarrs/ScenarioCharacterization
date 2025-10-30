@@ -34,10 +34,12 @@ processor:
 characterizer:
   config:
     score_wrt_ego_only: ${score_wrt_ego_only}
+    aggregated_score_weight: ${aggregated_score_weight}
     score_clip:
       min: 0.0
       max: 200.0
 
+    # NOTE: if weights are not specified here, will use default values from FeatureWeights in schemas/detections.py.
     weights:
       # Individual features
       speed: 0.1
@@ -60,6 +62,7 @@ characterizer:
       ttc: 1.0
       drac: 0.2
 
+    # NOTE: if detections are not specified here, will use default values from FeatureDetections in schemas/detections.py.
     detections:
       speed: 30 # in m/s, i.e. ~108 km/h ~70 mph
       speed_diff: 8 # in m/s, i.e. ~30 km/h over the speed limit
