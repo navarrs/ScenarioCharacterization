@@ -28,6 +28,11 @@ jobs:
       - name: Set up Python
         run: uv python install 3.12
 
+      - name: Create and activate virtual environment
+        run: |
+          uv venv
+          source .venv/bin/activate
+
       - name: Build release distributions
         run: |
           uv pip install --upgrade build
