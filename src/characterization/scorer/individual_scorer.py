@@ -7,7 +7,7 @@ from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores,
 from characterization.scorer.base_scorer import BaseScorer
 from characterization.utils.io_utils import get_logger
 
-from .score_utils import INDIVIDUAL_SCORE_FUNCTIONS
+from .score_functions import INDIVIDUAL_SCORE_FUNCTIONS
 
 logger = get_logger(__name__)
 
@@ -79,8 +79,8 @@ class IndividualScorer(BaseScorer):
                 speed_weight=self.weights.speed,
                 speed_detection=self.detections.speed,
                 speed_diff=features.speed_limit_diff[n] if features.speed_limit_diff is not None else 0.0,
-                speed_diff_weight=self.weights.speed_diff,
-                speed_diff_detection=self.detections.speed_diff,
+                speed_diff_weight=self.weights.speed_limit_diff,
+                speed_diff_detection=self.detections.speed_limit_diff,
                 acceleration=features.acceleration[n] if features.acceleration is not None else 0.0,
                 acceleration_weight=self.weights.acceleration,
                 acceleration_detection=self.detections.acceleration,
@@ -99,6 +99,7 @@ class IndividualScorer(BaseScorer):
                 kalman_difficulty_weight=self.weights.kalman_difficulty,
                 kalman_difficulty_detection=self.detections.kalman_difficulty,
             )
+
         # As a safeguard, replace NaNs with zeros
         scores = np.nan_to_num(scores, nan=0.0)
 
