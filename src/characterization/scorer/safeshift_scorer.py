@@ -75,8 +75,7 @@ class SafeShiftScorer(BaseScorer):
 
         # Compute the scene critical time
         scene_critical_time = min(
-            # float("inf") if individual_scores.scene_critical_time is None else individual_scores.scene_critical_time,
-            float("inf"),
+            float("inf") if individual_scores.scene_critical_time is None else individual_scores.scene_critical_time,
             float("inf") if interaction_scores.scene_critical_time is None else interaction_scores.scene_critical_time,
         )
         return ScenarioScores(

@@ -56,10 +56,10 @@ characterizer:
       kalman_difficulty: 0.0
 
       # Interaction features
-      collision: 1.0
+      collision: 0.0
       mttcp: 0.0
+      ttc: 1.0
       thw: 0.0
-      ttc: 0.0
       drac: 0.0
 
       # # Individual features

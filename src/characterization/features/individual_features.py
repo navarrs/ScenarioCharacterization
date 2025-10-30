@@ -172,24 +172,25 @@ class IndividualFeatures(BaseFeature):
                     waiting_interval = waiting_intervals.max()
                     waiting_distance = waiting_distances.min()
                     # Critical times
-                    speed_t = timestamps[speeds.argmax()] if speed >= feature_detections.speed else np.inf
-                    speed_limit_diff_t = (
+                    speed_t = timestamps[speeds.argmax()] if speed >= feature_detections.speed else np.inf  # pyright: ignore[reportUnusedVariable]
+                    speed_limit_diff_t = (  # pyright: ignore[reportUnusedVariable]
                         timestamps[speed_limit_diffs.argmax()]
                         if speed_limit_diff >= feature_detections.speed_limit_diff
                         else np.inf
                     )
-                    acceleration_t = (
+                    acceleration_t = (  # pyright: ignore[reportUnusedVariable]
                         acc_se[accelerations.argmax()][0] if acceleration >= feature_detections.acceleration else np.inf
                     )
-                    deceleration_t = (
+                    deceleration_t = (  # pyright: ignore[reportUnusedVariable]
                         dec_se[decelerations.argmax()][0] if deceleration >= feature_detections.deceleration else np.inf
                     )
-                    jerk_t = (
+                    jerk_t = (  # pyright: ignore[reportUnusedVariable]
                         timestamps[jerks.argmax()]
                         if (jerks is not None and jerk is not None and jerk >= feature_detections.jerk)
                         else np.inf
                     )
-                    critical_time = np.nanmin([speed_t, speed_limit_diff_t, acceleration_t, deceleration_t, jerk_t])
+                    # critical_time = np.nanmin([speed_t, speed_limit_diff_t, acceleration_t, deceleration_t, jerk_t])
+                    critical_time = np.inf
                 case ReturnCriterion.AVERAGE:
                     speed = speeds.mean()
                     speed_limit_diff = speed_limit_diffs.mean()
