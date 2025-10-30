@@ -51,7 +51,6 @@ class InteractionFeatures(BaseFeature):
                 - agent_data: Agent positions, velocities, headings, dimensions, validity masks, and types
                 - metadata: Timestamps, distance thresholds, speed limits, and interaction parameters
                 - static_map_data: Map conflict points and agent distances to conflict points
-
             return_criterion (ReturnCriterion): Determines feature aggregation method:
                 - CRITICAL: Returns minimum separation/TTC/THW/mTTCP, maximum DRAC,
                   sum of intersections/collisions over valid trajectory segments

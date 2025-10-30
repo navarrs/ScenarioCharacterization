@@ -78,6 +78,8 @@ class SafeShiftScorer(BaseScorer):
             float("inf") if individual_scores.scene_critical_time is None else individual_scores.scene_critical_time,
             float("inf") if interaction_scores.scene_critical_time is None else interaction_scores.scene_critical_time,
         )
+
+        # Get the agents' critical times
         return ScenarioScores(
             metadata=scenario.metadata,
             individual_scores=individual_scores,
