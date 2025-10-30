@@ -131,7 +131,7 @@ class IndividualFeatures(BaseFeature):
 
             # Acceleration/Deceleration Profile
             # NOTE: acc and dec are accumulated abs acceleration and deceleration profiles.
-            _, accelerations, decelerations = individual.compute_acceleration_profile(speeds, timestamps)
+            _, accelerations, _, decelerations, _ = individual.compute_acceleration_profile(speeds, timestamps)
             if accelerations is None or decelerations is None:
                 continue
 
