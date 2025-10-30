@@ -101,7 +101,7 @@ class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     # Optional thresholds for scenario characterization
     agent_to_agent_max_distance: float = 50.0  # meters
     agent_to_conflict_point_max_distance: float = 2.0  # meters
-    agent_to_agent_distance_breach: float = 1.0  # meters
+    agent_to_agent_distance_breach: float = 0.5  # meters
     heading_threshold: float = 45.0  # degrees
 
     # To allow numpy and other arbitrary types in the model

@@ -47,7 +47,6 @@ class InteractionFeatures(BaseFeature):
                 - agent_data: Agent positions, velocities, headings, dimensions, validity masks, and types
                 - metadata: Timestamps, distance thresholds, speed limits, and interaction parameters
                 - static_map_data: Map conflict points and agent distances to conflict points
-
             return_criterion (ReturnCriterion): Determines feature aggregation method:
                 - CRITICAL: Returns minimum separation/TTC/THW/mTTCP, maximum DRAC,
                   sum of intersections/collisions over valid trajectory segments
@@ -181,9 +180,9 @@ class InteractionFeatures(BaseFeature):
             # we currently assume that agents are sharing the same lane.
             valid_headings = interaction.find_valid_headings(agent_i, agent_j, heading_threshold)
             if valid_headings.shape[0] < MIN_VALID_POINTS:
-                thw = np.full(1, np.inf, dtype=np.float32)
-                ttc = np.full(1, np.inf, dtype=np.float32)
-                drac = np.full(1, np.inf, dtype=np.float32)
+                thws = np.full(1, np.inf, dtype=np.float32)
+                ttcs = np.full(1, np.inf, dtype=np.float32)
+                dracs = np.full(1, np.inf, dtype=np.float32)
                 scenario_interaction_statuses[n] = InteractionStatus.PARTIAL_INVALID_HEADING
             else:
                 # At this point agents are sharing a lane and have at least two steps with headings within the defined
@@ -192,9 +191,9 @@ class InteractionFeatures(BaseFeature):
                 leading_agent = interaction.find_leading_agent(agent_i, agent_j, valid_headings)
 
                 # Now compute leader-follower interaction state
-                thw = interaction.compute_thw(agent_i, agent_j, leading_agent, valid_headings)
-                ttc = interaction.compute_ttc(agent_i, agent_j, leading_agent, valid_headings)
-                drac = interaction.compute_drac(agent_i, agent_j, leading_agent, valid_headings)
+                thws = interaction.compute_thw(agent_i, agent_j, leading_agent, valid_headings)
+                ttcs = interaction.compute_ttc(agent_i, agent_j, leading_agent, valid_headings)
+                dracs = interaction.compute_drac(agent_i, agent_j, leading_agent, valid_headings)
 
                 scenario_interaction_statuses[n] = InteractionStatus.COMPUTED_OK
 
@@ -204,9 +203,9 @@ class InteractionFeatures(BaseFeature):
                     intersection = intersections.sum()
                     collision = collisions.sum()
                     mttcp = mttcps.min()
-                    ttc = ttc.min()
-                    thw = thw.min()
-                    drac = drac.max()
+                    ttc = ttcs.min()
+                    thw = thws.min()
+                    drac = dracs.max()
                 case ReturnCriterion.AVERAGE:
                     # NOTE: whenever there are valid values within a trajectory, this return the mean over those values
                     # and not the entire trajectory.
@@ -214,9 +213,9 @@ class InteractionFeatures(BaseFeature):
                     intersection = intersections.mean()
                     collision = collisions.mean()
                     mttcp = mttcps.mean()
-                    ttc = ttc.mean()
-                    thw = thw.mean()
-                    drac = drac.mean()
+                    ttc = ttcs.mean()
+                    thw = thws.mean()
+                    drac = dracs.mean()
                 case _:
                     error_message = f"Criterion: {return_criterion} not supported. Expected 'critical' or 'average'."
                     raise ValueError(error_message)
