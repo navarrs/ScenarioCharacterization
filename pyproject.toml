@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scenario-characterization"
-version = "0.2.19"
+version = "0.2.20"
 authors = [
     {name="Ingrid Navarro", email="ingridn@cmu.edu"},
     {name="Duan Yutong (dyt-stackav)"},
@@ -68,16 +68,14 @@ include = [
 exclude = ["docs", "scripts", "tmp", "samples", "assets"]
 
 [tool.hatch.build.targets.wheel]
-include = [
-    "src/**",
-]
+include = ["src/**"]
+packages = ["src/characterization"]
 
 [tool.hatch.metadata]
 # Include package data in the wheel
 include-package-data = true
 
 [tool.hatch.build.sources]
-# Where your packages live
 src = "src"
 
 [tool.hatch.build.include]
