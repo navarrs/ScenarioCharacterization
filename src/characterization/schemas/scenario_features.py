@@ -1,7 +1,13 @@
 from pydantic import BaseModel
 
 from characterization.utils.ad_types import AgentType
-from characterization.utils.common import Float32NDArray1D, Float32NDArray2D, Int32NDArray1D, InteractionStatus
+from characterization.utils.common import (
+    Float32NDArray1D,
+    Float32NDArray2D,
+    Int32NDArray1D,
+    InteractionStatus,
+    TrajectoryType,
+)
 
 from .scenario import ScenarioMetadata
 
@@ -21,11 +27,13 @@ class Individual(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         waiting_period (Float32NDArray1D | None): Waiting period of each agent at each timestep.
         waiting_interval (Float32NDArray1D | None): Waiting interval of each agent at each timestep.
         waiting_distance (Float32NDArray1D | None): Waiting distance of each agent at each timestep.
+        kalman_difficulty (Float32NDArray1D | None): Kalman filter difficulty value for each agent.
     """
 
     # Agent meta
     valid_idxs: Int32NDArray1D | None = None
     agent_types: list[AgentType] | None = None
+    agent_trajectory_types: list[TrajectoryType]
 
     # Individual Features
     speed: Float32NDArray1D | None = None
@@ -36,6 +44,7 @@ class Individual(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     waiting_period: Float32NDArray1D | None = None
     waiting_interval: Float32NDArray1D | None = None
     waiting_distance: Float32NDArray1D | None = None
+    kalman_difficulty: Float32NDArray1D | None = None
 
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 

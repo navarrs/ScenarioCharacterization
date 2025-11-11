@@ -1,12 +1,14 @@
 [build-system]
-requires = ["setuptools==67.6.0", "wheel==0.45.1"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "scenario-characterization"
-version = "0.2.9"
+version = "0.2.20"
 authors = [
     {name="Ingrid Navarro", email="ingridn@cmu.edu"},
+    {name="Duan Yutong (dyt-stackav)"},
+    {name="Alonso Cano", email="acanovil@cmu.edu"},
 ]
 description = "Automated Scenario Characterization Toolkit."
 readme = "README.md"
@@ -59,15 +61,25 @@ waymo = [
 Homepage = "https://navars.xyz/safeshift/"
 Repository = "https://github.com/navarrs/ScenarioCharacterization"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/**",
+]
 exclude = ["docs", "scripts", "tmp", "samples", "assets"]
 
-[tool.setuptools.package-data]
-"characterization" = ["**/*.yaml"]
+[tool.hatch.build.targets.wheel]
+include = ["src/**"]
+packages = ["src/characterization"]
 
-[tool.setuptools]
+[tool.hatch.metadata]
+# Include package data in the wheel
 include-package-data = true
+
+[tool.hatch.build.sources]
+src = "src"
+
+[tool.hatch.build.include]
+"characterization" = ["**/*.yaml"]
 
 [tool.ruff]
 lint.extend-select = [
@@ -82,6 +94,7 @@ lint.ignore = [
     "D100",             # missing docstring in public module
     "D104",             # missing docstring in public package
     "ERA001",           # eradicate: remove commented-out code
+    "F841",             # local variable assigned but not used (since pyright reportUnusedVariable is enabled)
     "FIX002",           # line contains TODO
     "PLR0913",          # too many arguments in function definition
     "PLR0915",          # too many statements
@@ -158,6 +171,7 @@ deprecateTypingAliases = true              # Check for deprecated typing aliases
 # Set to false
 # keep-sorted start
 enableTypeIgnoreComments = false           # Disable support for '# type: ignore' in favor of '# pyright: ignore'
+reportMissingTypeStubs = false             # Report Missing stubs
 reportUnknownArgumentType = false          # Argument type could not be inferred
 reportUnknownMemberType = false            # Attribute exists but type is unknown
 reportUnknownParameterType = false         # Parameter type could not be inferred

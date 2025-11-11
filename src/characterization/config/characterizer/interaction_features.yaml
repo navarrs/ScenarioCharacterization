@@ -1,12 +1,10 @@
 # @package _global_
 defaults:
-  - features.yaml
+  - default.yaml
 
-characterizer:
-  _target_: characterization.features.interaction_features.InteractionFeatures
+processor:
+  _target_: characterization.processors.feature_processor.FeatureProcessor
   config:
-    return_criterion: ${return_criterion} # Can be 'critical', 'average', or 'none'
-
     features:
       - separation
       - intersection
@@ -15,3 +13,6 @@ characterizer:
       - thw
       - ttc
       - drac
+
+characterizer:
+  _target_: characterization.features.interaction_features.InteractionFeatures

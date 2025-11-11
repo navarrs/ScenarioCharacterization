@@ -1,6 +1,8 @@
 _target_: characterization.utils.viz.scenario.ScenarioVisualizer
 config:
   scenario_type: ${scenario_type}
+  add_title: false
+  update_limits: true
 
   static_map_keys:
     - lane
@@ -37,4 +39,7 @@ config:
     TYPE_VEHICLE: "blue"
     TYPE_SDC: "red"
     TYPE_RELEVANT: "orange"
-    TYPE_RELEVAN: "orange"
+
+  panes_to_plot:
+    # - ALL_AGENTS
+    - HIGHLIGHT_RELEVANT_AGENTS

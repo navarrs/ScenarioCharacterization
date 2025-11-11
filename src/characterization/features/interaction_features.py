@@ -1,4 +1,5 @@
 import itertools
+from warnings import warn
 
 import numpy as np
 from omegaconf import DictConfig
@@ -7,8 +8,8 @@ import characterization.features.interaction_utils as interaction
 from characterization.features.base_feature import BaseFeature
 from characterization.schemas import Interaction, Scenario, ScenarioFeatures
 from characterization.utils.common import (
-    EPS,
     MIN_VALID_POINTS,
+    SMALL_EPS,
     AgentTrajectoryMasker,
     InteractionStatus,
     ReturnCriterion,
@@ -38,7 +39,7 @@ class InteractionFeatures(BaseFeature):
         super().__init__(config)
 
     @staticmethod
-    def compute_interaction_features(scenario: Scenario, return_criterion: ReturnCriterion) -> Interaction:
+    def compute_interaction_features(scenario: Scenario, return_criterion: ReturnCriterion) -> Interaction | None:
         """Compute comprehensive pairwise interaction features for all agent combinations.
 
         Args:
@@ -46,7 +47,6 @@ class InteractionFeatures(BaseFeature):
                 - agent_data: Agent positions, velocities, headings, dimensions, validity masks, and types
                 - metadata: Timestamps, distance thresholds, speed limits, and interaction parameters
                 - static_map_data: Map conflict points and agent distances to conflict points
-
             return_criterion (ReturnCriterion): Determines feature aggregation method:
                 - CRITICAL: Returns minimum separation/TTC/THW/mTTCP, maximum DRAC,
                   sum of intersections/collisions over valid trajectory segments
@@ -64,9 +64,7 @@ class InteractionFeatures(BaseFeature):
                 - interaction_status: Processing status for each agent pair (computed/invalid/stationary)
                 - interaction_agent_indices: Agent pair indices (i, j) for each interaction
                 - interaction_agent_types: Agent type pairs for each interaction
-
-        Raises:
-            ValueError: If no agent combinations are found (scenario has fewer than 2 agents).
+                Returns None if scenario has fewer than 2 agents.
 
         Note:
             - Agent pairs must have overlapping valid timesteps to be processed
@@ -85,8 +83,9 @@ class InteractionFeatures(BaseFeature):
 
         agent_combinations = list(itertools.combinations(range(agent_data.num_agents), 2))
         if len(agent_combinations) == 0:
-            error_message = "No agent combinations found. Ensure that the scenario has at least two agents."
-            raise ValueError(error_message)
+            warning_message = "No agent combinations found. Ensure that the scenario has at least two agents."
+            warn(warning_message, UserWarning, stacklevel=2)
+            return None
 
         agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
         agent_types = agent_data.agent_types
@@ -97,13 +96,13 @@ class InteractionFeatures(BaseFeature):
         agent_heights = agent_trajectories.agent_heights.squeeze(-1)
 
         # NOTE: this is also computed as a feature in the individual features.
-        agent_velocities = np.linalg.norm(agent_trajectories.agent_xy_vel, axis=-1) + EPS
+        agent_velocities = np.linalg.norm(agent_trajectories.agent_xy_vel, axis=-1) + SMALL_EPS
         agent_headings = np.rad2deg(agent_trajectories.agent_headings)
         conflict_points = map_data.map_conflict_points if map_data is not None else None
         dists_to_conflict_points = map_data.agent_distances_to_conflict_points if map_data is not None else None
 
         # Meta information
-        stationary_speed = metadata.stationary_speed
+        stationary_speed = metadata.max_stationary_speed
         agent_to_agent_max_distance = metadata.agent_to_agent_max_distance
         agent_to_conflict_point_max_distance = metadata.agent_to_conflict_point_max_distance
         agent_to_agent_distance_breach = metadata.agent_to_agent_distance_breach
@@ -181,9 +180,9 @@ class InteractionFeatures(BaseFeature):
             # we currently assume that agents are sharing the same lane.
             valid_headings = interaction.find_valid_headings(agent_i, agent_j, heading_threshold)
             if valid_headings.shape[0] < MIN_VALID_POINTS:
-                thw = np.full(1, np.inf, dtype=np.float32)
-                ttc = np.full(1, np.inf, dtype=np.float32)
-                drac = np.full(1, np.inf, dtype=np.float32)
+                thws = np.full(1, np.inf, dtype=np.float32)
+                ttcs = np.full(1, np.inf, dtype=np.float32)
+                dracs = np.full(1, np.inf, dtype=np.float32)
                 scenario_interaction_statuses[n] = InteractionStatus.PARTIAL_INVALID_HEADING
             else:
                 # At this point agents are sharing a lane and have at least two steps with headings within the defined
@@ -192,9 +191,9 @@ class InteractionFeatures(BaseFeature):
                 leading_agent = interaction.find_leading_agent(agent_i, agent_j, valid_headings)
 
                 # Now compute leader-follower interaction state
-                thw = interaction.compute_thw(agent_i, agent_j, leading_agent, valid_headings)
-                ttc = interaction.compute_ttc(agent_i, agent_j, leading_agent, valid_headings)
-                drac = interaction.compute_drac(agent_i, agent_j, leading_agent, valid_headings)
+                thws = interaction.compute_thw(agent_i, agent_j, leading_agent, valid_headings)
+                ttcs = interaction.compute_ttc(agent_i, agent_j, leading_agent, valid_headings)
+                dracs = interaction.compute_drac(agent_i, agent_j, leading_agent, valid_headings)
 
                 scenario_interaction_statuses[n] = InteractionStatus.COMPUTED_OK
 
@@ -204,9 +203,9 @@ class InteractionFeatures(BaseFeature):
                     intersection = intersections.sum()
                     collision = collisions.sum()
                     mttcp = mttcps.min()
-                    ttc = ttc.min()
-                    thw = thw.min()
-                    drac = drac.max()
+                    ttc = ttcs.min()
+                    thw = thws.min()
+                    drac = dracs.max()
                 case ReturnCriterion.AVERAGE:
                     # NOTE: whenever there are valid values within a trajectory, this return the mean over those values
                     # and not the entire trajectory.
@@ -214,9 +213,9 @@ class InteractionFeatures(BaseFeature):
                     intersection = intersections.mean()
                     collision = collisions.mean()
                     mttcp = mttcps.mean()
-                    ttc = ttc.mean()
-                    thw = thw.mean()
-                    drac = drac.mean()
+                    ttc = ttcs.mean()
+                    thw = thws.mean()
+                    drac = dracs.mean()
                 case _:
                     error_message = f"Criterion: {return_criterion} not supported. Expected 'critical' or 'average'."
                     raise ValueError(error_message)

@@ -1,27 +1,14 @@
 # @package _global_
 defaults:
+  - default.yaml
   - interaction_features.yaml
-  - scores.yaml
+
+processor:
+  _target_: characterization.processors.scores_processor.ScoresProcessor
+  config:
+    output_path: ${paths.output_paths.scores_cache_path}
 
 characterizer:
   _target_: characterization.scorer.interaction_scorer.InteractionScorer
   config:
     interaction_score_function: simple
-    score_wrt_ego_only: ${processor.config.score_wrt_ego_only}
-
-    score_clip:
-      min: 0.0
-      max: 150.0
-
-    weights:
-      collision: 2.0
-      mttcp: 2.0
-      thw: 1.0
-      ttc: 1.0
-      drac: 0.2
-
-    detections:
-      mttcp: 4
-      thw: 4
-      ttc: 4
-      drac: 2

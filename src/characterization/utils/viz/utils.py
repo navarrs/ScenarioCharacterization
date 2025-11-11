@@ -37,7 +37,7 @@ def get_sample_to_plot(
     subset_size = len(df_subset)
     logger.info(f"Found {subset_size} rows between [{round(min_value, 2)} to {round(max_value, 2)}] for {key}")
     sample_size = min(sample_size, subset_size)
-    return df_subset.sample(n=sample_size, random_state=seed)
+    return df_subset.sample(n=sample_size, random_state=seed) # pyright: ignore[reportReturnType]
 
 
 def get_valid_scenario_ids(scenario_types: str, criteria: str, base_path: str) -> list[str]:
@@ -80,7 +80,7 @@ def plot_histograms_from_dataframe(
 
     for i, col in enumerate(columns_to_plot):
         sns.histplot(
-            df[col],
+            df[col], # pyright: ignore[reportArgumentType]
             color=palette[i],
             label=col,
             kde=True,

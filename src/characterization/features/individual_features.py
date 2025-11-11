@@ -4,7 +4,12 @@ from omegaconf import DictConfig
 import characterization.features.individual_utils as individual
 from characterization.features.base_feature import BaseFeature
 from characterization.schemas import Individual, Scenario, ScenarioFeatures
-from characterization.utils.common import MIN_VALID_POINTS, AgentTrajectoryMasker, ReturnCriterion
+from characterization.utils.common import (
+    MIN_VALID_POINTS,
+    AgentTrajectoryMasker,
+    LaneMasker,
+    ReturnCriterion,
+)
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
 
@@ -72,14 +77,20 @@ class IndividualFeatures(BaseFeature):
 
         agent_positions = agent_trajectories.agent_xyz_pos
         agent_velocities = agent_trajectories.agent_xy_vel
+        agent_headings = np.rad2deg(agent_trajectories.agent_headings)
         agent_valid = agent_trajectories.agent_valid.squeeze(-1).astype(bool)
 
         metadata = scenario.metadata
         scenario_timestamps = metadata.timestamps_seconds
-        stationary_speed = metadata.stationary_speed
+        stationary_speed = metadata.max_stationary_speed
+        current_time_index = metadata.current_time_index
 
         map_data = scenario.static_map_data
-        conflict_points = map_data.map_conflict_points if map_data is not None else None
+        conflict_points, closest_lanes, lane_speed_limits = None, None, None
+        if map_data is not None:
+            conflict_points = map_data.map_conflict_points
+            closest_lanes = map_data.agent_closest_lanes
+            lane_speed_limits = map_data.lane_speed_limits_mph
 
         # Meta information to be included within ScenarioFeatures. For an agent to be valid it needs to have at least
         # two valid timestamps. The indeces of such agents will be added to `valid_idxs` list.
@@ -94,6 +105,8 @@ class IndividualFeatures(BaseFeature):
         scenario_waiting_periods = []
         scenario_waiting_intervals = []
         scenario_waiting_distances = []
+        scenario_trajectory_types = []
+        scenario_kalman_difficulties = []
 
         # NOTE: Handling sequentially since each agent may have different valid masks which will
         # result in trajectories of different lengths.
@@ -104,18 +117,21 @@ class IndividualFeatures(BaseFeature):
 
             velocities = agent_velocities[n][mask, :]
             positions = agent_positions[n][mask, :]
+            headings = agent_headings[n][mask]
             timestamps = np.asarray(scenario_timestamps)[mask]
 
             # Compute agent features
 
             # Speed Profile
-            speeds, speed_limit_diffs = individual.compute_speed(velocities)
+            # TODO: Add a agent-lane deviation feature
+            closest_lane_n = LaneMasker(closest_lanes[n, mask]) if closest_lanes is not None else None
+            speeds, speed_limit_diffs = individual.compute_speed_meta(velocities, closest_lane_n, lane_speed_limits)
             if speeds is None or speed_limit_diffs is None:
                 continue
 
             # Acceleration/Deceleration Profile
             # NOTE: acc and dec are accumulated abs acceleration and deceleration profiles.
-            _, accelerations, decelerations = individual.compute_acceleration_profile(speeds, timestamps)
+            _, accelerations, _, decelerations, _ = individual.compute_acceleration_profile(speeds, timestamps)
             if accelerations is None or decelerations is None:
                 continue
 
@@ -130,6 +146,12 @@ class IndividualFeatures(BaseFeature):
                 conflict_points,
                 stationary_speed,
             )
+
+            # Trajectory Type
+            trajectory_type = individual.compute_trajectory_type(positions, speeds, headings, metadata)
+
+            # Kalman Difficulty
+            kalman_difficulty = individual.compute_kalman_difficulty(agent_positions[n], mask, current_time_index + 1)
 
             match return_criterion:
                 case ReturnCriterion.CRITICAL:
@@ -163,10 +185,13 @@ class IndividualFeatures(BaseFeature):
             scenario_waiting_periods.append(waiting_period)
             scenario_waiting_intervals.append(waiting_interval)
             scenario_waiting_distances.append(waiting_distance)
+            scenario_trajectory_types.append(trajectory_type)
+            scenario_kalman_difficulties.append(kalman_difficulty)
 
         return Individual(
             valid_idxs=np.array(scenario_valid_idxs, dtype=np.int32) if scenario_valid_idxs else None,
             agent_types=agent_data.agent_types if agent_data.agent_types else None,
+            agent_trajectory_types=scenario_trajectory_types,
             speed=np.array(scenario_speeds, dtype=np.float32) if scenario_speeds else None,
             speed_limit_diff=(
                 np.array(scenario_speed_limit_diffs, dtype=np.float32) if scenario_speed_limit_diffs else None
@@ -180,6 +205,9 @@ class IndividualFeatures(BaseFeature):
             ),
             waiting_distance=(
                 np.array(scenario_waiting_distances, dtype=np.float32) if scenario_waiting_distances else None
+            ),
+            kalman_difficulty=(
+                np.array(scenario_kalman_difficulties, dtype=np.float32) if scenario_kalman_difficulties else None
             ),
         )
 

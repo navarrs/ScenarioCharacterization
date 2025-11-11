@@ -23,6 +23,7 @@ repos:
       - id: pyright
         name: pyright type check
         entry: pyright
+        # entry: uv run pyright
         language: python
         types: [python]
         args: ["--project", "pyproject.toml", "src"]
@@ -45,7 +46,12 @@ repos:
     hooks:
       # Prevents accidentally committing huge files. Limit set to 1MB.
       - id: check-added-large-files
-        args: ["--maxkb=1024", "--enforce-all"]
+        args: ["--maxkb=1024"]
+        exclude: |
+          (?x)^(
+              assets/animated_scenario_high.gif |
+              assets/animated_scenario_low.gif |
+          )$
       # Detects filename case conflicts on case-insensitive filesystems
       - id: check-case-conflict
       # Check that anything with a shebang has the executable bit set

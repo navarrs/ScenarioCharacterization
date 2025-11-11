@@ -15,11 +15,6 @@ print("Loading scenario from:", INPUT_SCENARIO_FILEPATH)
 with open(INPUT_SCENARIO_FILEPATH, "rb") as f:
     scenario_data = pickle.load(f)  # nosec B301
 
-INPUT_CONFLICT_POINTS_FILEPATH = f"./cache/conflict_points/{SCENARIO_FILE}"
-print("Loading conflict points from:", INPUT_CONFLICT_POINTS_FILEPATH)
-with open(INPUT_CONFLICT_POINTS_FILEPATH, "rb") as f:
-    conflict_points_dict = pickle.load(f)  # nosec B301
-
 dataset_config = DictConfig(
     {
         "load": False,
@@ -32,8 +27,8 @@ dataset_config = DictConfig(
 dataset = WaymoData(dataset_config)
 
 # This will return the Scenario Schema object
-scenario = dataset.transform_scenario_data(scenario_data, conflict_points_dict)
-print("\nTransformed scenario (fields):", scenario.model_fields.keys())
+scenario = dataset.transform_scenario_data(scenario_data)
+print("\nTransformed scenario (fields):", scenario)
 
 # Compute features
 feature_config = DictConfig(
@@ -43,7 +38,7 @@ feature_config = DictConfig(
 )
 feature_processor = IndividualFeatures(feature_config)
 features = feature_processor.compute(scenario)
-print("\nComputed features (fields):\n", features.model_fields.keys())
+print("\nComputed features (fields):\n", features)
 
 # Compute the scenario scores
 scorer_config = DictConfig(

@@ -16,7 +16,7 @@ class BaseProcessor(ABC):
     def __init__(
         self,
         config: DictConfig,
-        dataset: Dataset,
+        dataset: Dataset,  # pyright: ignore[reportMissingTypeArgument]
         characterizer: BaseFeature | BaseScorer,
     ) -> None:
         """Initializes the BaseProcessor with configuration, dataset, and characterizer.
@@ -44,6 +44,7 @@ class BaseProcessor(ABC):
         self.shuffle = config.get("shuffle", False)
 
         self.save = config.get("save", True)
+        self.overwrite = config.get("overwrite", False)
         self.output_path = config.get("output_path", None)
         if self.save:
             if self.output_path is None:

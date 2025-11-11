@@ -1,7 +1,7 @@
 import numpy as np
 from shapely import LineString
 
-from characterization.utils.common import EPS, MIN_VALID_POINTS, InteractionAgent
+from characterization.utils.common import MAX_DECELERATION, MIN_VALID_POINTS, SMALL_EPS, InteractionAgent
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -41,8 +41,8 @@ def find_valid_headings(
         bool: True if the headings of both agents are within the threshold, False otherwise.
     """
     valid_headings = np.empty(shape=(0,), dtype=bool)
-    if agent_i.heading is None or agent_j.heading is None:
-        return valid_headings
+    # if agent_i.heading is None or agent_j.heading is None:
+    #     return valid_headings
     if not is_sharing_lane(agent_i.lane, agent_j.lane):
         return valid_headings
 
@@ -192,8 +192,6 @@ def compute_thw(
     agent_j: InteractionAgent,
     leading_agent: np.ndarray,
     valid_headings: np.ndarray | None = None,
-    *,
-    return_only_finite: bool = True,
 ) -> np.ndarray:
     """Computes the following leader-follower interaction measurements.
 
@@ -208,7 +206,6 @@ def compute_thw(
         agent_j (InteractionAgent): The second agent.
         leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
         valid_headings (np.ndarray | None): Optional mask to filter valid headings.
-        return_only_finite (bool): Whether to return only finite THW values.
 
     Returns:
         np.ndarray: Array of time headway values for each timestep (shape: [T,]).
@@ -231,18 +228,14 @@ def compute_thw(
     i_idx = np.where(leading_agent == 0)[0]
     if len(i_idx) > 0:
         d_i = position_i[i_idx] - position_j[i_idx] - length_i[i_idx]
-        thw[i_idx] = d_i / (speed_j[i_idx] + EPS)
+        thw[i_idx] = d_i / (speed_j[i_idx] + SMALL_EPS)
 
     # ...where j is the agent ahead
     j_idx = np.where(leading_agent == 1)[0]
     if len(j_idx) > 0:
         d_j = position_j[j_idx] - position_i[j_idx] - length_j[j_idx]
-        thw[j_idx] = d_j / (speed_i[j_idx] + EPS)
+        thw[j_idx] = d_j / (speed_i[j_idx] + SMALL_EPS)
 
-    if return_only_finite:
-        thw = thw[np.isfinite(thw)]
-        if thw.size == 0:
-            thw = np.array([np.inf], dtype=np.float32)
     return np.abs(thw)
 
 
@@ -251,8 +244,6 @@ def compute_ttc(
     agent_j: InteractionAgent,
     leading_agent: np.ndarray,
     valid_headings: np.ndarray | None = None,
-    *,
-    return_only_finite: bool = True,
 ) -> np.ndarray:
     """Computes the following leader-follower interaction measurement.
 
@@ -270,7 +261,6 @@ def compute_ttc(
         agent_j (InteractionAgent): The second agent.
         leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
         valid_headings (np.ndarray | None): Optional mask to filter valid headings.
-        return_only_finite (bool): Whether to return only finite TTC values.
 
     Returns:
         np.ndarray: Array of time-to-collision values for each timestep (shape: [T,]).
@@ -293,7 +283,7 @@ def compute_ttc(
     i_idx = np.intersect1d(i_leads, j_faster)
     if len(i_idx) > 0:
         d_ij = position_j[i_idx] - position_i[i_idx] - length_i[i_idx]
-        ttc[i_idx] = d_ij / (speed_j[i_idx] - speed_i[i_idx] + EPS)
+        ttc[i_idx] = d_ij / (speed_j[i_idx] - speed_i[i_idx] + SMALL_EPS)
 
     # ...where j is the agent ahead and i's speed is higher
     j_leads = np.where(leading_agent == 1)[0]
@@ -301,12 +291,8 @@ def compute_ttc(
     j_idx = np.intersect1d(j_leads, i_faster)
     if len(j_idx) > 0:
         d_ji = position_i[j_idx] - position_j[j_idx] - length_j[j_idx]
-        ttc[j_idx] = d_ji / (speed_i[j_idx] - speed_j[j_idx] + EPS)
+        ttc[j_idx] = d_ji / (speed_i[j_idx] - speed_j[j_idx] + SMALL_EPS)
 
-    if return_only_finite:
-        ttc = ttc[np.isfinite(ttc)]
-        if ttc.size == 0:
-            ttc = np.array([np.inf], dtype=np.float32)
     return np.abs(ttc)
 
 
@@ -315,8 +301,6 @@ def compute_drac(
     agent_j: InteractionAgent,
     leading_agent: np.ndarray,
     valid_headings: np.ndarray | None = None,
-    *,
-    return_nonzero_only: bool = True,
 ) -> np.ndarray:
     """Computes the following leader-follower interaction measurement.
 
@@ -333,7 +317,6 @@ def compute_drac(
         agent_j (InteractionAgent): The second agent.
         leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
         valid_headings (np.ndarray | None): Optional mask to filter valid headings.
-        return_nonzero_only (bool): Whether to return only non-zero DRAC values.
 
     Returns:
         np.ndarray: Array of time-to-collision values for each timestep (shape: [T,]).
@@ -358,7 +341,7 @@ def compute_drac(
     if len(i_idx) > 0:
         d_ij = np.abs(position_j[i_idx] - position_i[i_idx] - length_i[i_idx])
         v_ji = speed_j[i_idx] - speed_i[i_idx]
-        drac[i_idx] = (v_ji**2) / (2 * d_ij + EPS)
+        drac[i_idx] = (v_ji**2) / (2 * d_ij + SMALL_EPS)
 
     # ...where j is the agent ahead and i's speed is higher
     j_leads = np.where(leading_agent == 1)[0]
@@ -367,11 +350,7 @@ def compute_drac(
     if len(j_idx) > 0:
         d_ji = np.abs(position_i[j_idx] - position_j[j_idx] - length_j[j_idx])
         v_ij = speed_i[j_idx] - speed_j[j_idx]
-        drac[j_idx] = (v_ij**2) / (2 * d_ji + EPS)
+        drac[j_idx] = (v_ij**2) / (2 * d_ji + SMALL_EPS)
 
-    # TODO: account for the leader deceleration rate
-    if return_nonzero_only:
-        drac = drac[np.isfinite(drac) & (drac > 0)]
-        if drac.size == 0:
-            drac = np.array([0.0], dtype=np.float32)
-    return drac
+    # Clip drac values to avoid infinite or very high values
+    return np.clip(drac, 0.0, MAX_DECELERATION)

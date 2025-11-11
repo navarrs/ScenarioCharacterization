@@ -1,60 +1,14 @@
 # @package _global_
 defaults:
-  - scores.yaml
+  - default.yaml
+
+processor:
+  _target_: characterization.processors.scores_processor.ScoresProcessor
+  config:
+    output_path: ${paths.output_paths.scores_cache_path}
 
 characterizer:
   _target_: characterization.scorer.safeshift_scorer.SafeShiftScorer
   config:
-    return_criterion: ${return_criterion} # Can be 'critical', 'average', or 'none'
-
-    features:
-      - speed
-      - acceleration
-      - deceleration
-      - jerk
-      - waiting_period
-      - waiting_interval
-      - waiting_distance
-      - separation
-      - intersection
-      - collision
-      - mttcp
-      - thw
-      - ttc
-      - drac
-
     individual_score_function: simple
     interaction_score_function: simple
-
-    score_clip:
-      min: 0.0
-      max: 150.0
-
-    weights:
-      speed: 0.1
-      acceleration: 1.0
-      deceleration: 1.0
-      jerk: 1.0
-      waiting_period: 1.0
-      waiting_intervals: 1.0
-      waiting_distances: 1.0
-
-      collision: 2.0
-      mttcp: 2.0
-      thw: 1.0
-      ttc: 1.0
-      drac: 0.2
-
-    detections:
-      speed: 10
-      acceleration: 10
-      deceleration: 10
-      jerk: 10
-      waiting_period: 8
-      waiting_intervals: 8
-      waiting_distances: 8
-
-      mttcp: 4
-      thw: 4
-      ttc: 4
-      drac: 2

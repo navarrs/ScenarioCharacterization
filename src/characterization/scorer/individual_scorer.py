@@ -1,3 +1,5 @@
+from warnings import warn
+
 import numpy as np
 from omegaconf import DictConfig
 
@@ -5,7 +7,7 @@ from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores,
 from characterization.scorer.base_scorer import BaseScorer
 from characterization.utils.io_utils import get_logger
 
-from .score_utils import INDIVIDUAL_SCORE_FUNCTIONS
+from .score_functions import INDIVIDUAL_SCORE_FUNCTIONS
 
 logger = get_logger(__name__)
 
@@ -56,12 +58,15 @@ class IndividualScorer(BaseScorer):
         features = scenario_features.individual_features
         if features is None:
             warning_message = "individual_features is None. Cannot compute individual scores."
-            logger.warning(warning_message)
+            warn(warning_message, UserWarning, stacklevel=2)
             return Score(agent_scores=scores, scene_score=0.0)
 
         if features.valid_idxs is None:
-            error_message = "valid_idxs must not be None if individual_features is not None. Cannot compute scores."
-            raise ValueError(error_message)
+            warning_message = (
+                "valid_idxs must not be None if individual_features is not None. Score will default to zero(s)."
+            )
+            warn(warning_message, UserWarning, stacklevel=2)
+            return Score(agent_scores=scores, scene_score=0.0)
 
         # Get the agent weights
         weights = self.get_weights(scenario, scenario_features)
@@ -73,6 +78,9 @@ class IndividualScorer(BaseScorer):
                 speed=features.speed[n] if features.speed is not None else 0.0,
                 speed_weight=self.weights.speed,
                 speed_detection=self.detections.speed,
+                speed_diff=features.speed_limit_diff[n] if features.speed_limit_diff is not None else 0.0,
+                speed_diff_weight=self.weights.speed_limit_diff,
+                speed_diff_detection=self.detections.speed_limit_diff,
                 acceleration=features.acceleration[n] if features.acceleration is not None else 0.0,
                 acceleration_weight=self.weights.acceleration,
                 acceleration_detection=self.detections.acceleration,
@@ -85,7 +93,13 @@ class IndividualScorer(BaseScorer):
                 waiting_period=features.waiting_period[n] if features.waiting_period is not None else 0.0,
                 waiting_period_weight=self.weights.waiting_period,
                 waiting_period_detection=self.detections.waiting_period,
+                trajectory_type=features.agent_trajectory_types[n],
+                trajectory_type_weight=self.weights.trajectory_type,
+                kalman_difficulty=features.kalman_difficulty[n] if features.kalman_difficulty is not None else 0.0,
+                kalman_difficulty_weight=self.weights.kalman_difficulty,
+                kalman_difficulty_detection=self.detections.kalman_difficulty,
             )
+
         # As a safeguard, replace NaNs with zeros
         scores = np.nan_to_num(scores, nan=0.0)
 

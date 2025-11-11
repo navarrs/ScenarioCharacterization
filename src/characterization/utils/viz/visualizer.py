@@ -1,7 +1,10 @@
-import os
+"""Base class for scenario visualizers."""
+
 from abc import ABC, abstractmethod
 from glob import glob
-
+from enum import Enum
+from pathlib import Path
+import time
 import numpy as np
 from characterization.schemas import DynamicMapData, Scenario, ScenarioScores, StaticMapData
 from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, AgentTrajectoryMasker, MIN_VALID_POINTS
@@ -12,8 +15,13 @@ from natsort import natsorted
 from omegaconf import DictConfig
 from PIL import Image
 
+from warnings import warn
+
 logger = get_logger(__name__)
 
+class SupportedPanes(Enum):
+    ALL_AGENTS = 0
+    HIGHLIGHT_RELEVANT_AGENTS = 1
 
 class BaseVisualizer(ABC):
     def __init__(self, config: DictConfig) -> None:
@@ -61,9 +69,22 @@ class BaseVisualizer(ABC):
             error_message = "agent_colors must be provided in the configuration."
             raise AssertionError(error_message)
 
+        # Set up panes to plot. It will fail if an invalid pane is provided.
+        panes = config.get("panes_to_plot", ["ALL_AGENTS"])
+        self.panes_to_plot = [SupportedPanes[pane] for pane in panes]
+        self.num_panes_to_plot = len(self.panes_to_plot)
+
+        # Number of workers for processing animations in parallel
+        self.num_workers = config.get("num_workers", 10)
+        self.fps = config.get("fps", 10)
+        self.time_scale_factor = config.get("time_scale_factor", 1.0)
+        self.display_time = config.get("display_time", True)
+
+        # Other visualization options
+        self.add_title = config.get("add_title", True)
         self.update_limits = config.get("update_limits", False)
         self.buffer_distance = config.get("distance_to_ego_zoom_in", 5.0)  # in meters
-        self.distance_to_ego_zoom_in = config.get("distance_to_ego_zoom_in", 50.0)  # in meters
+        self.distance_to_ego_zoom_in = config.get("distance_to_ego_zoom_in", 100.0)  # in meters
 
     def plot_map_data(self, ax: Axes, scenario: Scenario, num_windows: int = 1) -> None:
         """Plots the map data.
@@ -75,13 +96,13 @@ class BaseVisualizer(ABC):
         """
         # Plot static map information
         if scenario.static_map_data is None:
-            logger.warning("Scenario does not contain map_polylines, skipping static map visualization.")
+            warn("Scenario does not contain map_polylines, skipping static map visualization.", UserWarning)
         else:
             self.plot_static_map_data(ax, static_map_data=scenario.static_map_data, num_windows=num_windows)
 
         # Plot dynamic map information
         if scenario.dynamic_map_data is None:
-            logger.warning("Scenario does not contain dynamic_map_info, skipping dynamic map visualization.")
+            warn("Scenario does not contain dynamic_map_info, skipping dynamic map visualization.", UserWarning)
         else:
             self.plot_dynamic_map_data(ax, dynamic_map_data=scenario.dynamic_map_data, num_windows=num_windows)
 
@@ -94,6 +115,7 @@ class BaseVisualizer(ABC):
         show_relevant: bool = False,
         start_timestep: int = 0,
         end_timestep: int = -1,
+        title: str = "",
     ) -> None:
         """Plots agent trajectories for a scenario, with optional highlighting and score-based transparency.
 
@@ -104,6 +126,7 @@ class BaseVisualizer(ABC):
             show_relevant (bool, optional): If True, highlights relevant and SDC agents. Defaults to False.
             start_timestep (int): starting timestep to plot the sequences.
             end_timestep (int): ending timestep to plot the sequences.
+            title (str, optional): Title for the plot. Defaults to "".
         """
         agent_data = scenario.agent_data
         agent_relevance = agent_data.agent_relevance
@@ -147,6 +170,7 @@ class BaseVisualizer(ABC):
             heading = ahead[end_timestep]
             length = alen[end_timestep]
             width = awid[end_timestep]
+            atype = "TYPE_RELEVANT" if atype == "TYPE_RELEVAN" else atype
             color = self.agent_colors[atype]
 
             # Plot the trajectory
@@ -154,6 +178,9 @@ class BaseVisualizer(ABC):
 
             # Plot the agent
             self.plot_agent(ax, pos[-1, 0], pos[-1, 1], heading, length, width, score, color, plot_rectangle=True)
+
+        if self.add_title:
+            ax.set_title(title)
 
     def plot_agent(  # noqa: PLR0913
         self,
@@ -348,41 +375,46 @@ class BaseVisualizer(ABC):
 
     @staticmethod
     def to_gif(
-        output_dir: str,
-        output_filepath: str,
+        tmp_dir_frames: Path,
+        output_filepath: Path,
         *,
-        duration: int = 100,
+        fps: int = 10,
         disposal: int = 2,
         loop: int = 0,
     ) -> None:
         """Saves scenario as a GIF.
 
         Args:
-            output_dir (str): directory where temporary scenario files have been saved.
-            output_filepath (str): output filepath to save the GIF.
-            duration (int): duration of each frame.
+            tmp_dir_frames (Path): temporary directory where scenario image frames have been saved.
+            output_filepath (Path): output filepath to save the GIF.
+            fps (int): frames per second for the GIF.
             disposal (int): specifies how the previous frame should be treated before displaying the next frame.
                 (Default value is 2 (restores background color, clear the previous frame))
             loop (int): number of times the GIF should loop.
         """
+        t_i = time.time()
         # Load all the temporary files
-        files = glob(f"{output_dir}/temp_*.png")  # noqa: PTH207
-        imgs = [Image.open(f) for f in natsorted(files)]
+        files = natsorted(glob(f"{tmp_dir_frames}/temp_*.png"))  # noqa: PTH207
+        if not files:
+            err_msg = f"No frames found in {tmp_dir_frames}, cannot create GIF."
+            raise RuntimeError(err_msg)
+        images_to_append = (Image.open(f) for f in files[1:])
+
+        duration = 1000 / fps
 
         # Saves them into a GIF
-        imgs[0].save(
+        Image.open(files[0]).save(
             output_filepath,
             format="GIF",
-            append_images=imgs[1:],
+            append_images=images_to_append,
             save_all=True,  # Ensures all frames are saved. Needed for preserving animation.
             duration=duration,
             disposal=disposal,
             loop=loop,
         )
 
-        # Removes the temporary files
-        for f in files:
-            os.remove(f)  # noqa: PTH107
+        t_f = time.time()
+        logger.info("Saved GIF to %s [Time taken: %.2fs]", output_filepath, t_f - t_i)
 
     @staticmethod
     def get_normalized_agent_scores(
@@ -403,10 +435,15 @@ class BaseVisualizer(ABC):
         max_score = np.nanmax(agent_scores)
 
         if max_score > min_score:
-            agent_scores = np.clip((agent_scores - min_score) / (max_score - min_score), a_min=amin, a_max=amax)
+            agent_scores = (agent_scores - min_score) / (max_score - min_score)
         else:
-            agent_scores = 1.0 - 2 * np.ones_like(agent_scores) / len(agent_scores)
+            # If all scores are identical, assign equal scores to all agents
+            agent_scores = np.ones_like(agent_scores) / len(agent_scores)
 
+        # Clip scores to avoid zero alpha values
+        agent_scores = np.clip(agent_scores, a_min=amin, a_max=amax)
+
+        # Set ego-agent to maximum alpha
         agent_scores[ego_index] = amax
         return agent_scores
 
@@ -461,7 +498,7 @@ class BaseVisualizer(ABC):
                 ax.set_ylim(first_ego_position[1] - distance, first_ego_position[1] + distance)
 
         else:
-            for n, a in enumerate(ax.reshape(-1)):
+            for n, a in enumerate(ax.reshape(-1)): # pyright: ignore
                 a.set_xticks([])
                 a.set_yticks([])
                 if n == 0:
@@ -476,8 +513,8 @@ class BaseVisualizer(ABC):
         self,
         scenario: Scenario,
         scores: ScenarioScores | None = None,
-        output_dir: str = "temp",
-    ) -> None:
+        output_dir: Path = Path("./temp"),
+    ) -> Path:
         """Visualizes a single scenario and saves the output to a file.
 
         This method should be implemented by subclasses to provide scenario-specific visualization,
@@ -488,4 +525,7 @@ class BaseVisualizer(ABC):
             scenario (Scenario): encapsulates the scenario to visualize.
             scores (ScenarioScores | None): encapsulates the scenario and agent scores.
             output_dir (str): the directory where to save the scenario visualization.
+
+        Returns:
+            Path: The path to the saved visualization file.
         """

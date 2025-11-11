@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - run_processor.yaml
-  - viz: waymo
+  - viz: waymo_animated
 
 scores_path: ${paths.cache_path}/scores
 
@@ -26,6 +26,6 @@ percentiles:
   - 50
   - 90
 
-min_scenarios_to_plot: 10
+min_scenarios_to_plot: 1
 viz_scenarios: true
 tag: 'full'
