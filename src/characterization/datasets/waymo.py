@@ -1,3 +1,4 @@
+import math
 import pickle  # nosec B403
 import time
 from pathlib import Path
@@ -7,21 +8,21 @@ import numpy as np
 from natsort import natsorted
 from omegaconf import DictConfig
 
+from characterization.datasets.dataset import BaseDataset
 from characterization.schemas.scenario import (
     AgentData,
-    AgentType,
     DynamicMapData,
     Scenario,
     ScenarioMetadata,
     StaticMapData,
 )
-from characterization.utils.datasets.dataset import BaseDataset
 from characterization.utils.io_utils import get_logger
+from characterization.utils.scenario_types import AgentType
 
 logger = get_logger(__name__)
 
 
-class WaymoData(BaseDataset):
+class WaymoDataset(BaseDataset):
     """Class to handle the Waymo Open Motion Dataset (WOMD)."""
 
     def __init__(self, config: DictConfig) -> None:
@@ -38,6 +39,14 @@ class WaymoData(BaseDataset):
             "ho": self.HIST_TIMESTEP,
         }
 
+        self.data = DictConfig(
+            {
+                "scenarios": [],
+                "scenarios_ids": [],
+                "metas": [],
+            },
+        )
+
         self.load = config.get("load", True)
         if self.load:
             try:
@@ -46,6 +55,26 @@ class WaymoData(BaseDataset):
             except AssertionError:
                 logger.exception("Error loading scenario infos")
                 raise
+
+    def shard(self) -> None:
+        """Shards the dataset into smaller parts for distributed or parallel processing.
+
+        This method updates the internal data attributes to only include the shard assigned
+        to this instance, based on the number of shards and the shard index.
+        """
+        if self.num_shards > 1:
+            n_per_shard = math.ceil(len(self.data.metas) / self.num_shards)
+            shard_start = int(n_per_shard * self.shard_index)
+            shard_end = int(n_per_shard * (self.shard_index + 1))
+
+            self.data.metas = self.data.metas[shard_start:shard_end]
+            self.data.scenarios = self.data.scenarios[shard_start:shard_end]
+            self.data.scenarios_ids = self.data.scenarios_ids[shard_start:shard_end]
+
+        if self.num_scenarios != -1:
+            self.data.metas = self.data.metas[: self.num_scenarios]
+            self.data.scenarios = self.data.scenarios[: self.num_scenarios]
+            self.data.scenarios_ids = self.data.scenarios_ids[: self.num_scenarios]
 
     def load_data(self) -> None:
         """Loads the Waymo dataset and scenario metadata.
@@ -143,41 +172,41 @@ class WaymoData(BaseDataset):
 
         return StaticMapData(
             map_polylines=map_polylines,
-            lane_ids=WaymoData.get_polyline_ids(static_map_data, "lane") if "lane" in static_map_data else None,
-            lane_speed_limits_mph=WaymoData.get_speed_limit_mph(static_map_data, "lane")
+            lane_ids=WaymoDataset.get_polyline_ids(static_map_data, "lane") if "lane" in static_map_data else None,
+            lane_speed_limits_mph=WaymoDataset.get_speed_limit_mph(static_map_data, "lane")
             if "lane" in static_map_data
             else None,
-            lane_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "lane")
+            lane_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "lane")
             if "lane" in static_map_data
             else None,
-            road_line_ids=WaymoData.get_polyline_ids(static_map_data, "road_line")
+            road_line_ids=WaymoDataset.get_polyline_ids(static_map_data, "road_line")
             if "road_line" in static_map_data
             else None,
-            road_line_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "road_line")
+            road_line_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "road_line")
             if "road_line" in static_map_data
             else None,
-            road_edge_ids=WaymoData.get_polyline_ids(static_map_data, "road_edge")
+            road_edge_ids=WaymoDataset.get_polyline_ids(static_map_data, "road_edge")
             if "road_edge" in static_map_data
             else None,
-            road_edge_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "road_edge")
+            road_edge_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "road_edge")
             if "road_edge" in static_map_data
             else None,
-            crosswalk_ids=WaymoData.get_polyline_ids(static_map_data, "crosswalk")
+            crosswalk_ids=WaymoDataset.get_polyline_ids(static_map_data, "crosswalk")
             if "crosswalk" in static_map_data
             else None,
-            crosswalk_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "crosswalk")
+            crosswalk_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "crosswalk")
             if "crosswalk" in static_map_data
             else None,
-            speed_bump_ids=WaymoData.get_polyline_ids(static_map_data, "speed_bump")
+            speed_bump_ids=WaymoDataset.get_polyline_ids(static_map_data, "speed_bump")
             if "speed_bump" in static_map_data
             else None,
-            speed_bump_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "speed_bump")
+            speed_bump_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "speed_bump")
             if "speed_bump" in static_map_data
             else None,
-            stop_sign_ids=WaymoData.get_polyline_ids(static_map_data, "stop_sign")
+            stop_sign_ids=WaymoDataset.get_polyline_ids(static_map_data, "stop_sign")
             if "stop_sign" in static_map_data
             else None,
-            stop_sign_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "stop_sign")
+            stop_sign_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "stop_sign")
             if "stop_sign" in static_map_data
             else None,
             stop_sign_lane_ids=[

@@ -3,7 +3,6 @@ from typing import Any, TypeVar
 import numpy as np
 from pydantic import BaseModel, NonNegativeInt, computed_field
 
-from characterization.utils.ad_types import AgentType
 from characterization.utils.common import (
     Float32NDArray1D,
     Float32NDArray2D,
@@ -12,6 +11,7 @@ from characterization.utils.common import (
     Int32NDArray1D,
     Int32NDArray2D,
 )
+from characterization.utils.scenario_types import AgentType
 
 DType = TypeVar("DType", bound=np.generic)
 
@@ -22,13 +22,14 @@ class AgentData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     Attributes:
         agent_ids (list[NonNegativeInt]): list of all agent identifiers in the scenario, including the ego agent.
         agent_types (list[str]): list of types for each agent, e.g., "vehicle", "pedestrian", etc.
-        agent_trajectories (Float32NDArray3D): 3D array of shape (N, T, D=10) where N is the number of agents, T is the
-            number of timesteps and D is the number of features per trajectory point, organized as follows:
+        agent_trajectories (Float32NDArray3D): 3D array of shape (N, T, D) where N is the number of agents, T is the
+            number of timesteps and D is the number of features per trajectory point.
+            D is organized as follows:
                 idx 0 to 2: the agent's (x, y, z) center coordinates.
                 idx 3 to 5: the agent's length, width and height in meters.
                 idx 6: the agent's angle (heading) of the forward direction in radians
                 idx 7 to 8: the agent's (x, y) velocity in meters/second
-                idx 9: a flag indicating if the information is valid
+                idx 9: a flag indicating if the information is valid (1.0) or invalid (0.0).
             NOTE: For convenient masking see 'AgentTrajectoryMasker' in utils/common.py
         agent_relevance (Float32NDArray1D | None): Optional 1D array of shape (N,) representing relevance scores for
             each agent. Higher values indicate greater relevance, while NaN or negative values indicate

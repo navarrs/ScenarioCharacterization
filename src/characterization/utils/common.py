@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import BeforeValidator
 
-from characterization.utils.ad_types import AgentType
+from characterization.utils.scenario_types import AgentType
 
 SMALL_EPS = 1e-6
 BIG_EPS = 1e6
@@ -14,6 +14,42 @@ SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
 SUPPORTED_CRITERIA = ["critical", "average"]
 MIN_VALID_POINTS = 2
 MAX_DECELERATION = 10.0  # m/s^2,
+
+
+def km_to_m(km: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Converts kilometers to meters.
+
+    Args:
+        km (float): Distance in kilometers.
+
+    Returns:
+        float: Distance in meters.
+    """
+    return km * 1000.0  # 1 km = 1000 m
+
+
+def feet_to_m(feet: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Converts feet to meters.
+
+    Args:
+        feet (float): Distance in feet.
+
+    Returns:
+        float: Distance in meters.
+    """
+    return feet * 0.3048  # 1 foot = 0.3048 m
+
+
+def deg_to_rad(degrees: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Converts degrees to radians.
+
+    Args:
+        degrees (float): Angle in degrees.
+
+    Returns:
+        float: Angle in radians.
+    """
+    return degrees * (np.pi / 180.0)  # 1 degree = pi/180 radians
 
 
 def mph_to_ms(mph: float) -> float:
@@ -26,6 +62,30 @@ def mph_to_ms(mph: float) -> float:
         float: Speed in meters per second.
     """
     return mph * 0.44704  # 1 mph = 0.44704 m/s
+
+
+def ms_to_knots(ms: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Converts meters per second (m/s) to knots.
+
+    Args:
+        ms (NDArray[np.float32]): Speed in meters per second.
+
+    Returns:
+        NDArray[np.float32]: Speed in knots.
+    """
+    return ms * 1.94384  # 1 m/s = 1.94384 knots
+
+
+def knots_to_ms(knots: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Converts knots to meters per second (m/s).
+
+    Args:
+        knots (NDArray[np.float32]): Speed in knots.
+
+    Returns:
+        NDArray[np.float32]: Speed in meters per second.
+    """
+    return knots * 0.514444  # 1 knot = 0.514444 m/s
 
 
 # Validator factory

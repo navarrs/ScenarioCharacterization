@@ -1,4 +1,4 @@
-_target_: characterization.utils.datasets.waymo.WaymoData
+_target_: characterization.datasets.waymo.WaymoDataset
 config:
   load: true
   ego_only: ${ego_only}
@@ -12,6 +12,7 @@ config:
   num_shards: ${num_shards}
   shard_index: ${shard_index}
   step: ${step}
+  total_steps: 91
 
   scenario_base_path: ${paths.scenario_base_path}
   scenario_meta_path: ${paths.scenario_meta_path}

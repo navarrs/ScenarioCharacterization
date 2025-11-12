@@ -121,7 +121,7 @@ lint.unfixable = [
 fix = true
 exclude = [
     "src/scripts",
-    "src/characterization/utils/datasets/waymo_preprocess.py",
+    "src/characterization/datasets/waymo_preprocess.py",
     "src/characterization/examples",
     # TODO: re-nable checks for files below:
     "src/characterization/utils/viz/utils.py",
@@ -161,7 +161,7 @@ include = ["src"]
 exclude = [
     "tmp/**",
     "src/scripts",
-    "src/characterization/utils/datasets/waymo_preprocess.py",
+    "src/characterization/datasets/waymo_preprocess.py",
     "**/__pycache__",
 ]
 ignore = ["tmp/**"]

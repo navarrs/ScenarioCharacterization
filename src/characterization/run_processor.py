@@ -1,10 +1,10 @@
 import hydra
 from omegaconf import DictConfig
 
-from characterization.features.base_feature import BaseFeature
-from characterization.processors.base_processor import BaseProcessor
-from characterization.scorer.base_scorer import BaseScorer
-from characterization.utils.datasets import BaseDataset
+from characterization.datasets import BaseDataset
+from characterization.features import BaseFeature
+from characterization.processors import BaseProcessor
+from characterization.scorer import BaseScorer
 from characterization.utils.io_utils import get_logger, make_output_paths, print_config
 
 logger = get_logger(__name__)
@@ -30,7 +30,6 @@ def run(cfg: DictConfig) -> None:
     dataset: BaseDataset = hydra.utils.instantiate(cfg.dataset)
 
     logger.info("Instantiating characterizer: %s", cfg.characterizer._target_)
-
     characterizer: BaseFeature | BaseScorer = hydra.utils.instantiate(cfg.characterizer)
 
     logger.info("Instantiating processor: %s", cfg.processor._target_)

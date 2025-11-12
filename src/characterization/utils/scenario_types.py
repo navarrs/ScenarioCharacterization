@@ -2,15 +2,33 @@
 
 from enum import Enum
 
+AMELIA_VALUE_TO_AGENT_TYPE = {
+    0: "TYPE_AIRCRAFT",
+    1: "TYPE_VEHICLE",
+    2: "TYPE_UNKNOWN",
+}
+
+AMELIA_VALUE_TO_MAP_TYPE = {
+    1: "TYPE_HOLD_SHORT_LINE",
+    2: "TYPE_OTHER",
+    3: "TYPE_RUNWAY",
+    4: "TYPE_TAXIWAY",
+}
+
 
 class AgentType(Enum):
-    """Agent Types for WOMD."""
+    """Supported Agent Types."""
 
+    # WOMD
     TYPE_UNSET = 0
     TYPE_VEHICLE = 1
     TYPE_PEDESTRIAN = 2
     TYPE_CYCLIST = 3
     TYPE_OTHER = 4
+
+    # Amelia
+    TYPE_AIRCRAFT = 5
+    TYPE_UNKNOWN = 6
 
 
 class LaneType(Enum):
@@ -74,6 +92,11 @@ class PolylineType(Enum):
     TYPE_CROSSWALK = 18
     # for speed bump
     TYPE_SPEED_BUMP = 19
+    # for airport
+    TYPE_HOLD_SHORT_LINE = 20
+    TYPE_OTHER = 21
+    TYPE_RUNWAY = 22
+    TYPE_TAXIWAY = 23
 
 
 class SignalState(Enum):

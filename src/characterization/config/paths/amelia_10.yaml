@@ -1,0 +1,23 @@
+defaults:
+ - default.yaml
+
+base_path: /data/aviation/Amelia-10/
+traj_version: a10v08
+graph_version: a10v01os
+
+airports: [
+  kbos,
+  # kewr,
+  # kdca,
+  # kjfk,
+  # klax,
+  # kmdw,
+  # kmsy,
+  # ksea,
+  # ksfo,
+  # panc
+] # ICAO code or use keyword all for all airports
+
+
+scenario_base_path: ${paths.base_path}/data/traj_data_${paths.traj_version}/proc_full_scenes
+scenario_meta_path: ${paths.base_path}/data/graph_data_${paths.graph_version}

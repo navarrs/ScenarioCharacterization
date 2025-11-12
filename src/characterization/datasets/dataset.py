@@ -1,4 +1,3 @@
-import math
 import pickle
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -38,8 +37,8 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
             )
             raise ValueError(error_message)
 
-        self.scenario_base_path = config.scenario_base_path
-        self.scenario_meta_path = config.scenario_meta_path
+        self.scenario_base_path = Path(config.scenario_base_path)
+        self.scenario_meta_path = Path(config.scenario_meta_path)
 
         self.conflict_points_path = Path(config.conflict_points_path)
         self.conflict_points_cfg = config.get("conflict_points", None)
@@ -61,8 +60,6 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         self.data = DictConfig(
             {
                 "scenarios": [],
-                "scenarios_ids": [],
-                "metas": [],
             },
         )
 
@@ -74,26 +71,6 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
             str: The name of the dataset class and its base path.
         """
         return f"{self.__class__.__name__} (loaded from: {self.scenario_base_path})"
-
-    def shard(self) -> None:
-        """Shards the dataset into smaller parts for distributed or parallel processing.
-
-        This method updates the internal data attributes to only include the shard assigned
-        to this instance, based on the number of shards and the shard index.
-        """
-        if self.num_shards > 1:
-            n_per_shard = math.ceil(len(self.data.metas) / self.num_shards)
-            shard_start = int(n_per_shard * self.shard_index)
-            shard_end = int(n_per_shard * (self.shard_index + 1))
-
-            self.data.metas = self.data.metas[shard_start:shard_end]
-            self.data.scenarios = self.data.scenarios[shard_start:shard_end]
-            self.data.scenarios_ids = self.data.scenarios_ids[shard_start:shard_end]
-
-        if self.num_scenarios != -1:
-            self.data.metas = self.data.metas[: self.num_scenarios]
-            self.data.scenarios = self.data.scenarios[: self.num_scenarios]
-            self.data.scenarios_ids = self.data.scenarios_ids[: self.num_scenarios]
 
     def get_conflict_point_info(self, scenario: Scenario) -> dict[str, Any] | None:
         """Retrieves conflict points for a given scenario.
@@ -191,6 +168,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         if scenario.static_map_data is None:
             return scenario
 
+        breakpoint()  # noqa: T100
         # Add conflict point information to the scenario
         conflict_points_info = self.get_conflict_point_info(scenario)
         agent_distances_to_conflict_points, conflict_points = None, None
