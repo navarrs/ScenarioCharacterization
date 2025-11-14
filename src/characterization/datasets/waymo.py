@@ -9,13 +9,7 @@ from natsort import natsorted
 from omegaconf import DictConfig
 
 from characterization.datasets.dataset import BaseDataset
-from characterization.schemas.scenario import (
-    AgentData,
-    DynamicMapData,
-    Scenario,
-    ScenarioMetadata,
-    StaticMapData,
-)
+from characterization.schemas.scenario import AgentData, DynamicMapData, Scenario, ScenarioMetadata, StaticMapData
 from characterization.utils.io_utils import get_logger
 from characterization.utils.scenario_types import AgentType
 

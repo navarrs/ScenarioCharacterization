@@ -9,7 +9,7 @@ from numpy.typing import NDArray
 from omegaconf import DictConfig
 
 from characterization.datasets.dataset import BaseDataset
-from characterization.schemas.scenario import AgentData, Scenario, ScenarioMetadata
+from characterization.schemas.scenario import AgentData, Scenario, ScenarioMetadata, StaticMapData
 from characterization.utils import common
 from characterization.utils.io_utils import get_logger
 from characterization.utils.scenario_types import AMELIA_VALUE_TO_AGENT_TYPE, AgentType
@@ -25,6 +25,11 @@ class AmeliaDataset(BaseDataset):
     _TRAJECTORY_HEADING: ClassVar[list[bool]] = [False, True, False, False, False, False, False, False, False]
     _TRAJECTORY_XY: ClassVar[list[bool]] = [False, False, False, False, False, False, True, True, False]
     _TRAJECTORY_Z: ClassVar[list[bool]] = [False, False, False, False, False, False, False, False, True]
+
+    # Lat Start, Lon Start, X start, Y start, Lat End, Lon End, X end, Y end, Class
+    _MAP_XY_START: ClassVar[list[bool]] = [False, False, True, True, False, False, False, False, False]
+    _MAP_XY_END: ClassVar[list[bool]] = [False, False, False, False, False, False, True, True, False]
+    _MAP_CLASS: ClassVar[list[bool]] = [False, False, False, False, False, False, False, False, True]
 
     def __init__(self, config: DictConfig) -> None:
         """Initializes the Amelia dataset handler."""
@@ -47,6 +52,7 @@ class AmeliaDataset(BaseDataset):
                 "airports": [],
             },
         )
+        self.airport_maps = {}
 
         self.frequency_hz = 1.0  # 1 Hz frequency for Amelia dataset, specified here: https://arxiv.org/pdf/2407.21185
         self.timestamps = np.arange(0, self.LAST_TIMESTEP, 1 / self.frequency_hz)
@@ -94,6 +100,12 @@ class AmeliaDataset(BaseDataset):
             # Store file paths and airport info
             self.data.scenarios.extend(scenario_files)
             self.data.airports.extend([airport] * len(scenario_files))
+
+            # Load airport map
+            map_path = self.scenario_meta_path / airport / "semantic_graph.pkl"
+            with map_path.open("rb") as f:
+                airport_map = pickle.load(f)  # nosec B301
+            self.airport_maps[airport] = self.repack_static_map_data(airport_map)
 
         logger.info("Loading data took %2f seconds.", time.time() - start)
 
@@ -145,110 +157,96 @@ class AmeliaDataset(BaseDataset):
         object_types = [AgentType[AMELIA_VALUE_TO_AGENT_TYPE[n]] for n in agent_types]
         return AgentData(agent_ids=agent_ids, agent_types=object_types, agent_trajectories=trajectories)
 
-    # @staticmethod
-    # def get_polyline_ids(polyline: dict[str, Any], key: str) -> np.ndarray:
-    #     """Extracts polyline indices from the polyline dictionary."""
-    #     return np.array([value["id"] for value in polyline[key]], dtype=np.int32)
+    @staticmethod
+    def get_polyline_ids(polyline: dict[str, Any], key: str) -> np.ndarray:
+        """Extracts polyline indices from the polyline dictionary."""
+        # breakpoint()
+        return np.array([value["id"] for value in polyline[key]], dtype=np.int32)
 
-    # @staticmethod
-    # def get_speed_limit_mph(polyline: dict[str, Any], key: str) -> np.ndarray:
-    #     """Extracts speed limit in mph from the polyline dictionary."""
-    #     return np.array([value["speed_limit_mph"] for value in polyline[key]], dtype=np.float32)
+    @staticmethod
+    def get_polyline_idxs(polyline: dict[str, Any], key: str) -> np.ndarray | None:
+        """Extracts polyline start and end indices from the polyline dictionary."""
+        # breakpoint()
+        polyline_idxs = np.array(
+            [[value["polyline_index"], value["polyline_index"] + 1] for value in polyline[key]],
+            dtype=np.int32,
+        )
 
-    # @staticmethod
-    # def get_polyline_idxs(polyline: dict[str, Any], key: str) -> np.ndarray | None:
-    #     """Extracts polyline start and end indices from the polyline dictionary."""
-    #     polyline_idxs = np.array(
-    #         [[value["polyline_index"][0], value["polyline_index"][1]] for value in polyline[key]],
-    #         dtype=np.int32,
-    #     )
+        if polyline_idxs.shape[0] == 0:
+            return None
+        return polyline_idxs
 
-    #     if polyline_idxs.shape[0] == 0:
-    #         return None
-    #     return polyline_idxs
+    def repack_static_map_data(self, static_map_data: dict[str, Any] | None) -> StaticMapData | None:
+        """Packs static map information from Waymo format to StaticMapData format.
 
-    # def repack_static_map_data(self, static_map_data: dict[str, Any] | None) -> StaticMapData | None:
-    #     """Packs static map information from Waymo format to StaticMapData format.
+        Args:
+            static_map_data (dict): dictionary containing Waymo static scenario data:
+                'all_polylines': all road data in the form of polyline mapped by type to specific road types.
 
-    #     Args:
-    #         static_map_data (dict): dictionary containing Waymo static scenario data:
-    #             'all_polylines': all road data in the form of polyline mapped by type to specific road types.
+        Returns:
+            StaticMapData: pydantic validator encapsulating static map information.
+        """
+        if static_map_data is None:
+            return None
 
-    #     Returns:
-    #         StaticMapData: pydantic validator encapsulating static map information.
-    #     """
-    #     if static_map_data is None:
-    #         return None
-
-    #     map_polylines = static_map_data["all_polylines"].astype(np.float32)  # shape: [N, 3] or [N, 3, 2]
-
-    #     return StaticMapData(
-    #         map_polylines=map_polylines,
-    #         lane_ids=WaymoDataset.get_polyline_ids(static_map_data, "lane") if "lane" in static_map_data else None,
-    #         lane_speed_limits_mph=WaymoDataset.get_speed_limit_mph(static_map_data, "lane")
-    #         if "lane" in static_map_data
-    #         else None,
-    #         lane_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "lane")
-    #         if "lane" in static_map_data
-    #         else None,
-    #         road_line_ids=WaymoDataset.get_polyline_ids(static_map_data, "road_line")
-    #         if "road_line" in static_map_data
-    #         else None,
-    #         road_line_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "road_line")
-    #         if "road_line" in static_map_data
-    #         else None,
-    #         road_edge_ids=WaymoDataset.get_polyline_ids(static_map_data, "road_edge")
-    #         if "road_edge" in static_map_data
-    #         else None,
-    #         road_edge_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "road_edge")
-    #         if "road_edge" in static_map_data
-    #         else None,
-    #         crosswalk_ids=WaymoDataset.get_polyline_ids(static_map_data, "crosswalk")
-    #         if "crosswalk" in static_map_data
-    #         else None,
-    #         crosswalk_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "crosswalk")
-    #         if "crosswalk" in static_map_data
-    #         else None,
-    #         speed_bump_ids=WaymoDataset.get_polyline_ids(static_map_data, "speed_bump")
-    #         if "speed_bump" in static_map_data
-    #         else None,
-    #         speed_bump_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "speed_bump")
-    #         if "speed_bump" in static_map_data
-    #         else None,
-    #         stop_sign_ids=WaymoDataset.get_polyline_ids(static_map_data, "stop_sign")
-    #         if "stop_sign" in static_map_data
-    #         else None,
-    #         stop_sign_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "stop_sign")
-    #         if "stop_sign" in static_map_data
-    #         else None,
-    #         stop_sign_lane_ids=[
-    #             stop_sign["lane_ids"] for stop_sign in static_map_data.get("stop_sign", {"lane_ids": []})
-    #         ],
-    #     )
-
-    # def repack_dynamic_map_data(self, dynamic_map_data: dict[str, Any]) -> DynamicMapData:
-    #     """Packs dynamic map information from Waymo format to DynamicMapData format.
-
-    #     Args:
-    #         dynamic_map_data (dict): dictionary containing Waymo dynamic scenario data:
-    #             'stop_points': traffic light stopping points.
-    #             'lane_id': IDs of the lanes where the traffic light is.
-    #             'state': state of the traffic light (e.g., red, etc).
-
-    #     Returns:
-    #         DynamicMapData: pydantic validator encapsulating static map information.
-    #     """
-    #     stop_points = dynamic_map_data["stop_point"][: self.total_steps]
-    #     lane_id = [lid.astype(np.int64) for lid in dynamic_map_data["lane_id"][: self.total_steps]]
-    #     states = dynamic_map_data["state"][: self.total_steps]
-    #     num_dynamic_stop_points = len(stop_points)
-
-    #     if num_dynamic_stop_points == 0:
-    #         stop_points = None
-    #         lane_id = None
-    #         states = None
-
-    #     return DynamicMapData(stop_points=stop_points, lane_ids=lane_id, states=states)
+        # breakpoint()
+        all_polylines = static_map_data["all_polylines"].astype(np.float32)
+        map_polylines = np.full((all_polylines.shape[0], 7), np.nan, dtype=np.float32)
+        # Fill in the trajectory information
+        # IDXs 0 to 2: x_start, y_start, z_start (need to be converted to meters). z_start is not available.
+        xy_start = common.km_to_m(all_polylines[:, self._MAP_XY_START])
+        map_polylines[:, :2] = xy_start
+        # IDXs 3 to 5: direction vector, dir_x, dir_y. dir_z is not available
+        xy_end = common.km_to_m(all_polylines[:, self._MAP_XY_END])
+        diff = xy_end - xy_start  # shape: [num_polylines, 2]
+        lengths = np.linalg.norm(diff, axis=1, keepdims=True)
+        lengths[lengths == 0] = 1.0  # avoid division by zero for zero-length segments
+        direction = diff / lengths
+        map_polylines[:, 3:5] = direction
+        # IDX 6: semantic attribute
+        # TODO: semantic attribute value
+        map_polylines[:, 6] = all_polylines[:, self._MAP_CLASS].squeeze(-1)
+        # TODO: Fill in other attributes as needed
+        return StaticMapData(
+            map_polylines=map_polylines,
+            # lane_ids=WaymoDataset.get_polyline_ids(static_map_data, "lane") if "lane" in static_map_data else None,
+            # lane_speed_limits_mph=WaymoDataset.get_speed_limit_mph(static_map_data, "lane")
+            # if "lane" in static_map_data
+            # else None,
+            # lane_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "lane")
+            # if "lane" in static_map_data
+            # else None,
+            # road_line_ids=WaymoDataset.get_polyline_ids(static_map_data, "road_line")
+            # if "road_line" in static_map_data
+            # else None,
+            # road_line_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "road_line")
+            # if "road_line" in static_map_data
+            # else None,
+            # road_edge_ids=WaymoDataset.get_polyline_ids(static_map_data, "road_edge")
+            # if "road_edge" in static_map_data
+            # else None,
+            # road_edge_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "road_edge")
+            # if "road_edge" in static_map_data
+            # else None,
+            # crosswalk_ids=WaymoDataset.get_polyline_ids(static_map_data, "crosswalk")
+            # if "crosswalk" in static_map_data
+            # else None,
+            # crosswalk_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "crosswalk")
+            # if "crosswalk" in static_map_data
+            # else None,
+            # speed_bump_ids=WaymoDataset.get_polyline_ids(static_map_data, "speed_bump")
+            # if "speed_bump" in static_map_data
+            # else None,
+            # speed_bump_polyline_idxs=WaymoDataset.get_polyline_idxs(static_map_data, "speed_bump")
+            # if "speed_bump" in static_map_data
+            # else None,
+            stop_sign_ids=AmeliaDataset.get_polyline_ids(static_map_data, "hold_line")
+            if "hold_line" in static_map_data
+            else None,
+            stop_sign_polyline_idxs=AmeliaDataset.get_polyline_idxs(static_map_data, "hold_line")
+            if "hold_line" in static_map_data
+            else None,
+        )
 
     def transform_scenario_data(self, scenario_data: dict[str, Any]) -> Scenario:
         """Transforms raw scenario data into the standardized Scenario format.
@@ -276,16 +274,16 @@ class AmeliaDataset(BaseDataset):
             scenario_data["agent_masks"],
         )
 
-        # TODO: Incorporate map data
-        # static_map_data = self.repack_static_map_data(scenario_data["map_infos"])
-
+        # Select the relevant agents in the scene
         agent_order = scenario_data["meta"]["agent_order"][self.ego_selection_strategy]
         agent_relevance = np.zeros(agent_data.num_agents, dtype=np.float32)
         relevant_idxs = agent_order[: self.num_relevant_agents]
         agent_relevance[relevant_idxs] = 1.0
+        # Select the an ego-agent from the relevant agents
         ego_agent_index = self.generator.choice(relevant_idxs)
 
         # Repack meta information
+        airport_id = scenario_data["airport_id"]
         metadata = ScenarioMetadata(
             scenario_id=scenario_data["scenario_id"],
             timestamps_seconds=self.timestamps[: self.total_steps].tolist(),
@@ -295,14 +293,14 @@ class AmeliaDataset(BaseDataset):
             ego_vehicle_index=ego_agent_index,
             track_length=self.total_steps,
             objects_of_interest=scenario_data["objects_of_interest"],
-            dataset=f"amelia-{scenario_data['airport_id']}",
+            dataset=f"amelia-{airport_id}",
             # Thresholds adapted from: AmeliaScenes/blob/main/amelia_scenes/scoring/interactive.py
             agent_to_agent_max_distance=4000.0,  # m, runway extent (10,000-13,000ft)
             agent_to_conflict_point_max_distance=50.0,  # m, distance to a hold-line
             agent_to_agent_distance_breach=300.0,  # m, separation standards: airservicesaustralia.com
         )
 
-        return Scenario(metadata=metadata, agent_data=agent_data, static_map_data=None)
+        return Scenario(metadata=metadata, agent_data=agent_data, static_map_data=self.airport_maps[airport_id])
 
     def load_scenario_information(self, index: int) -> dict[str, dict[str, Any]] | None:
         """Loads scenario and conflict point information by index.
