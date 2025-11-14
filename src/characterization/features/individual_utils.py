@@ -66,7 +66,9 @@ def compute_acceleration_profile(speed: NDArray[np.float32], timestamps: NDArray
         ValueError: If speed and timestamps do not have the same shape.
     """
 
-    def get_acc_sums(acc: np.ndarray, idx: np.ndarray) -> tuple[np.ndarray, list[tuple[int, int]]]:
+    def get_acc_sums(
+        acc: NDArray[np.float32], idx: NDArray[np.intp]
+    ) -> tuple[NDArray[np.float32], list[tuple[int, int]]]:
         diff = idx[1:] - idx[:-1]
         diff = np.array([-1] + np.where(diff > 1)[0].tolist() + [diff.shape[0]])  # noqa: RUF005
         se_idxs = [(idx[s + 1], idx[e] + 1) for s, e in zip(diff[:-1], diff[1:], strict=False)]  # noqa: RUF007
@@ -155,11 +157,11 @@ def compute_waiting_period(
 
     Returns:
         tuple:
-            waiting_period (np.ndarray): The waiting interval over the distance to the closest conflict point at that
-                distance (shape: [N,]).
-            waiting_intervals (np.ndarray): The duration of each waiting interval (shape: [N,]).
-            waiting_distances (np.ndarray): The minimum distance to conflict points during each waiting interval
-                (shape: [N,]).
+            waiting_period (NDArray[np.float32]): The waiting interval over the distance to the closest conflict point
+                at that distance (shape: [N,]).
+            waiting_intervals (NDArray[np.float32]): The duration of each waiting interval (shape: [N,]).
+            waiting_distances (NDArray[np.float32]): The minimum distance to conflict points during each waiting
+                interval (shape: [N,]).
     """
     waiting_intervals = np.zeros(shape=(position.shape[0]), dtype=np.float32)
     waiting_distances = np.inf * np.ones(shape=(position.shape[0]), dtype=np.float32)

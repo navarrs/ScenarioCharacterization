@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import NDArray
 from shapely import LineString
 
 from characterization.utils.common import MAX_DECELERATION, MIN_VALID_POINTS, SMALL_EPS, InteractionAgent
@@ -7,7 +8,7 @@ from characterization.utils.io_utils import get_logger
 logger = get_logger(__name__)
 
 
-def is_sharing_lane(lane_i: np.ndarray | None, lane_j: np.ndarray | None) -> bool:  # noqa: ARG001
+def is_sharing_lane(lane_i: NDArray[np.float32] | None, lane_j: NDArray[np.float32] | None) -> bool:  # noqa: ARG001
     """Checks if two agents are sharing the same lane.
 
     Args:
@@ -29,7 +30,7 @@ def find_valid_headings(
     agent_i: InteractionAgent,
     agent_j: InteractionAgent,
     heading_threshold: float = 0.1,
-) -> np.ndarray:
+) -> NDArray[np.intp]:
     """Checks if the headings of two agents are within a specified threshold.
 
     Args:
@@ -52,8 +53,11 @@ def find_valid_headings(
 
 
 def find_leading_agent(
-    agent_i: InteractionAgent, agent_j: InteractionAgent, mask: np.ndarray | None = None, angle_threshold: float = 90
-) -> np.ndarray:
+    agent_i: InteractionAgent,
+    agent_j: InteractionAgent,
+    mask: NDArray[np.bool_] | None = None,
+    angle_threshold: float = 90,
+) -> NDArray[np.intp]:
     """Determines which agent is leading based on their positions and headings.
 
     Args:
@@ -92,7 +96,7 @@ def find_leading_agent(
     return (~leading_agent).astype(int)
 
 
-def compute_separation(agent_i: InteractionAgent, agent_j: InteractionAgent) -> np.ndarray:
+def compute_separation(agent_i: InteractionAgent, agent_j: InteractionAgent) -> NDArray[np.float32]:
     """Computes the separation distance between two agents at each timestep.
 
     Args:
@@ -100,13 +104,14 @@ def compute_separation(agent_i: InteractionAgent, agent_j: InteractionAgent) -> 
         agent_j (InteractionAgent): The second agent.
 
     Returns:
-        np.ndarray: Array of separation distances between agent_i and agent_j at each timestep (shape: [T,]).
+        separation (NDArray[np.float32]): Array of separation distances between agent_i and agent_j at each timestep
+        (shape: [T,]).
     """
     position_i, position_j = agent_i.position, agent_j.position
     return np.linalg.norm(position_i - position_j, axis=-1)
 
 
-def compute_intersections(agent_i: InteractionAgent, agent_j: InteractionAgent) -> np.ndarray:
+def compute_intersections(agent_i: InteractionAgent, agent_j: InteractionAgent) -> NDArray[np.bool_]:
     """Computes whether two agents' trajectory segments intersect at each timestep.
 
     Args:
@@ -114,8 +119,8 @@ def compute_intersections(agent_i: InteractionAgent, agent_j: InteractionAgent) 
         agent_j (InteractionAgent): The second agent.
 
     Returns:
-        np.ndarray: Boolean array indicating whether each segment of agent_i intersects with the corresponding segment
-            of agent_j (shape: [T,]).
+        intersections (NDArray[np.bool_]): Boolean array indicating whether each segment of agent_i intersects with the
+            corresponding segment of agent_j (shape: [T,]).
     """
     position_i, position_j = agent_i.position, agent_j.position
     if position_i.shape[0] < MIN_VALID_POINTS or position_j.shape[0] < MIN_VALID_POINTS:
@@ -135,7 +140,7 @@ def compute_mttcp(
     agent_i: InteractionAgent,
     agent_j: InteractionAgent,
     agent_to_agent_max_distance: float = 0.5,
-) -> np.ndarray:
+) -> NDArray[np.float32]:
     """Computes the minimum time to conflict point (mTTCP) between two agents.
 
                                  |  𝚫xi(t)     𝚫xj(t) |
@@ -151,7 +156,8 @@ def compute_mttcp(
         agent_to_agent_max_distance (float): The maximum distance between agents to consider for mTTCP.
 
     Returns:
-        np.ndarray: An array of mTTCP values for each timestep (shape: [N,]), or [np.inf] if no valid pairs are found.
+        mttcp (NDArray[np.float32]): An array of mTTCP values for each timestep (shape: [N,]), or [np.inf] if no valid
+            pairs are found.
     """
     position_i, position_j = agent_i.position, agent_j.position
     vel_i, vel_j = agent_i.speed, agent_j.speed
@@ -166,7 +172,7 @@ def compute_mttcp(
         return np.array([np.inf], dtype=np.float32)
 
     conflict_points = position_i[ti]
-    mttcp = np.inf * np.ones(conflict_points.shape[0])
+    mttcp = np.inf * np.ones(conflict_points.shape[0], dtype=np.float32)
 
     cp_to_position_i = np.linalg.norm(position_i - conflict_points[:, None], axis=-1)
     cp_to_position_j = np.linalg.norm(position_j - conflict_points[:, None], axis=-1)
