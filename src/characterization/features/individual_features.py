@@ -92,6 +92,10 @@ class IndividualFeatures(BaseFeature):
             closest_lanes = map_data.agent_closest_lanes
             lane_speed_limits = map_data.lane_speed_limits_mph
 
+            if conflict_points is not None:
+                ndim = conflict_points.shape[-1]
+                agent_positions = agent_positions[..., :ndim]
+
         # Meta information to be included within ScenarioFeatures. For an agent to be valid it needs to have at least
         # two valid timestamps. The indeces of such agents will be added to `valid_idxs` list.
         scenario_valid_idxs = []

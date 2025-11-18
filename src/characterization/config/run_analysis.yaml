@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - run_processor.yaml
-  - viz: waymo_animated
+  - viz: amelia.yaml
 
 scores_path: ${paths.cache_path}/scores
 
@@ -33,3 +33,4 @@ test_percentile: 80
 min_scenarios_to_plot: 1
 viz_scenarios: true
 tag: 'full'
+total_scenarios: 10

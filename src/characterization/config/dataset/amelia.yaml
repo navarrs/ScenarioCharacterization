@@ -20,8 +20,9 @@ config:
   scenario_meta_path: ${paths.scenario_meta_path}
   conflict_points_path: ${paths.output_paths.conflict_points_cache_path}
   conflict_points:
+    ndim: 2
+    resample_factor: 1
     intersection_threshold: 0.5 # meters
-    resample_factor: 3
 
   closest_lanes_path: ${paths.output_paths.closest_lanes_cache_path}
   closest_lanes:

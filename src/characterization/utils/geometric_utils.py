@@ -9,6 +9,22 @@ from characterization.schemas import Scenario
 from characterization.utils.common import SMALL_EPS, AgentTrajectoryMasker
 
 
+def compute_direction_vector(points_a: NDArray[np.float32], points_b: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Computes the normalized direction vector from point_a to point_b.
+
+    Args:
+        points_a (NDArray[np.float32]): Starting points with shape [num_points, 3].
+        points_b (NDArray[np.float32]): Ending points with shape [num_points, 3].
+
+    Returns:
+        direction (NDArray[np.float32]): Normalized direction vector from point_a to point_b with shape [num_points, 3].
+    """
+    diff_ab = points_b - points_a
+    norm = np.linalg.norm(diff_ab, axis=-1, keepdims=True)
+    norm[norm <= SMALL_EPS] = 1.0
+    return diff_ab / norm
+
+
 def compute_dists_to_conflict_points(
     conflict_points: NDArray[np.float32] | None, trajectories: NDArray[np.float32]
 ) -> NDArray[np.float32] | None:
@@ -78,7 +94,7 @@ def find_conflict_points(
         return None
 
     agent_trajectories = AgentTrajectoryMasker(scenario.agent_data.agent_trajectories)
-    agent_positions = agent_trajectories.agent_xyz_pos
+    agent_positions = agent_trajectories.agent_xyz_pos if ndim == 3 else agent_trajectories.agent_xy_pos  # noqa: PLR2004
 
     # Static Conflict Points: Crosswalks, Speed Bumps and Stop Signs
     static_conflict_points_list = []
@@ -137,7 +153,7 @@ def find_conflict_points(
                 lane_intersections_list.append(lane_j[j_idx])
 
     lane_intersections = (
-        np.concatenate(lane_intersections_list) if len(lane_intersections_list) > 0 else np.empty((0, 3))
+        np.concatenate(lane_intersections_list) if len(lane_intersections_list) > 0 else np.empty((0, 2))
     )
 
     # Dynamic Conflict Points: Traffic Lights

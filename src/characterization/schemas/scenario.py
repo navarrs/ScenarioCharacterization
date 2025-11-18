@@ -182,6 +182,16 @@ class StaticMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     stop_sign_polyline_idxs: Int32NDArray2D | None = None
     stop_sign_lane_ids: list[list[int]] | None = None
 
+    # Additional information
+    exit_ids: Int32NDArray1D | None = None
+    exit_polyline_idxs: Int32NDArray2D | None = None
+    runway_ids: Int32NDArray1D | None = None
+    runway_polyline_idxs: Int32NDArray2D | None = None
+    taxiway_ids: Int32NDArray1D | None = None
+    taxiway_polyline_idxs: Int32NDArray2D | None = None
+    ramp_ids: Int32NDArray1D | None = None
+    ramp_polyline_idxs: Int32NDArray2D | None = None
+
     # Optional information that can be derived from existing map information
     map_conflict_points: Float32NDArray2D | None = None
     agent_distances_to_conflict_points: Float32NDArray3D | None = None

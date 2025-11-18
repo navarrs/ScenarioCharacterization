@@ -96,6 +96,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         # Safely read cfg values (cfg may be None)
         conflict_point_info = find_conflict_points(
             scenario,
+            ndim=self.conflict_points_cfg.get("ndim", 3),
             resample_factor=self.conflict_points_cfg.get("resample_factor", 1),
             intersection_threshold=self.conflict_points_cfg.get("intersection_threshold", 0.5),
         )
@@ -168,7 +169,6 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         if scenario.static_map_data is None:
             return scenario
 
-        breakpoint()  # noqa: T100
         # Add conflict point information to the scenario
         conflict_points_info = self.get_conflict_point_info(scenario)
         agent_distances_to_conflict_points, conflict_points = None, None
