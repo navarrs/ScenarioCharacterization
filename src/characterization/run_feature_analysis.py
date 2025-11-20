@@ -1,9 +1,7 @@
-import json
 from datetime import UTC, datetime
 from pathlib import Path
 
 import hydra
-import pandas as pd
 from omegaconf import DictConfig
 
 from characterization.utils import analysis_utils, common
@@ -39,41 +37,26 @@ def run(cfg: DictConfig) -> None:
     if unsupported_scenario_types:
         msg = f"Scenario types {unsupported_scenario_types} not in supported list {common.SUPPORTED_SCENARIO_TYPES}"
         raise ValueError(msg)
-    # Verify scorer type is supported
-    unsupported_scores = [scorer for scorer in cfg.scores if scorer not in common.SUPPORTED_SCORERS]
-    if unsupported_scores:
-        msg = f"Scorers {unsupported_scores} not in supported list {common.SUPPORTED_SCORERS}"
-        raise ValueError(msg)
 
-    scenario_ids = analysis_utils.get_valid_scenario_ids(cfg.scenario_types, cfg.criteria, cfg.scores_path)
+    scenario_ids = analysis_utils.get_valid_scenario_ids(cfg.scenario_types, cfg.criteria, cfg.features_path)
     if not scenario_ids:
-        msg = f"No valid scenarios found in {cfg.scores_path} for {cfg.scenario_types} and criteria {cfg.criteria}"
+        msg = f"No valid scenarios found in {cfg.features_path} for {cfg.scenario_types} and criteria {cfg.criteria}"
         raise ValueError(msg)
 
     # Generate score histogram and density plot
-    logger.info("Loading the scores")
-    scene_scores, agent_scores, _ = analysis_utils.load_scenario_scores(
+    logger.info("Loading the features")
+    individual_features, _ = analysis_utils.load_scenario_features(
         scenario_ids,
         cfg.scenario_types,
-        cfg.scores,
         cfg.criteria,
-        Path(cfg.scores_path),
+        Path(cfg.features_path),
     )
 
-    logger.info("Visualizing density function for scores: %s", cfg.scores)
-    scene_scores_df = pd.DataFrame(scene_scores)
-    output_filepath = output_dir / f"{cfg.tag}_score_density_plot.png"
-    logger.info("Saving density plot: %s", output_filepath)
-    analysis_utils.plot_histograms_from_dataframe(scene_scores_df, output_filepath, cfg.dpi)
-    logger.info("Generating score split files")
-    scenario_splits = analysis_utils.get_scenario_splits(scene_scores_df, cfg.test_percentile, add_jaccard_index=True)
+    logger.info("Re-grouping individual features by agent type")
+    individual_features = analysis_utils.regroup_individual_features(individual_features)
 
-    output_filepath = output_dir / "scenario_splits.json"
-    with output_filepath.open("w") as f:
-        json.dump(scenario_splits, f, indent=4)
-    logger.info("Saved scenario splits to %s", output_filepath)
-
-    analysis_utils.plot_agent_scores_distributions(agent_scores, output_dir, cfg.dpi)
+    logger.info("Visualizing feature distribution for individual features.")
+    analysis_utils.plot_feature_distributions(individual_features, output_dir, cfg.dpi)
 
 
 if __name__ == "__main__":

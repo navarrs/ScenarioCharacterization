@@ -1,0 +1,47 @@
+# @package _global_
+defaults:
+  - default.yaml
+  - individual_features.yaml
+
+processor:
+  _target_: characterization.processors.scores_processor.ScoresProcessor
+  config:
+    output_path: ${paths.output_paths.scores_cache_path}
+
+characterizer:
+  _target_: characterization.scorer.individual_scorer.IndividualScorer
+  config:
+    score_wrt_ego_only: true
+    reduce_distance_penalty: true
+
+    categorize_scores: true
+    categorization_file: ./meta/${scenario_type}_${return_criterion}_${feature_type}_individual.json
+
+    score_clip:
+      min: 0.0
+      max: 100.0
+
+    # NOTE: if weights are not specified here, will use default values from FeatureWeights in schemas/detections.py.
+    weights:
+      # Individual features
+      speed: 1.0
+      speed_diff: 1.0
+      acceleration: 1.0
+      deceleration: 1.0
+      jerk: 1.0
+      waiting_period: 1.0
+
+      # Individual features from Unitraj
+      trajectory_type: 0.1
+      kalman_difficulty: 1.0
+
+    # Detections here are in percentile categories
+    # 1: 0, 10: 1, 25: 2, 50: 3, 75: 4, 90: 5, 95: 6, 99: 7, 100: 8
+    detections:
+      speed: 1
+      speed_limit_diff: 1
+      acceleration: 1
+      deceleration: 1
+      jerk: 1
+      waiting_period: 1
+      kalman_difficulty: 1

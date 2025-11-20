@@ -7,8 +7,7 @@ import pandas as pd
 from omegaconf import DictConfig
 
 import characterization.utils.viz.utils as viz_utils
-from characterization.scorer import SUPPORTED_SCORERS
-from characterization.utils.common import SUPPORTED_SCENARIO_TYPES
+from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, SUPPORTED_SCORERS
 from characterization.utils.io_utils import from_pickle, get_logger
 from characterization.utils.viz.visualizer import BaseVisualizer
 

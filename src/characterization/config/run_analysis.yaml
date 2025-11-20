@@ -4,19 +4,21 @@ defaults:
   - viz: waymo_animated
 
 scores_path: ${paths.cache_path}/scores
+features_path: ${paths.cache_path}/features
 
 scenario_types:
   - gt
   # - ho
 
 criteria:
-  - critical
+  # - critical_continuous
+  - critical_categorical
   # - average
 
 scores:
   - individual
-  - interaction
-  - safeshift
+  # - interaction
+  # - safeshift
 
 dpi: 300
 output_dir: ${paths.cache_path}/visualization

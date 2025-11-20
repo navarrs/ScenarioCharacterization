@@ -35,6 +35,7 @@ characterizer:
   config:
     score_wrt_ego_only: ${score_wrt_ego_only}
     aggregated_score_weight: ${aggregated_score_weight}
+    feature_type: ${feature_type}
     score_clip:
       min: 0.0
       max: 200.0
@@ -43,7 +44,7 @@ characterizer:
     weights:
       # Individual features
       speed: 0.1
-      speed_diff: 0.2
+      speed_diff: 1.0
       acceleration: 1.0
       deceleration: 1.0
       jerk: 1.0
