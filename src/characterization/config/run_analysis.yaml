@@ -4,6 +4,7 @@ defaults:
   - viz: waymo_animated
 
 scores_path: ${paths.cache_path}/scores
+features_path: ${paths.cache_path}/features
 
 scenario_types:
   - gt

@@ -1,3 +1,4 @@
+import json
 import os
 from itertools import combinations, product
 from pathlib import Path
@@ -7,14 +8,31 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from numpy.typing import NDArray
 from rich.progress import track
 
-from characterization.schemas import ScenarioScores
+from characterization.schemas import Individual, ScenarioFeatures, ScenarioScores
+from characterization.utils.ad_types import AgentType
 from characterization.utils.io_utils import from_pickle, get_logger
 
 logger = get_logger(__name__)
 
-SUPPORTED_SCORERS = ["individual", "interaction", "safeshift"]
+
+SUPPORTED_FEATURES = ["individual", "interaction"]
+FEATURE_COLOR_MAP = {
+    "speed": "blue",
+    "speed_limit_diff": "green",
+    "acceleration": "orange",
+    "deceleration": "red",
+    "jerk": "purple",
+    "waiting_period": "brown",
+    "kalman_difficulty": "cyan",
+    "collision": "olive",
+    "mttcp": "magenta",
+    "thw": "teal",
+    "ttc": "navy",
+    "drac": "coral",
+}
 
 
 def get_sample_to_plot(
@@ -192,6 +210,133 @@ def load_scenario_scores(
     return scene_scores, agent_scores, scene_critical_times, agent_critical_times, scenario_scores
 
 
+def load_features(
+    scenario_ids: list[str],
+    features_path: Path,
+    prefix: str,
+) -> dict[str, ScenarioFeatures]:
+    """Loads scenario features from the specified path and updates the features DataFrame.
+
+    Args:
+        scenario_ids (list[str]): List of scenario IDs to load features for.
+        features_path (Path): Path to the directory containing feature files.
+        prefix (str): Prefix for the feature files.
+
+    Returns:
+        dict[str, ScenarioFeatures]: Dictionary mapping scenario IDs to their corresponding ScenarioFeatures.
+    """
+    features_dict = {}
+    for scenario_id in track(scenario_ids, description=f"Loading {prefix} features"):
+        filepath = str(features_path / scenario_id)
+        features = from_pickle(filepath)  # nosec B301
+        features = ScenarioFeatures.model_validate(features)
+        features_dict[scenario_id] = features
+    return features_dict
+
+
+def load_scenario_features(
+    scenario_ids: list[str],
+    scenario_types: list[str],
+    criteria: list[str],
+    features_path: Path,
+) -> tuple[dict[str, Any], ...]:
+    """Loads scenario features for given scenario types and criteria.
+
+    Args:
+        scenario_ids (list[str]): List of scenario IDs to load scores for.
+        scenario_types (list[str]): List of scenario types.
+        criteria (list[str]): List of criteria.
+        features_path (Path): Path to the directory containing feature files.
+
+    Returns:
+        Tuple of dictionaries containing scenario features for each scenario type and criterion.
+    """
+    individual_features = {"scenario_ids": [], "features": []}
+    interaction_features = {"scenario_ids": [], "features": []}
+    for scenario_type, criterion in product(scenario_types, criteria):
+        key = f"{scenario_type}_{criterion}"
+        scenario_features_path = features_path / key
+        features = load_features(scenario_ids, scenario_features_path, key)
+        for scenario_id, feat in features.items():
+            if feat.individual_features is not None:
+                individual_features["scenario_ids"].append(scenario_id)
+                individual_features["features"].append(feat.individual_features)  # pyright: ignore[reportArgumentType]
+            if feat.interaction_features is not None:
+                interaction_features["scenario_ids"].append(scenario_id)
+                interaction_features["features"].append(feat.interaction_features)  # pyright: ignore[reportArgumentType]
+    return individual_features, interaction_features
+
+
+def regroup_individual_features(individual_features: dict[str, Any]) -> dict[AgentType, Any]:
+    """Regroups individual features by agent type.
+
+    Args:
+        individual_features (dict[str, Any]): Dictionary containing individual features with scenario IDs.
+
+    Returns:
+        dict[AgentType, Any]: Dictionary mapping each AgentType to its corresponding features.
+    """
+
+    def _init_empty() -> dict[str, list[float]]:
+        """Initializes an empty feature dictionary for each agent type."""
+        return {
+            "speed": [],
+            "speed_limit_diff": [],
+            "acceleration": [],
+            "deceleration": [],
+            "jerk": [],
+            "waiting_period": [],
+            "kalman_difficulty": [],
+        }
+
+    def _extend_features(
+        feature_dict: dict[AgentType, Any], feature: Individual, mask: NDArray[np.bool_], agent_type: AgentType
+    ) -> None:
+        """Extends features to the corresponding agent type in the feature dictionary."""
+        if feature.speed is not None:
+            feature_dict[agent_type]["speed"].extend(feature.speed[mask].tolist())
+        if feature.speed_limit_diff is not None:
+            feature_dict[agent_type]["speed_limit_diff"].extend(feature.speed_limit_diff[mask].tolist())
+        if feature.acceleration is not None:
+            feature_dict[agent_type]["acceleration"].extend(feature.acceleration[mask].tolist())
+        if feature.deceleration is not None:
+            feature_dict[agent_type]["deceleration"].extend(feature.deceleration[mask].tolist())
+        if feature.jerk is not None:
+            feature_dict[agent_type]["jerk"].extend(feature.jerk[mask].tolist())
+        if feature.waiting_period is not None:
+            feature_dict[agent_type]["waiting_period"].extend(feature.waiting_period[mask].tolist())
+        if feature.kalman_difficulty is not None:
+            feature_dict[agent_type]["kalman_difficulty"].extend(feature.kalman_difficulty[mask].tolist())
+
+    regrouped_features = {
+        AgentType.TYPE_VEHICLE: _init_empty(),
+        AgentType.TYPE_CYCLIST: _init_empty(),
+        AgentType.TYPE_PEDESTRIAN: _init_empty(),
+    }
+
+    for _, features in zip(individual_features["scenario_ids"], individual_features["features"], strict=False):
+        agent_types = np.asarray([features.agent_types[i] for i in features.valid_idxs])
+
+        # Regroup vehicle features
+        vehicle_mask = agent_types == AgentType.TYPE_VEHICLE
+        _extend_features(regrouped_features, features, vehicle_mask, AgentType.TYPE_VEHICLE)
+
+        # Regroup cyclist features
+        cyclist_mask = agent_types == AgentType.TYPE_CYCLIST
+        _extend_features(regrouped_features, features, cyclist_mask, AgentType.TYPE_CYCLIST)
+
+        # Regroup pedestrian features
+        pedestrian_mask = agent_types == AgentType.TYPE_PEDESTRIAN
+        _extend_features(regrouped_features, features, pedestrian_mask, AgentType.TYPE_PEDESTRIAN)
+
+    for key in regrouped_features:  # noqa: PLC0206
+        for feature_name in regrouped_features[key]:
+            regrouped_features[key][feature_name] = np.array(  # pyright: ignore[reportArgumentType]
+                regrouped_features[key][feature_name], dtype=np.float32
+            )
+    return regrouped_features
+
+
 def compute_jaccard_index(set1: set[Any], set2: set[Any]) -> float:
     """Calculates the Jaccard index between two sets.
 
@@ -252,3 +397,57 @@ def get_scenario_splits(
         scenario_splits["jaccard_indices"] = jaccard_indices
 
     return scenario_splits
+
+
+def plot_feature_distributions(
+    feature_data: dict[AgentType, Any],
+    output_dir: Path,
+    dpi: int = 100,
+    percentile_values: list[int] = [10, 25, 50, 75, 90, 95, 99],  # noqa: B006
+) -> None:
+    """Plots the distribution of a feature using a histogram and density curve.
+
+    Args:
+        feature_data (NDArray[np.float32]): Array of feature values to plot.
+        output_dir (Path): Directory to save the output plots.
+        dpi (int): Dots per inch for the saved figure.
+        percentile_values (list[int]): List of percentiles to compute and display on the plot.
+    """
+    feature_percentiles = {}
+    for agent_type, features in feature_data.items():
+        num_features = len(features)
+        _, axs = plt.subplots(1, num_features, figsize=(8 * num_features, 6))
+
+        for feature_name, feature_values in features.items():
+            ax = axs if num_features == 1 else axs[list(features.keys()).index(feature_name)]
+            sns.histplot(
+                feature_values,
+                color=FEATURE_COLOR_MAP.get(feature_name, "gray"),
+                kde=True,
+                stat="density",
+                alpha=0.6,
+                edgecolor="white",
+                ax=ax,
+            )
+
+            sns.despine(top=True, right=True)
+
+            ax.set_xlabel(f"{feature_name} values")
+            ax.set_ylabel("Density")
+            ax.set_title(f"{feature_name} Distribution ({feature_values.shape[0]} samples)")
+            ax.grid(visible=True, linestyle="--", alpha=0.4)
+
+            percentiles = np.percentile(feature_values, percentile_values)
+            feature_percentiles[feature_name] = dict(zip(percentile_values, percentiles, strict=False))
+            for p, v in zip(percentile_values, percentiles, strict=False):
+                ax.axvline(v, color="black", linestyle="--", alpha=0.6)
+                ax.text(v, ax.get_ylim()[1] * 0.9, f"{p}th: {v:.2f}", rotation=90, verticalalignment="center")
+
+        plt.tight_layout()
+        output_filepath = output_dir / f"{agent_type.name.lower()}_distributions.png"
+        plt.savefig(output_filepath, dpi=dpi)
+        plt.close()
+
+        output_filepath = output_dir / f"{agent_type.name.lower()}_feature_percentiles.json"
+        with open(output_filepath, "w") as f:
+            json.dump(feature_percentiles, f, indent=4)

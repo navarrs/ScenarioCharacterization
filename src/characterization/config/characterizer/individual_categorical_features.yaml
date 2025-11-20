@@ -1,0 +1,25 @@
+# @package _global_
+defaults:
+  - default.yaml
+
+processor:
+  _target_: characterization.processors.feature_processor.FeatureProcessor
+  config:
+    features:
+      - speed
+      - speed_limit_diff
+      - acceleration
+      - deceleration
+      - jerk
+      - waiting_period
+      - waiting_interval
+      - waiting_distance
+      - trajectory_type
+      - kalman_difficulty
+
+characterizer:
+  _target_: characterization.features.individual_categorical_features.IndividualCategoricalFeatures
+  config:
+    vehicle_percentiles_file: ./visualization/20251120_150007_feat/type_vehicle_feature_percentiles.json
+    cyclist_percentiles_file: ./visualization/20251120_150007_feat/type_cyclist_feature_percentiles.json
+    pedestrian_percentiles_file: ./visualization/20251120_150007_feat/type_pedestrian_feature_percentiles.json

@@ -93,15 +93,10 @@ class WaymoData(BaseDataset):
             raise AssertionError(error_message)
 
         self.total_steps = last_timestep
-        if self.ego_only:
-            trajectories = trajectories[ego_index, :last_timestep]
-            trajectories = np.expand_dims(trajectories, axis=0)
-            object_types = [AgentType[agent_data["object_type"][ego_index]]]
-            object_ids = [agent_data["object_id"][ego_index]]
-        else:
-            trajectories = trajectories[:, :last_timestep, :]  # shape: [num_agents, last_timestep, dim]
-            object_types = [AgentType[n] for n in agent_data["object_type"]]
-            object_ids = agent_data["object_id"]
+        trajectories = trajectories[:, :last_timestep, :]  # shape: [num_agents, last_timestep, dim]
+        object_types = [AgentType[n] for n in agent_data["object_type"]]
+        object_types[ego_index] = AgentType.TYPE_EGO_VEHICLE
+        object_ids = agent_data["object_id"]
         return AgentData(agent_ids=object_ids, agent_types=object_types, agent_trajectories=trajectories)
 
     @staticmethod
@@ -240,22 +235,17 @@ class WaymoData(BaseDataset):
 
         timestamps = scenario_data["timestamps_seconds"][: self.total_steps]
 
-        # TODO: compute this within agent_data and also return the ego-index
         # Select tracks to predict
-        if self.ego_only:
-            ego_vehicle_index = 0
-            agent_data.agent_relevance = np.ones(agent_data.num_agents, dtype=np.float32)
-        else:
-            agent_relevance = np.zeros(agent_data.num_agents, dtype=np.float32)
-            ego_vehicle_index = scenario_data["sdc_track_index"]
-            tracks_to_predict = scenario_data["tracks_to_predict"]
-            tracks_to_predict_index = np.asarray(tracks_to_predict["track_index"] + [ego_vehicle_index])
-            tracks_to_predict_difficulty = np.asarray(tracks_to_predict["difficulty"] + [2.0])
+        agent_relevance = np.zeros(agent_data.num_agents, dtype=np.float32)
+        ego_vehicle_index = scenario_data["sdc_track_index"]
+        tracks_to_predict = scenario_data["tracks_to_predict"]
+        tracks_to_predict_index = np.asarray(tracks_to_predict["track_index"] + [ego_vehicle_index])
+        tracks_to_predict_difficulty = np.asarray(tracks_to_predict["difficulty"] + [2.0])
 
-            # Set agent_relevance for tracks_to_predict_index based on tracks_to_predict_difficulty
-            for idx, difficulty in zip(tracks_to_predict_index, tracks_to_predict_difficulty, strict=False):
-                agent_relevance[idx] = self.DIFFICULTY_WEIGHTS.get(difficulty, 0.0)
-            agent_data.agent_relevance = agent_relevance
+        # Set agent_relevance for tracks_to_predict_index based on tracks_to_predict_difficulty
+        for idx, difficulty in zip(tracks_to_predict_index, tracks_to_predict_difficulty, strict=False):
+            agent_relevance[idx] = self.DIFFICULTY_WEIGHTS.get(difficulty, 0.0)
+        agent_data.agent_relevance = agent_relevance
 
         # Repack meta information
         freq = np.round(1 / np.mean(np.diff(timestamps))).item()

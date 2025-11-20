@@ -11,6 +11,7 @@ class AgentType(Enum):
     TYPE_PEDESTRIAN = 2
     TYPE_CYCLIST = 3
     TYPE_OTHER = 4
+    TYPE_EGO_VEHICLE = 5
 
 
 class LaneType(Enum):
