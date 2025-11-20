@@ -1,4 +1,5 @@
 import json
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -83,21 +84,30 @@ class IndividualFeatures(BaseFeature):
             case AgentType.TYPE_PEDESTRIAN:
                 categories = self.pedestrian_categories.get(feature_name, None)
             case _:
-                logger.warning("Unknown agent type: %s. Returning original value.", agent_type)
+                logger.warning("Unknown agent type: %s", agent_type)
                 return -1.0
 
         if categories is None:
-            logger.warning(
-                "No categories found for feature %s and agent type %s. Returning original value.",
-                feature_name,
-                agent_type,
-            )
+            logger.warning("No categories found for feature %s and agent type %s.", feature_name, agent_type)
             return -1.0
 
-        for category, threshold in enumerate(categories.values()):
-            if value <= threshold:
+        ranges = list(categories.values())
+
+        # If there is only one category, return 0.0 or 1.0 based on the value
+        if len(ranges) < 2:  # noqa: PLR2004
+            return 0.0 if value <= ranges[0] else 1.0
+
+        # If value is below the lowest range, return 0.0
+        if value < ranges[0]:
+            return 0.0
+
+        # Categorize based on ranges
+        for category, (lower_bound, upper_bound) in enumerate(pairwise(ranges)):
+            if lower_bound <= value <= upper_bound:
                 return float(category + 1)  # Categories start from 1
-        return float(len(categories) + 1)  # Above highest value for max category
+
+        # If value is above the highest range
+        return float(len(categories) + 1)
 
     def compute_individual_features(self, scenario: Scenario) -> Individual:
         """Compute individual motion features for all valid agents in a scenario.

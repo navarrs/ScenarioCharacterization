@@ -395,7 +395,7 @@ def plot_feature_distributions(
     feature_data: dict[AgentType, Any],
     output_dir: Path,
     dpi: int = 100,
-    percentile_values: list[int] = [10, 25, 50, 75, 90, 95, 99],  # noqa: B006
+    percentile_values: list[int] = [1, 10, 25, 50, 75, 90, 95, 99],  # noqa: B006
 ) -> None:
     """Plots the distribution of a feature using a histogram and density curve.
 
@@ -485,9 +485,9 @@ def plot_agent_scores_distributions(
         ax.set_title(f"Scores Distribution ({len(agent_scores_flattened)} agents)")
         ax.grid(visible=True, linestyle="--", alpha=0.4)
 
-        percentiles = np.percentile(agent_scores_flattened, percentile_values).astype(np.float32)
-        feature_percentiles = dict(zip(percentile_values, percentiles, strict=False))
-        for p, v in feature_percentiles.items():
+        percentiles = np.percentile(agent_scores_flattened, percentile_values).tolist()
+        score_percentiles = dict(zip(percentile_values, percentiles, strict=False))
+        for p, v in score_percentiles.items():
             ax.axvline(float(v), color="black", linestyle="--", alpha=0.6)
             ax.text(float(v), ax.get_ylim()[1] * 0.9, f"{p}th: {v:.2f}", rotation=90, verticalalignment="center")
 
@@ -498,4 +498,4 @@ def plot_agent_scores_distributions(
 
         output_filepath = output_dir / f"{key}.json"
         with open(output_filepath, "w") as f:
-            json.dump(feature_percentiles, f, indent=4)
+            json.dump(score_percentiles, f, indent=4)

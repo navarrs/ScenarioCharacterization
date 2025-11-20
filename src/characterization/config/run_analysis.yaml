@@ -11,6 +11,7 @@ scenario_types:
   # - ho
 
 criteria:
+  # - critical_continuous
   - critical_categorical
   # - average
 

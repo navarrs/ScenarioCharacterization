@@ -14,7 +14,7 @@ characterizer:
     score_wrt_ego_only: true
     reduce_distance_penalty: true
 
-    categorize_scores: false
+    categorize_scores: true
     categorization_file: ./meta/${scenario_type}_${return_criterion}_${feature_type}_individual.json
 
     score_clip:
@@ -36,7 +36,7 @@ characterizer:
       kalman_difficulty: 1.0
 
     # Detections here are in percentile categories
-    # 10: 1, 25: 2, 50: 3, 75: 4, 90: 5, 95: 6, 99: 7, 100: 8
+    # 1: 0, 10: 1, 25: 2, 50: 3, 75: 4, 90: 5, 95: 6, 99: 7, 100: 8
     detections:
       speed: 1
       speed_limit_diff: 1
