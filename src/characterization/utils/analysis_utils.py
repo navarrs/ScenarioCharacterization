@@ -480,7 +480,7 @@ def plot_agent_scores_distributions(
 
         sns.despine(top=True, right=True)
 
-        ax.set_xlabel(f"Scores values: {key}")
+        ax.set_xlabel("Scores values")
         ax.set_ylabel("Density")
         ax.set_title(f"Scores Distribution ({len(agent_scores_flattened)} agents)")
         ax.grid(visible=True, linestyle="--", alpha=0.4)

@@ -77,18 +77,26 @@ class IndividualFeatures(BaseFeature):
         """
         match agent_type:
             case AgentType.TYPE_VEHICLE | AgentType.TYPE_EGO_VEHICLE:
-                categories = self.vehicle_categories.get(feature_name, [])
+                categories = self.vehicle_categories.get(feature_name, None)
             case AgentType.TYPE_CYCLIST:
-                categories = self.cyclist_categories.get(feature_name, [])
+                categories = self.cyclist_categories.get(feature_name, None)
             case AgentType.TYPE_PEDESTRIAN:
-                categories = self.pedestrian_categories.get(feature_name, [])
+                categories = self.pedestrian_categories.get(feature_name, None)
             case _:
                 logger.warning("Unknown agent type: %s. Returning original value.", agent_type)
                 return -1.0
 
-        for num_percentile, threshold in enumerate(categories):
-            if value <= float(threshold):
-                return float(num_percentile + 1)  # Categories start from 1
+        if categories is None:
+            logger.warning(
+                "No categories found for feature %s and agent type %s. Returning original value.",
+                feature_name,
+                agent_type,
+            )
+            return -1.0
+
+        for category, threshold in enumerate(categories.values()):
+            if value <= threshold:
+                return float(category + 1)  # Categories start from 1
         return float(len(categories) + 1)  # Above highest value for max category
 
     def compute_individual_features(self, scenario: Scenario) -> Individual:

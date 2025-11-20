@@ -59,8 +59,8 @@ class IndividualScorer(BaseScorer):
         Returns:
             float: The categorized score.
         """
-        for category, threshold in enumerate(self.category_percentiles):
-            if score <= float(threshold):
+        for category, threshold in enumerate(self.category_percentiles.values()):
+            if score <= threshold:
                 return float(category)
         return float(len(self.category_percentiles))
 
@@ -123,10 +123,12 @@ class IndividualScorer(BaseScorer):
                 kalman_difficulty_weight=self.weights.kalman_difficulty,
                 kalman_difficulty_detection=self.detections.kalman_difficulty,
             )
+
             if self.categorize_scores:
                 score_value = self.categorize(score_value)
 
             scores[valid_idx] = score_value
+
         # As a safeguard, replace NaNs with zeros
         scores = np.nan_to_num(scores, nan=0.0)
 
