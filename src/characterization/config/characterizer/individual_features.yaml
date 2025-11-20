@@ -19,3 +19,8 @@ processor:
 
 characterizer:
   _target_: characterization.features.individual_features.IndividualFeatures
+  config:
+    feature_type: ${feature_type}
+    vehicle_categorization_file: ./meta/type_vehicle_feature_percentiles.json
+    cyclist_categorization_file: ./meta/type_cyclist_feature_percentiles.json
+    pedestrian_categorization_file: ./meta/type_pedestrian_feature_percentiles.json

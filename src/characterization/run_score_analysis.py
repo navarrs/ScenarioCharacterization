@@ -52,7 +52,7 @@ def run(cfg: DictConfig) -> None:
 
     # Generate score histogram and density plot
     logger.info("Loading the scores")
-    scene_scores, _, _, _, _ = analysis_utils.load_scenario_scores(
+    scene_scores, agent_scores, _ = analysis_utils.load_scenario_scores(
         scenario_ids,
         cfg.scenario_types,
         cfg.scores,
@@ -72,6 +72,8 @@ def run(cfg: DictConfig) -> None:
     with output_filepath.open("w") as f:
         json.dump(scenario_splits, f, indent=4)
     logger.info("Saved scenario splits to %s", output_filepath)
+
+    analysis_utils.plot_agent_scores_distributions(agent_scores, output_dir, cfg.dpi)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,9 @@
+import json
+from pathlib import Path
 from warnings import warn
 
 import numpy as np
+from numpy.typing import NDArray
 from omegaconf import DictConfig
 
 from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores, Score
@@ -40,6 +43,27 @@ class IndividualScorer(BaseScorer):
             raise ValueError(error_message)
         self.score_function = INDIVIDUAL_SCORE_FUNCTIONS[individual_score_function]
 
+        self.categorize_scores = self.config.get("categorize_scores", False)
+        if self.categorize_scores:
+            categorization_file = Path(self.config.get("categorization_file", ""))
+            assert categorization_file.is_file(), f"Categorization file {categorization_file} does not exist."
+            with categorization_file.open("r") as f:
+                self.category_percentiles = json.load(f)
+
+    def categorize(self, score: NDArray[np.float32]) -> float:
+        """Categorizes a score based on predefined percentiles.
+
+        Args:
+            score (float): The score to categorize.
+
+        Returns:
+            float: The categorized score.
+        """
+        for category, threshold in enumerate(self.category_percentiles):
+            if score <= float(threshold):
+                return float(category)
+        return float(len(self.category_percentiles))
+
     def compute_individual_score(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> Score:
         """Computes individual agent scores and a scene-level score from scenario features.
 
@@ -74,7 +98,7 @@ class IndividualScorer(BaseScorer):
         valid_idxs = features.valid_idxs
         for n in range(valid_idxs.shape[0]):
             valid_idx = valid_idxs[n]
-            scores[valid_idx] = weights[valid_idx] * self.score_function(
+            score_value = weights[valid_idx] * self.score_function(
                 speed=features.speed[n] if features.speed is not None else 0.0,
                 speed_weight=self.weights.speed,
                 speed_detection=self.detections.speed,
@@ -99,7 +123,10 @@ class IndividualScorer(BaseScorer):
                 kalman_difficulty_weight=self.weights.kalman_difficulty,
                 kalman_difficulty_detection=self.detections.kalman_difficulty,
             )
+            if self.categorize_scores:
+                score_value = self.categorize(score_value)
 
+            scores[valid_idx] = score_value
         # As a safeguard, replace NaNs with zeros
         scores = np.nan_to_num(scores, nan=0.0)
 

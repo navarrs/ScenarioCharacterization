@@ -11,13 +11,13 @@ scenario_types:
   # - ho
 
 criteria:
-  - critical
+  - critical_categorical
   # - average
 
 scores:
   - individual
-  - interaction
-  - safeshift
+  # - interaction
+  # - safeshift
 
 dpi: 300
 output_dir: ${paths.cache_path}/visualization

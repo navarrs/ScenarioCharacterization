@@ -66,6 +66,13 @@ Int32NDArray2D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.
 Int64NDArray2D = Annotated[NDArray[np.int64], BeforeValidator(validate_array(np.int64, 2))]
 
 
+class FeatureType(Enum):
+    """Enumeration for feature types."""
+
+    CONTINUOUS = "continuous"
+    CATEGORICAL = "categorical"
+
+
 class InteractionStatus(Enum):
     """Enumeration for interaction status."""
 

@@ -42,8 +42,8 @@ def compute_agent_to_agent_closest_dists(positions: NDArray[np.float32]) -> NDAr
     dists = np.linalg.norm(positions[:, np.newaxis, :] - positions[np.newaxis, :, :], axis=-1)
 
     # Replace self-distances (zero) with np.inf to ignore them in the min computation
-    for t in range(dists.shape[-1]):
-        np.fill_diagonal(dists[:, :, t], np.inf)
+    # for t in range(dists.shape[-1]):
+    #     np.fill_diagonal(dists[:, :, t], np.inf)
 
     # Return the minimum distance to any other agent over time, replacing NaNs with np.inf
     return np.nan_to_num(np.nanmin(dists, axis=-1), nan=np.inf).astype(np.float32)

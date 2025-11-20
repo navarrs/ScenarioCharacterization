@@ -36,6 +36,8 @@ class SafeShiftFeatures(BaseFeature):
         """
         super().__init__(config)
 
+        self.individual_features = IndividualFeatures(config)
+
     def compute(self, scenario: Scenario) -> ScenarioFeatures:
         """Compute comprehensive scenario features combining individual and interaction analysis.
 
@@ -73,7 +75,7 @@ class SafeShiftFeatures(BaseFeature):
         agent_positions = agent_trajectories.agent_xyz_pos
         return ScenarioFeatures(
             metadata=scenario.metadata,
-            individual_features=IndividualFeatures.compute_individual_features(scenario, self.return_criterion),
+            individual_features=self.individual_features.compute_individual_features(scenario),
             interaction_features=InteractionFeatures.compute_interaction_features(scenario, self.return_criterion),
             agent_to_agent_closest_dists=compute_agent_to_agent_closest_dists(agent_positions),
         )

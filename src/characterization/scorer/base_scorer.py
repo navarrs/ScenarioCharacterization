@@ -2,6 +2,7 @@ import re
 from abc import ABC, abstractmethod
 
 import numpy as np
+from numpy.typing import NDArray
 from omegaconf import DictConfig
 
 from characterization.schemas import FeatureDetections, FeatureWeights, Scenario, ScenarioFeatures, ScenarioScores
@@ -28,6 +29,7 @@ class BaseScorer(ABC):
         self.aggregated_score_weight = self.config.get("aggregated_score_weight", 0.5)
         self.features = self.config.get("features", None)
         self.detections = FeatureDetections.from_dict(config.get("detections", None))
+        self.reduce_distance_penalty = self.config.get("reduce_distance_penalty", False)
         logger.info("Feature detections set to: %s", self.detections)
         self.weights = FeatureWeights.from_dict(config.get("weights", None))
         logger.info("Feature weights set to: %s", self.weights)
@@ -44,7 +46,7 @@ class BaseScorer(ABC):
         # Get the class name and add a space before each capital letter (except the first)
         return re.sub(r"(?<!^)([A-Z])", r"_\1", self.__class__.__name__).lower()
 
-    def get_weights(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> np.ndarray:
+    def get_weights(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> NDArray[np.float32]:
         """Computes the weights for scoring based on the scenario and features.
 
         The agent's contribution (weight) to the score is inversely proportional to the closest
@@ -80,11 +82,13 @@ class BaseScorer(ABC):
             relevant_agents = np.where(agent_relevance > 0.0)[0]
             relevant_agents_values = agent_relevance[relevant_agents]  # Shape (num_relevant_agents)
 
-        # An agent's contribution (weight) to the score is inversely proportional to the closest distance
-        # between the agent and the relevant agents
+        # An agent's contribution (weight) to the score is inversely proportional to the closest distance between the
+        # agent and the relevant agents
         agent_to_agent_dists = np.nan_to_num(agent_to_agent_dists, nan=np.inf)
         relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]  # Shape (num_agents, num_relevant_agents)
         min_dist = relevant_agents_dists.min(axis=1) + SMALL_EPS  # Avoid division by zero
+        if self.reduce_distance_penalty:
+            min_dist = np.sqrt(min_dist)
         argmin_dist = relevant_agents_dists.argmin(axis=1)
 
         # weights

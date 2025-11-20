@@ -1,5 +1,4 @@
 from .base_feature import BaseFeature
-from .individual_categorical_features import IndividualCategoricalFeatures
 from .individual_features import IndividualFeatures
 from .interaction_features import InteractionFeatures
 from .safeshift_features import SafeShiftFeatures
@@ -28,7 +27,6 @@ SUPPORTED_FEATURES = [
 __all__ = [
     "SUPPORTED_FEATURES",
     "BaseFeature",
-    "IndividualCategoricalFeatures",
     "IndividualFeatures",
     "InteractionFeatures",
     "SafeShiftFeatures",

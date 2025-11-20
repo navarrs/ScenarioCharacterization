@@ -178,22 +178,16 @@ def load_scenario_scores(
         Tuple containing three dictionaries:
             - scene_scores: Dictionary mapping score keys to lists of scene scores.
             - agent_scores: Dictionary mapping score keys to lists of agent scores.
-            - scene_critical_times: Dictionary mapping score keys to lists of scene critical times.
-            - agent_critical_times: Dictionary mapping score keys to lists of agent critical times.
             - scenario_scores: Dictionary mapping scenario IDs to their corresponding ScenarioScores.
     """
     scenario_scores = {}
     scene_scores = {"scenario_ids": scenario_ids}
     agent_scores = {"scenario_ids": scenario_ids}
-    agent_critical_times = {"scenario_ids": scenario_ids}
-    scene_critical_times = {"scenario_ids": scenario_ids}
 
     for scenario_type, scorer, criterion in product(scenario_types, scenario_scorers, criteria):
         key = f"{scenario_type}_{criterion}_{scorer}"
         scene_scores[key] = []
-        scene_critical_times[key] = []
         agent_scores[key] = []
-        agent_critical_times[key] = []
 
     for scenario_type, criterion in product(scenario_types, criteria):
         key = f"{scenario_type}_{criterion}"
@@ -204,10 +198,8 @@ def load_scenario_scores(
                 key = f"{scenario_type}_{criterion}_{scorer}"
                 scores_key = f"{scorer}_scores"
                 scene_scores[key].append(scores[scores_key].scene_score)
-                scene_critical_times[key].append(scores[scores_key].scene_critical_time)
                 agent_scores[key].append(scores[scores_key].agent_scores)
-                agent_critical_times[key].append(scores[scores_key].agent_critical_times)
-    return scene_scores, agent_scores, scene_critical_times, agent_critical_times, scenario_scores
+    return scene_scores, agent_scores, scenario_scores
 
 
 def load_features(
@@ -449,5 +441,61 @@ def plot_feature_distributions(
         plt.close()
 
         output_filepath = output_dir / f"{agent_type.name.lower()}_feature_percentiles.json"
+        with open(output_filepath, "w") as f:
+            json.dump(feature_percentiles, f, indent=4)
+
+
+def plot_agent_scores_distributions(
+    agent_scores: dict[str, Any],
+    output_dir: Path,
+    dpi: int = 100,
+    percentile_values: list[int] = [10, 25, 50, 75, 90, 95, 99],  # noqa: B006
+) -> None:
+    """Plots the distribution of agent scores using histograms and density curves.
+
+    Args:
+        agent_scores (dict[str, Any]): Dictionary containing agent scores with scenario IDs.
+        output_dir (Path): Directory to save the output plots.
+        dpi (int): Dots per inch for the saved figure.
+        percentile_values (list[int]): List of percentiles to compute and display on the plot.
+    """
+    for key, values in agent_scores.items():
+        if key == "scenario_ids":
+            continue
+
+        agent_scores_flattened = []
+        for scores in values:
+            agent_scores_flattened.extend(scores.tolist())
+
+        _, ax = plt.subplots(figsize=(10, 6))
+        sns.histplot(
+            agent_scores_flattened,
+            color="blue",
+            kde=True,
+            stat="density",
+            alpha=0.6,
+            edgecolor="white",
+            ax=ax,
+        )
+
+        sns.despine(top=True, right=True)
+
+        ax.set_xlabel(f"Scores values: {key}")
+        ax.set_ylabel("Density")
+        ax.set_title(f"Scores Distribution ({len(agent_scores_flattened)} agents)")
+        ax.grid(visible=True, linestyle="--", alpha=0.4)
+
+        percentiles = np.percentile(agent_scores_flattened, percentile_values).astype(np.float32)
+        feature_percentiles = dict(zip(percentile_values, percentiles, strict=False))
+        for p, v in feature_percentiles.items():
+            ax.axvline(float(v), color="black", linestyle="--", alpha=0.6)
+            ax.text(float(v), ax.get_ylim()[1] * 0.9, f"{p}th: {v:.2f}", rotation=90, verticalalignment="center")
+
+        plt.tight_layout()
+        output_filepath = output_dir / f"agent_score_distribution_{key}.png"
+        plt.savefig(output_filepath, dpi=dpi)
+        plt.close()
+
+        output_filepath = output_dir / f"{key}.json"
         with open(output_filepath, "w") as f:
             json.dump(feature_percentiles, f, indent=4)
