@@ -317,7 +317,8 @@ def _select_k_closest_lanes(
     Returns:
         Selected lane metadata with shape [num_timesteps, k_lanes, 6].
     """
-    num_timesteps = lane_meta.shape[1]
+    num_lanes, num_timesteps, _ = lane_meta.shape
+    k_lanes = min(k_lanes, num_lanes)
 
     # Get indices of k closest lanes for each timestep
     k_lane_idxs = lane_meta[:, :, 0].argsort(axis=0)[:k_lanes]  # (k_lanes, num_timesteps)
@@ -375,6 +376,7 @@ def find_closest_lanes(
     num_timesteps = agent_positions.shape[1]
     agent_valid = agent_trajectories.agent_valid
 
+    k_closest = min(k_closest, lanes.shape[0])
     closest_lanes_data = np.full(
         shape=(agent_data.num_agents, num_timesteps, k_closest, 6), fill_value=np.inf, dtype=np.float32
     )
