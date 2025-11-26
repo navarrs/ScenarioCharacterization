@@ -107,6 +107,15 @@ class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     # To allow numpy and other arbitrary types in the model
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
+    @computed_field
+    @property
+    def duration_s(self) -> float:
+        """Get the total duration of the scenario in seconds."""
+        if self.timestamps_seconds:
+            return self.timestamps_seconds[-1] - self.timestamps_seconds[0]
+        err_msg = "timestamps_seconds is empty, cannot compute duration."
+        raise ValueError(err_msg)
+
 
 class TracksToPredict(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     """Encapsulates the tracks to predict in a scenario, including the ego vehicle and other agents.
