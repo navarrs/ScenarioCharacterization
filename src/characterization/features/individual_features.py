@@ -8,7 +8,6 @@ from omegaconf import DictConfig
 import characterization.features.individual_utils as individual
 from characterization.features.base_feature import BaseFeature
 from characterization.schemas import Individual, Scenario, ScenarioFeatures
-from characterization.utils.ad_types import AgentType
 from characterization.utils.common import (
     MIN_VALID_POINTS,
     AgentTrajectoryMasker,
@@ -18,6 +17,7 @@ from characterization.utils.common import (
 )
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
+from characterization.utils.scenario_types import AgentType
 
 logger = get_logger(__name__)
 
@@ -77,7 +77,7 @@ class IndividualFeatures(BaseFeature):
             float: The categorized feature value based on percentiles.
         """
         match agent_type:
-            case AgentType.TYPE_VEHICLE | AgentType.TYPE_EGO_VEHICLE:
+            case AgentType.TYPE_VEHICLE | AgentType.TYPE_EGO_AGENT:
                 categories = self.vehicle_categories.get(feature_name, None)
             case AgentType.TYPE_CYCLIST:
                 categories = self.cyclist_categories.get(feature_name, None)

@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 
-from characterization.utils.ad_types import AgentType
 from characterization.utils.common import (
     Float32NDArray1D,
     Float32NDArray2D,
@@ -8,6 +7,7 @@ from characterization.utils.common import (
     InteractionStatus,
     TrajectoryType,
 )
+from characterization.utils.scenario_types import AgentType
 
 from .scenario import ScenarioMetadata
 

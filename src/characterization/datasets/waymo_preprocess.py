@@ -347,7 +347,7 @@ def process_waymo_data_with_scenario_proto(data_file, output_path=None):
         save_infos = {"track_infos": track_infos, "dynamic_map_infos": dynamic_map_infos, "map_infos": map_infos}
         save_infos.update(info)
 
-        output_file = os.path.join(output_path, f"sample_{scenario.scenario_id}.pkl")
+        output_file = os.path.join(output_path, f"{scenario.scenario_id}.pkl")
         with open(output_file, "wb") as f:
             pickle.dump(save_infos, f)
 

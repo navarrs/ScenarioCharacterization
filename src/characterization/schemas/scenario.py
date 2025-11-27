@@ -3,7 +3,6 @@ from typing import Any, TypeVar
 import numpy as np
 from pydantic import BaseModel, NonNegativeInt, computed_field
 
-from characterization.utils.ad_types import AgentType
 from characterization.utils.common import (
     Float32NDArray1D,
     Float32NDArray2D,
@@ -12,6 +11,7 @@ from characterization.utils.common import (
     Int32NDArray1D,
     Int32NDArray2D,
 )
+from characterization.utils.scenario_types import AgentType
 
 DType = TypeVar("DType", bound=np.generic)
 

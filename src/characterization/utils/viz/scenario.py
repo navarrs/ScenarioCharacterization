@@ -3,7 +3,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 
-from characterization.schemas import Scenario, ScenarioScores
+from characterization.schemas import Scenario, Score
 from characterization.utils.io_utils import get_logger
 from characterization.utils.viz.visualizer import BaseVisualizer, SupportedPanes
 
@@ -20,7 +20,7 @@ class ScenarioVisualizer(BaseVisualizer):
     def visualize_scenario(
         self,
         scenario: Scenario,
-        scores: ScenarioScores | None = None,
+        scores: Score | None = None,
         output_dir: Path = Path("./temp"),
     ) -> Path:
         """Visualizes a single scenario and saves the output to a file.
@@ -31,7 +31,7 @@ class ScenarioVisualizer(BaseVisualizer):
 
         Args:
             scenario (Scenario): encapsulates the scenario to visualize.
-            scores (ScenarioScores | None): encapsulates the scenario and agent scores.
+            scores (Score | None): encapsulates the scenario and agent scores.
             output_dir (str): the directory where to save the scenario visualization.
 
         Returns:
@@ -42,9 +42,8 @@ class ScenarioVisualizer(BaseVisualizer):
             ""
             if SupportedPanes.HIGHLIGHT_RELEVANT_AGENTS not in self.panes_to_plot
             or scores is None
-            or scores.safeshift_scores is None
-            or scores.safeshift_scores.scene_score is None
-            else f"_{round(scores.safeshift_scores.scene_score, 2)}"
+            or scores.scene_score is None
+            else f"_{round(scores.scene_score, 2)}"
         )
         output_filepath = output_dir / f"{scenario_id}{suffix}.png"
         logger.info("Visualizing scenario to %s", output_filepath)
@@ -60,17 +59,24 @@ class ScenarioVisualizer(BaseVisualizer):
                         axs[i] if self.num_panes_to_plot > 1 else axs, scenario, scores, title="All Agents Trajectories"
                     )
                 case SupportedPanes.HIGHLIGHT_RELEVANT_AGENTS:
-                    # Plot trajectory data with relevant agents in a different color
-                    self.plot_sequences(
-                        axs[i] if self.num_panes_to_plot > 1 else axs,
-                        scenario,
-                        scores,
-                        show_relevant=True,
-                        title="Highlighted Relevant and SDC Agent Trajectories",
-                    )
-                case _:
-                    error_message = f"Pane '{pane}' is not supported or not implemented yet."
-                    raise ValueError(error_message)
+                    if self.plot_categorical:
+                        # Plot sequence data with categorical agent scores. By default it uses autumn_r colormap, which
+                        # will show lower scored agents in yellow and higher scored agents in dark red.
+                        self.plot_sequences_categorical(
+                            axs[i] if self.num_panes_to_plot > 1 else axs,
+                            scenario,
+                            scores,
+                            title="Scenario with Agent Categorical Scores",
+                        )
+                    else:
+                        # Plot trajectory data with relevant agents in a different color
+                        self.plot_sequences(
+                            axs[i] if self.num_panes_to_plot > 1 else axs,
+                            scenario,
+                            scores,
+                            show_relevant=True,
+                            title="Highlighted Relevant and SDC Agent Trajectories",
+                        )
 
         # Prepare and save plot
         self.set_axes(axs, scenario, self.num_panes_to_plot)
