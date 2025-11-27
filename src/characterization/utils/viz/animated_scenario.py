@@ -115,27 +115,37 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
             tmp_dir_path = pathlib.Path(tmp_dir)
             # matplotlib is not thread-safe
             # ThreadPoolExecutor would result in corrupt images
-            with ProcessPoolExecutor(max_workers=self.num_workers) as executor:
-                futures = [
-                    executor.submit(
-                        self._plot_single_step,
+            if self.num_workers > 1:
+                with ProcessPoolExecutor(max_workers=self.num_workers) as executor:
+                    futures = [
+                        executor.submit(
+                            self._plot_single_step,
+                            scenario,
+                            scores,
+                            tmp_dir_path,
+                            timestep,
+                            timestamp_seconds[timestep],
+                        )
+                        # For simplicity, the frames between the last timestamp
+                        # and the end of the scenario are ignored (range does not
+                        # include total_timesteps-1 when step_size > 1).
+                        # This is fine for typical scenarios around 30 s at 100 Hz
+                        # where we lose ~100 frames or up to 1 s, representing
+                        # ~3% of the scenario duration.
+                        for timestep in range(0, total_timesteps, step_size)
+                    ]
+
+                # tqdm progress bar
+                for _ in tqdm(as_completed(futures), total=len(futures), desc="Generating plots"):
+                    pass
+            else:
+                for timestep in tqdm(range(0, total_timesteps, step_size), desc="Generating plots"):
+                    self._plot_single_step(
                         scenario,
                         scores,
                         tmp_dir_path,
                         timestep,
                         timestamp_seconds[timestep],
                     )
-                    # For simplicity, the frames between the last timestamp
-                    # and the end of the scenario are ignored (range does not
-                    # include total_timesteps-1 when step_size > 1).
-                    # This is fine for typical scenarios around 30 s at 100 Hz
-                    # where we lose ~100 frames or up to 1 s, representing
-                    # ~3% of the scenario duration.
-                    for timestep in range(0, total_timesteps, step_size)
-                ]
-
-            # tqdm progress bar
-            for _ in tqdm(as_completed(futures), total=len(futures), desc="Generating plots"):
-                pass
             BaseVisualizer.to_gif(tmp_dir_path, output_filepath, fps=self.fps)
         return output_filepath
