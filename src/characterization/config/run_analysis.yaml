@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - run_processor.yaml
-  - viz: waymo_animated
+  - viz: waymo
 
 scores_path: ${paths.cache_path}/scores
 features_path: ${paths.cache_path}/features
@@ -11,8 +11,8 @@ scenario_types:
   # - ho
 
 criteria:
-  # - critical_continuous
   - critical_categorical
+  # - critical_continuous
   # - average
 
 scores:
@@ -21,7 +21,7 @@ scores:
   # - safeshift
 
 dpi: 300
-output_dir: ${paths.cache_path}/visualization
+output_dir: ${paths.cache_path}/analysis
 exp_tag: ""
 
 percentiles:
@@ -35,3 +35,11 @@ test_percentile: 80
 min_scenarios_to_plot: 1
 viz_scenarios: true
 tag: 'full'
+
+
+# Scenario Visualization Parameters
+total_scenarios: 10
+scenario_viz_dir: ${output_dir}/scenario_viz
+viz_scored_scenarios: true
+scores_tag: 'gt_critical_categorical'
+score_to_visualize: 'individual'

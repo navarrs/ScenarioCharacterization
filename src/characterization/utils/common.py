@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import BeforeValidator
 
-from characterization.utils.ad_types import AgentType
+from characterization.utils.scenario_types import AgentType
 
 SMALL_EPS = 1e-6
 BIG_EPS = 1e6

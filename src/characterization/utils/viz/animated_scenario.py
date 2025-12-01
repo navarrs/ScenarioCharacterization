@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from characterization.schemas import Scenario, ScenarioScores
+from characterization.schemas import Scenario, Score
 from characterization.utils.io_utils import get_logger
 from characterization.utils.viz.visualizer import BaseVisualizer
 
@@ -24,7 +24,7 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
     def _plot_single_step(
         self,
         scenario: Scenario,
-        scores: ScenarioScores | None,
+        scores: Score | None,
         output_dir: Path,
         timestep_idx: int,
         timestamp: float,
@@ -33,7 +33,7 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
 
         Args:
             scenario (Scenario): encapsulates the scenario to visualize.
-            scores (ScenarioScores | None): encapsulates the scenario and agent scores.
+            scores (Score | None): encapsulates the scenario and agent scores.
             output_dir (str): the directory where to save the scenario visualization.
             timestep_idx (int): the timestep index (in the timestamps array) to visualize.
             timestamp (float): the timestamp corresponding to the timestep.
@@ -44,7 +44,10 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
         # Plot static and dynamic map information in the scenario
         self.plot_map_data(ax, scenario)
 
-        self.plot_sequences(ax, scenario, scores, show_relevant=True, end_timestep=timestep_idx)
+        if self.plot_categorical:
+            self.plot_sequences_categorical(ax, scenario, scores, end_timestep=timestep_idx)
+        else:
+            self.plot_sequences(ax, scenario, scores, show_relevant=True, end_timestep=timestep_idx)
 
         # Add timestamp annotation in the upper right corner
         if self.display_time:
@@ -71,7 +74,7 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
     def visualize_scenario(
         self,
         scenario: Scenario,
-        scores: ScenarioScores | None = None,
+        scores: Score | None = None,
         output_dir: Path = Path("./temp"),
     ) -> Path:
         """Visualizes a single scenario and saves the output to a file.
@@ -80,18 +83,14 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
 
         Args:
             scenario (Scenario): encapsulates the scenario to visualize.
-            scores (ScenarioScores | None): encapsulates the scenario and agent scores.
+            scores (Score | None): encapsulates the scenario and agent scores.
             output_dir (str): the directory where to save the scenario visualization.
 
         Returns:
             Path: The path to the saved visualization file.
         """
         scenario_id = scenario.metadata.scenario_id
-        suffix = (
-            ""
-            if scores is None or scores.safeshift_scores is None or scores.safeshift_scores.scene_score is None
-            else f"_{round(scores.safeshift_scores.scene_score, 2)}"
-        )
+        suffix = "" if scores is None or scores.scene_score is None else f"_{round(scores.scene_score, 2)}"
         output_filepath = output_dir / f"{scenario_id}{suffix}.gif"
 
         timestamp_seconds = scenario.metadata.timestamps_seconds

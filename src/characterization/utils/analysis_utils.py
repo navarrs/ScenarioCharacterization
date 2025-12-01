@@ -12,8 +12,8 @@ from numpy.typing import NDArray
 from rich.progress import track
 
 from characterization.schemas import Individual, ScenarioFeatures, ScenarioScores
-from characterization.utils.ad_types import AgentType
 from characterization.utils.io_utils import from_pickle, get_logger
+from characterization.utils.scenario_types import AgentType
 
 logger = get_logger(__name__)
 

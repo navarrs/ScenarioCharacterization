@@ -7,6 +7,7 @@ import numpy as np
 from natsort import natsorted
 from omegaconf import DictConfig
 
+from characterization.datasets.base_dataset import BaseDataset
 from characterization.schemas.scenario import (
     AgentData,
     AgentType,
@@ -15,7 +16,6 @@ from characterization.schemas.scenario import (
     ScenarioMetadata,
     StaticMapData,
 )
-from characterization.utils.datasets.dataset import BaseDataset
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -30,12 +30,9 @@ class WaymoData(BaseDataset):
         # Three challengingness levels: 0 (easy), 1 (medium), 2 (hard) obtained from WOMD
         self.DIFFICULTY_WEIGHTS = {0: 0.8, 1: 0.9, 2: 1.0}
 
-        self.LAST_TIMESTEP = 91
-        self.HIST_TIMESTEP = 11
-
-        self.LAST_TIMESTEP_TO_CONSIDER = {
-            "gt": self.LAST_TIMESTEP,
-            "ho": self.HIST_TIMESTEP,
+        self.last_timestep_to_consider = {
+            "gt": config.last_timestep,
+            "ho": config.hist_timestep,
         }
 
         self.load = config.get("load", True)
@@ -85,7 +82,7 @@ class WaymoData(BaseDataset):
         trajectories = agent_data["trajs"]  # shape: [num_agents, num_timesteps, num_features]
         _, num_timesteps, _ = trajectories.shape
 
-        last_timestep = self.LAST_TIMESTEP_TO_CONSIDER[self.scenario_type]
+        last_timestep = self.last_timestep_to_consider[self.scenario_type]
         if num_timesteps < last_timestep:
             error_message = (
                 f"Scenario has only {num_timesteps} timesteps, but expected at least {last_timestep} timesteps."
@@ -95,7 +92,7 @@ class WaymoData(BaseDataset):
         self.total_steps = last_timestep
         trajectories = trajectories[:, :last_timestep, :]  # shape: [num_agents, last_timestep, dim]
         object_types = [AgentType[n] for n in agent_data["object_type"]]
-        object_types[ego_index] = AgentType.TYPE_EGO_VEHICLE
+        object_types[ego_index] = AgentType.TYPE_EGO_AGENT
         object_ids = agent_data["object_id"]
         return AgentData(agent_ids=object_ids, agent_types=object_types, agent_trajectories=trajectories)
 

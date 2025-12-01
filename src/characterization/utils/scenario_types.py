@@ -11,7 +11,8 @@ class AgentType(Enum):
     TYPE_PEDESTRIAN = 2
     TYPE_CYCLIST = 3
     TYPE_OTHER = 4
-    TYPE_EGO_VEHICLE = 5
+    TYPE_EGO_AGENT = 5
+    TYPE_RELEVANT = 6
 
 
 class LaneType(Enum):
@@ -81,14 +82,14 @@ class SignalState(Enum):
     """Traffic Signal States for WOMD."""
 
     LANE_STATE_UNKNOWN = 0
-    # // States for traffic signals with arrows.
+    # States for traffic signals with arrows.
     LANE_STATE_ARROW_STOP = 1
     LANE_STATE_ARROW_CAUTION = 2
     LANE_STATE_ARROW_GO = 3
-    # // Standard round traffic signals.
+    # Standard round traffic signals.
     LANE_STATE_STOP = 4
     LANE_STATE_CAUTION = 5
     LANE_STATE_GO = 6
-    # // Flashing light signals.
+    # Flashing light signals.
     LANE_STATE_FLASHING_STOP = 7
     LANE_STATE_FLASHING_CAUTION = 8
