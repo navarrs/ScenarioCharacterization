@@ -138,6 +138,7 @@ class BaseVisualizer(ABC):
         """
         agent_data = scenario.agent_data
         ego_index = scenario.metadata.ego_vehicle_index
+        agent_types = np.asarray([atype for atype in agent_data.agent_types])
 
         # Get the agent normalized scores
         if scores is None or scores.agent_scores is None:
@@ -156,10 +157,11 @@ class BaseVisualizer(ABC):
             agent_trajectories.agent_headings,
             agent_trajectories.agent_valid.squeeze(-1).astype(bool),
             agent_scores,
+            agent_types,
             strict=False,
         )
 
-        for apos, alen, awid, ahead, amask, score in zipped:
+        for apos, alen, awid, ahead, amask, score, atype in zipped:
             # Skip if there are less than 2 valid points
             mask = amask[start_timestep:end_timestep]
             if not mask.any() or mask.sum() < MIN_VALID_POINTS:
@@ -171,7 +173,7 @@ class BaseVisualizer(ABC):
             width = awid[end_timestep]
 
             # Determine color based on score
-            color = self.color_map(score)
+            color = self.agent_colors[atype] if atype == AgentType.TYPE_EGO_AGENT else self.color_map(score)
 
             # Plot the trajectory
             ax.plot(pos[:, 0], pos[:, 1], color=color, linewidth=2, alpha=score)
