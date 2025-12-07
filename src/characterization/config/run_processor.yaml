@@ -13,17 +13,14 @@ num_scenarios: null
 num_shards: 0
 shard_index: 0
 step: 1
-# parallel: true
-# batch_size: 16
-# num_workers: 16
-parallel: false
-batch_size: 1
-num_workers: 0
+parallel: true
+batch_size: 16
+num_workers: 16
 shuffle: false
 
 scenario_type: 'gt'
 return_criterion: 'critical'
-feature_type: 'categorical' # 'categorical' or 'continuous'
+feature_type: 'continuous' # 'categorical' or 'continuous'
 ego_only: false
 score_wrt_ego_only: false
 aggregated_score_weight: 0.5
