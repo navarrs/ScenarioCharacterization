@@ -4,6 +4,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from characterization.schemas import ScenarioMetadata
+from characterization.utils import geometric_utils
 from characterization.utils.common import MIN_VALID_POINTS, SMALL_EPS, LaneMasker, TrajectoryType, mph_to_ms
 from characterization.utils.io_utils import get_logger
 
@@ -11,7 +12,11 @@ logger = get_logger(__name__)
 
 
 def compute_speed_meta(
-    velocities: NDArray[np.float32], closest_lanes: LaneMasker | None, lane_speed_limits: NDArray[np.float32] | None
+    velocities: NDArray[np.float32],
+    closest_lanes: LaneMasker | None,
+    lane_speed_limits: NDArray[np.float32] | None,
+    *,
+    apply_smoothing: bool = True,
 ) -> tuple[NDArray[np.float32] | None, ...]:
     """Computes the speed profile of an agent.
 
@@ -19,6 +24,7 @@ def compute_speed_meta(
         velocities (NDArray[np.float32]): The velocity vectors of the agent over time (shape: [T, D]).
         closest_lanes (NDArray[np.float32] or None): closest lanes information (shape: [T, K, 6]) or None.
         lane_speed_limits (NDArray[np.float32] or None): Speed limits for each lane (shape: [K,]) or None.
+        apply_smoothing (bool, optional): Whether to apply smoothing to the speed profile. Defaults to True.
 
     Returns:
         tuple:
@@ -27,6 +33,9 @@ def compute_speed_meta(
             (currently zeros), or None if NaN values are present.
     """
     speeds = np.linalg.norm(velocities, axis=-1)
+    if apply_smoothing:
+        speeds = geometric_utils.compute_moving_average(speeds, window_size=5)
+
     if np.isnan(speeds).any():
         logger.warning("Nan value in agent speed: %s", speeds)
         return None, None, None
@@ -65,14 +74,6 @@ def compute_acceleration_profile(speed: NDArray[np.float32], timestamps: NDArray
     Raises:
         ValueError: If speed and timestamps do not have the same shape.
     """
-
-    def get_acc_sums(acc: np.ndarray, idx: np.ndarray) -> tuple[np.ndarray, list[tuple[int, int]]]:
-        diff = idx[1:] - idx[:-1]
-        diff = np.array([-1] + np.where(diff > 1)[0].tolist() + [diff.shape[0]])  # noqa: RUF005
-        se_idxs = [(idx[s + 1], idx[e] + 1) for s, e in zip(diff[:-1], diff[1:], strict=False)]  # noqa: RUF007
-        sums = np.array([acc[s:e].sum() for s, e in se_idxs])
-        return sums, se_idxs  # pyright: ignore[reportReturnType]
-
     if speed.shape != timestamps.shape:
         error_message = "Speed and timestamps must have the same shape."
         raise ValueError(error_message)
@@ -88,25 +89,20 @@ def compute_acceleration_profile(speed: NDArray[np.float32], timestamps: NDArray
     # Initialize the acceleration and deceleration arrays as zeros
     acceleration = np.zeros(shape=(1,), dtype=np.float32)
     deceleration = np.zeros(shape=(1,), dtype=np.float32)
-    acceleration_se = [(np.inf, np.inf)]
-    deceleration_se = [(np.inf, np.inf)]
 
     # If the agent is accelerating or maintaining acceleration
     if dr_idx.shape[0] == 0:
         acceleration = acceleration_raw.copy()
-        acceleration_se = [(i, i + 1) for i in range(acceleration_raw.shape[0])]
-    # If the agent is decelerating
     elif dr_idx.shape[0] == acceleration_raw.shape[0]:
         deceleration = acceleration_raw.copy()
-        deceleration_se = [(i, i + 1) for i in range(acceleration_raw.shape[0])]
     # If both
     else:
-        deceleration, deceleration_se = get_acc_sums(acceleration_raw, dr_idx)
+        deceleration = acceleration_raw[dr_idx]
 
         ar_idx = np.where(acceleration_raw >= 0.0)[0]
-        acceleration, acceleration_se = get_acc_sums(acceleration_raw, ar_idx)
+        acceleration = acceleration_raw[ar_idx]
 
-    return acceleration_raw, acceleration, acceleration_se, np.abs(deceleration), deceleration_se
+    return acceleration_raw, acceleration, np.abs(deceleration)
 
 
 def compute_jerk(speed: NDArray[np.float32], timestamps: NDArray[np.float32]) -> NDArray[np.float32] | None:
@@ -126,14 +122,22 @@ def compute_jerk(speed: NDArray[np.float32], timestamps: NDArray[np.float32]) ->
         error_message = "Speed and timestamps must have the same shape."
         raise ValueError(error_message)
 
-    acceleration = np.gradient(speed, timestamps)
-    jerk = np.gradient(acceleration, timestamps)
+    # Ensure timestamps are strictly increasing to avoid division by zero or NaNs
+    if not np.all(np.diff(timestamps) > 0):
+        logger.warning("Timestamps must be strictly increasing for jerk computation.")
+        return None
 
+    acceleration = np.gradient(speed, timestamps)
+    if np.isnan(acceleration).any():
+        logger.warning("Nan value in agent acceleration during jerk computation: %s", acceleration)
+        return None
+
+    jerk = np.gradient(acceleration, timestamps)
     if np.isnan(jerk).any():
         logger.warning("Nan value in agent jerk: %s", jerk)
         return None
 
-    return jerk
+    return np.abs(jerk)
 
 
 def compute_waiting_period(
