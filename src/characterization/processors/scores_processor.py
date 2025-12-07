@@ -3,11 +3,11 @@ import os
 from omegaconf import DictConfig
 from tqdm import tqdm
 
+from characterization.datasets import BaseDataset
 from characterization.features import SUPPORTED_FEATURES, BaseFeature
 from characterization.processors.base_processor import BaseProcessor
 from characterization.schemas import ScenarioFeatures, ScenarioScores
 from characterization.scorer import BaseScorer
-from characterization.utils.datasets import BaseDataset
 from characterization.utils.io_utils import from_pickle, get_logger, to_pickle
 
 logger = get_logger(__name__)
