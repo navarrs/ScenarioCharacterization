@@ -1,4 +1,6 @@
-import itertools
+import json
+from itertools import combinations, pairwise
+from pathlib import Path
 from warnings import warn
 
 import numpy as np
@@ -11,11 +13,13 @@ from characterization.utils.common import (
     MIN_VALID_POINTS,
     SMALL_EPS,
     AgentTrajectoryMasker,
+    FeatureType,
     InteractionStatus,
     ReturnCriterion,
 )
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
+from characterization.utils.scenario_types import AgentPairType, get_agent_pair_type
 
 logger = get_logger(__name__)
 
@@ -38,8 +42,91 @@ class InteractionFeatures(BaseFeature):
         """
         super().__init__(config)
 
-    @staticmethod
-    def compute_interaction_features(scenario: Scenario, return_criterion: ReturnCriterion) -> Interaction | None:
+        self.categorize_features = FeatureType(self.config.get("feature_type", "continuous")) == FeatureType.CATEGORICAL
+        if self.categorize_features:
+            vehicle_vehicle_file = Path(self.config.get("vehicle_vehicle_categorization_file", ""))
+            assert vehicle_vehicle_file.is_file(), f"Categorization file {vehicle_vehicle_file} does not exist."
+            with vehicle_vehicle_file.open("r") as f:
+                self.vehicle_vehicle_categories = json.load(f)
+
+            vehicle_pedestrian_file = Path(self.config.get("vehicle_pedestrian_categorization_file", ""))
+            assert vehicle_pedestrian_file.is_file(), f"Categorization file {vehicle_pedestrian_file} does not exist."
+            with vehicle_pedestrian_file.open("r") as f:
+                self.vehicle_pedestrian_categories = json.load(f)
+
+            vehicle_cyclist_file = Path(self.config.get("vehicle_cyclist_categorization_file", ""))
+            assert vehicle_cyclist_file.is_file(), f"Categorization file {vehicle_cyclist_file} does not exist."
+            with vehicle_cyclist_file.open("r") as f:
+                self.vehicle_cyclist_categories = json.load(f)
+
+            pedestrian_pedestrian_file = Path(self.config.get("pedestrian_pedestrian_categorization_file", ""))
+            assert pedestrian_pedestrian_file.is_file(), (
+                f"Categorization file {pedestrian_pedestrian_file} does not exist."
+            )
+            with pedestrian_pedestrian_file.open("r") as f:
+                self.pedestrian_pedestrian_categories = json.load(f)
+
+            pedestrian_cyclist_file = Path(self.config.get("pedestrian_cyclist_categorization_file", ""))
+            assert pedestrian_cyclist_file.is_file(), f"Categorization file {pedestrian_cyclist_file} does not exist."
+            with pedestrian_cyclist_file.open("r") as f:
+                self.pedestrian_cyclist_categories = json.load(f)
+
+            cyclist_cyclist_file = Path(self.config.get("cyclist_cyclist_categorization_file", ""))
+            assert cyclist_cyclist_file.is_file(), f"Categorization file {cyclist_cyclist_file} does not exist."
+            with cyclist_cyclist_file.open("r") as f:
+                self.cyclist_cyclist_categories = json.load(f)
+
+    def categorize(self, value: float, agent_pair_type: AgentPairType, feature_name: str) -> float:
+        """Categorize a feature value based on agent type and predefined percentiles.
+
+        Args:
+            value (float): The feature value to categorize.
+            agent_pair_type (AgentPairType): The type of the agent pair (VEHICLE_VEHICLE, VEHICLE_CYCLIST, etc.).
+            feature_name (str): The name of the feature being categorized.
+
+        Returns:
+            float: The categorized feature value based on percentiles.
+        """
+        match agent_pair_type:
+            case AgentPairType.TYPE_VEHICLE_VEHICLE:
+                categories = self.vehicle_vehicle_categories.get(feature_name, None)
+            case AgentPairType.TYPE_VEHICLE_PEDESTRIAN:
+                categories = self.vehicle_pedestrian_categories.get(feature_name, None)
+            case AgentPairType.TYPE_VEHICLE_CYCLIST:
+                categories = self.vehicle_cyclist_categories.get(feature_name, None)
+            case AgentPairType.TYPE_PEDESTRIAN_PEDESTRIAN:
+                categories = self.pedestrian_pedestrian_categories.get(feature_name, None)
+            case AgentPairType.TYPE_PEDESTRIAN_CYCLIST:
+                categories = self.pedestrian_cyclist_categories.get(feature_name, None)
+            case AgentPairType.TYPE_CYCLIST_CYCLIST:
+                categories = self.cyclist_cyclist_categories.get(feature_name, None)
+            case _:
+                logger.warning("Unknown agent type: %s", agent_pair_type)
+                return -1.0
+
+        if categories is None:
+            logger.warning("No categories found for feature %s and agent type %s.", feature_name, agent_pair_type)
+            return -1.0
+
+        ranges = list(categories.values())
+
+        # If there is only one category, return 0.0 or 1.0 based on the value
+        if len(ranges) < 2:  # noqa: PLR2004
+            return 0.0 if value <= ranges[0] else 1.0
+
+        # If value is below the lowest range, return 0.0
+        if value < ranges[0]:
+            return 0.0
+
+        # Categorize based on ranges
+        for category, (lower_bound, upper_bound) in enumerate(pairwise(ranges)):
+            if lower_bound <= value < upper_bound:
+                return float(category + 1)  # Categories start from 1
+
+        # If value is above the highest range
+        return float(len(categories) + 1)
+
+    def compute_interaction_features(self, scenario: Scenario) -> Interaction | None:
         """Compute comprehensive pairwise interaction features for all agent combinations.
 
         Args:
@@ -47,10 +134,6 @@ class InteractionFeatures(BaseFeature):
                 - agent_data: Agent positions, velocities, headings, dimensions, validity masks, and types
                 - metadata: Timestamps, distance thresholds, speed limits, and interaction parameters
                 - static_map_data: Map conflict points and agent distances to conflict points
-            return_criterion (ReturnCriterion): Determines feature aggregation method:
-                - CRITICAL: Returns minimum separation/TTC/THW/mTTCP, maximum DRAC,
-                  sum of intersections/collisions over valid trajectory segments
-                - AVERAGE: Returns mean values for all features over valid trajectory segments
 
         Returns:
             Interaction: Structured object containing computed interaction features:
@@ -81,7 +164,7 @@ class InteractionFeatures(BaseFeature):
         agent_i = interaction.InteractionAgent()
         agent_j = interaction.InteractionAgent()
 
-        agent_combinations = list(itertools.combinations(range(agent_data.num_agents), 2))
+        agent_combinations = list(combinations(range(agent_data.num_agents), 2))
         if len(agent_combinations) == 0:
             warning_message = "No agent combinations found. Ensure that the scenario has at least two agents."
             warn(warning_message, UserWarning, stacklevel=2)
@@ -107,6 +190,7 @@ class InteractionFeatures(BaseFeature):
         agent_to_conflict_point_max_distance = metadata.agent_to_conflict_point_max_distance
         agent_to_agent_distance_breach = metadata.agent_to_agent_distance_breach
         heading_threshold = metadata.heading_threshold
+        agent_max_deceleration = metadata.agent_max_deceleration
 
         # Meta information to be included in ScenarioFeatures Valid interactions will be added 'agent_pair_indeces' and
         # 'interaction_status'
@@ -120,8 +204,11 @@ class InteractionFeatures(BaseFeature):
         scenario_intersections = np.full(num_interactions, np.nan, dtype=np.float32)
         scenario_collisions = np.full(num_interactions, np.nan, dtype=np.float32)
         scenario_mttcps = np.full(num_interactions, np.nan, dtype=np.float32)
+        scenario_inv_mttcps = np.full(num_interactions, np.nan, dtype=np.float32)
         scenario_thws = np.full(num_interactions, np.nan, dtype=np.float32)
+        scenario_inv_thws = np.full(num_interactions, np.nan, dtype=np.float32)
         scenario_ttcs = np.full(num_interactions, np.nan, dtype=np.float32)
+        scenario_inv_ttcs = np.full(num_interactions, np.nan, dtype=np.float32)
         scenario_dracs = np.full(num_interactions, np.nan, dtype=np.float32)
 
         # Compute distance to conflict points
@@ -182,7 +269,7 @@ class InteractionFeatures(BaseFeature):
             if valid_headings.shape[0] < MIN_VALID_POINTS:
                 thws = np.full(1, np.inf, dtype=np.float32)
                 ttcs = np.full(1, np.inf, dtype=np.float32)
-                dracs = np.full(1, np.inf, dtype=np.float32)
+                dracs = np.full(1, 0.0, dtype=np.float32)
                 scenario_interaction_statuses[n] = InteractionStatus.PARTIAL_INVALID_HEADING
             else:
                 # At this point agents are sharing a lane and have at least two steps with headings within the defined
@@ -193,11 +280,12 @@ class InteractionFeatures(BaseFeature):
                 # Now compute leader-follower interaction state
                 thws = interaction.compute_thw(agent_i, agent_j, leading_agent, valid_headings)
                 ttcs = interaction.compute_ttc(agent_i, agent_j, leading_agent, valid_headings)
-                dracs = interaction.compute_drac(agent_i, agent_j, leading_agent, valid_headings)
-
+                dracs = interaction.compute_drac(
+                    agent_i, agent_j, leading_agent, valid_headings, agent_max_deceleration
+                )
                 scenario_interaction_statuses[n] = InteractionStatus.COMPUTED_OK
 
-            match return_criterion:
+            match self.return_criterion:
                 case ReturnCriterion.CRITICAL:
                     separation = separations.min()
                     intersection = intersections.sum()
@@ -217,16 +305,36 @@ class InteractionFeatures(BaseFeature):
                     thw = thws.mean()
                     drac = dracs.mean()
                 case _:
-                    error_message = f"Criterion: {return_criterion} not supported. Expected 'critical' or 'average'."
+                    error_message = f"{self.return_criterion} not supported. Expected 'critical' or 'average'."
                     raise ValueError(error_message)
+
+            inv_mttcp = 1.0 / (mttcp + SMALL_EPS)
+            inv_ttc = 1.0 / (ttc + SMALL_EPS)
+            inv_thw = 1.0 / (thw + SMALL_EPS)
+
+            if self.categorize_features:
+                agent_pair_type = get_agent_pair_type(agent_i.agent_type, agent_j.agent_type)
+                separation = self.categorize(separation, agent_pair_type, "separation")
+                intersection = self.categorize(intersection, agent_pair_type, "intersection")
+                collision = self.categorize(collision, agent_pair_type, "collision")
+                mttcp = self.categorize(mttcp, agent_pair_type, "mttcp")
+                inv_mttcp = self.categorize(inv_mttcp, agent_pair_type, "inv_mttcp")
+                thw = self.categorize(thw, agent_pair_type, "thw")
+                inv_thw = self.categorize(inv_thw, agent_pair_type, "inv_thw")
+                ttc = self.categorize(ttc, agent_pair_type, "ttc")
+                inv_ttc = self.categorize(inv_ttc, agent_pair_type, "inv_ttc")
+                drac = self.categorize(drac, agent_pair_type, "drac")
 
             # Store computed features in the state dictionary
             scenario_separations[n] = separation
             scenario_intersections[n] = intersection
             scenario_collisions[n] = collision
             scenario_mttcps[n] = mttcp
+            scenario_inv_mttcps[n] = inv_mttcp
             scenario_thws[n] = thw
+            scenario_inv_thws[n] = inv_thw
             scenario_ttcs[n] = ttc
+            scenario_inv_ttcs[n] = inv_ttc
             scenario_dracs[n] = drac
 
         return Interaction(
@@ -234,8 +342,11 @@ class InteractionFeatures(BaseFeature):
             intersection=scenario_intersections,
             collision=scenario_collisions,
             mttcp=scenario_mttcps,
+            inv_mttcp=scenario_inv_mttcps,
             thw=scenario_thws,
+            inv_thw=scenario_inv_thws,
             ttc=scenario_ttcs,
+            inv_ttc=scenario_inv_ttcs,
             drac=scenario_dracs,
             interaction_status=scenario_interaction_statuses,
             interaction_agent_indices=scenario_agent_pair_indeces,
@@ -274,6 +385,6 @@ class InteractionFeatures(BaseFeature):
 
         return ScenarioFeatures(
             metadata=scenario.metadata,
-            interaction_features=InteractionFeatures.compute_interaction_features(scenario, self.return_criterion),
+            interaction_features=self.compute_interaction_features(scenario),
             agent_to_agent_closest_dists=agent_to_agent_closest_dists,
         )
