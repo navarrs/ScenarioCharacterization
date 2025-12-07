@@ -103,7 +103,7 @@ class IndividualFeatures(BaseFeature):
 
         # Categorize based on ranges
         for category, (lower_bound, upper_bound) in enumerate(pairwise(ranges)):
-            if lower_bound <= value <= upper_bound:
+            if lower_bound <= value < upper_bound:
                 return float(category + 1)  # Categories start from 1
 
         # If value is above the highest range
@@ -199,11 +199,13 @@ class IndividualFeatures(BaseFeature):
 
             # Acceleration/Deceleration Profile
             # NOTE: acc and dec are accumulated abs acceleration and deceleration profiles.
-            _, accelerations, _, decelerations, _ = individual.compute_acceleration_profile(speeds, timestamps)
+            _, accelerations, decelerations = individual.compute_acceleration_profile(speeds, timestamps)
             if accelerations is None or decelerations is None:
                 continue
 
             # Jerk Profile
+            # NOTE: Jerk values are not smoothed, nor they consider differences in the x, y components of velocity,
+            # nor vehicle dynamics. This can lead to high jerk values for noisy data.
             jerks = individual.compute_jerk(speeds, timestamps)
 
             # Waiting period
