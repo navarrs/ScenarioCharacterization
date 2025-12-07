@@ -43,11 +43,11 @@ characterizer:
     # NOTE: if weights are not specified here, will use default values from FeatureWeights in schemas/detections.py.
     weights:
       # Individual features
-      speed: 0.1
+      speed: 1.0
       speed_diff: 1.0
       acceleration: 1.0
       deceleration: 1.0
-      jerk: 1.0
+      jerk: 0.1
       waiting_period: 1.0
       waiting_intervals: 1.0
       waiting_distances: 1.0
@@ -57,11 +57,11 @@ characterizer:
       kalman_difficulty: 1.0
 
       # Interaction features
-      collision: 2.0
+      collision: 4.0
       mttcp: 2.0
-      thw: 1.0
-      ttc: 1.0
-      drac: 0.2
+      thw: 2.0
+      ttc: 2.0
+      drac: 2.0
 
     # NOTE: if detections are not specified here, will use default values from FeatureDetections in schemas/detections.py.
     detections:

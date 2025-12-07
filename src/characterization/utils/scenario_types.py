@@ -15,6 +15,19 @@ class AgentType(Enum):
     TYPE_RELEVANT = 6
 
 
+class AgentPairType(Enum):
+    """Agent Pair Types for WOMD."""
+
+    TYPE_UNSET = 0
+    TYPE_VEHICLE_VEHICLE = 1
+    TYPE_VEHICLE_PEDESTRIAN = 2
+    TYPE_VEHICLE_CYCLIST = 3
+    TYPE_PEDESTRIAN_PEDESTRIAN = 4
+    TYPE_PEDESTRIAN_CYCLIST = 5
+    TYPE_CYCLIST_CYCLIST = 6
+    TYPE_OTHER = 10
+
+
 class LaneType(Enum):
     """Lane Types for WOMD."""
 
@@ -93,3 +106,57 @@ class SignalState(Enum):
     # Flashing light signals.
     LANE_STATE_FLASHING_STOP = 7
     LANE_STATE_FLASHING_CAUTION = 8
+
+
+def get_agent_pair_type(agent_type1: AgentType, agent_type2: AgentType) -> AgentPairType:
+    """Determines the AgentPairType based on two AgentTypes.
+
+    Args:
+        agent_type1 (AgentType): The first agent type.
+        agent_type2 (AgentType): The second agent type.
+
+    Returns:
+        AgentPairType: The determined agent pair type.
+    """
+    # Possible vehicle-to-vehicle combinations
+    agent_pair_type = AgentPairType.TYPE_OTHER  # Default return value
+    if (
+        (agent_type1 == AgentType.TYPE_EGO_AGENT and agent_type2 == AgentType.TYPE_VEHICLE)
+        or (agent_type1 == AgentType.TYPE_VEHICLE and agent_type2 == AgentType.TYPE_EGO_AGENT)
+        or (agent_type1 == AgentType.TYPE_VEHICLE and agent_type2 == AgentType.TYPE_VEHICLE)
+    ):
+        agent_pair_type = AgentPairType.TYPE_VEHICLE_VEHICLE
+
+    # Posible vehicle-to-pedestrian combinations
+    if (
+        (agent_type1 == AgentType.TYPE_EGO_AGENT and agent_type2 == AgentType.TYPE_PEDESTRIAN)
+        or (agent_type1 == AgentType.TYPE_PEDESTRIAN and agent_type2 == AgentType.TYPE_EGO_AGENT)
+        or (agent_type1 == AgentType.TYPE_VEHICLE and agent_type2 == AgentType.TYPE_PEDESTRIAN)
+        or (agent_type1 == AgentType.TYPE_PEDESTRIAN and agent_type2 == AgentType.TYPE_VEHICLE)
+    ):
+        agent_pair_type = AgentPairType.TYPE_VEHICLE_PEDESTRIAN
+
+    # Possible vehicle-to-cyclist combinations
+    if (
+        (agent_type1 == AgentType.TYPE_EGO_AGENT and agent_type2 == AgentType.TYPE_CYCLIST)
+        or (agent_type1 == AgentType.TYPE_CYCLIST and agent_type2 == AgentType.TYPE_EGO_AGENT)
+        or (agent_type1 == AgentType.TYPE_VEHICLE and agent_type2 == AgentType.TYPE_CYCLIST)
+        or (agent_type1 == AgentType.TYPE_CYCLIST and agent_type2 == AgentType.TYPE_VEHICLE)
+    ):
+        agent_pair_type = AgentPairType.TYPE_VEHICLE_CYCLIST
+
+    # Possible pedestrian-to-pedestrian combinations
+    if agent_type1 == AgentType.TYPE_PEDESTRIAN and agent_type2 == AgentType.TYPE_PEDESTRIAN:
+        agent_pair_type = AgentPairType.TYPE_PEDESTRIAN_PEDESTRIAN
+
+    # Possible pedestrian-to-cyclist combinations
+    if (agent_type1 == AgentType.TYPE_PEDESTRIAN and agent_type2 == AgentType.TYPE_CYCLIST) or (
+        agent_type1 == AgentType.TYPE_CYCLIST and agent_type2 == AgentType.TYPE_PEDESTRIAN
+    ):
+        agent_pair_type = AgentPairType.TYPE_PEDESTRIAN_CYCLIST
+
+    # Possible cyclist-to-cyclist combinations
+    if agent_type1 == AgentType.TYPE_CYCLIST and agent_type2 == AgentType.TYPE_CYCLIST:
+        agent_pair_type = AgentPairType.TYPE_CYCLIST_CYCLIST
+
+    return agent_pair_type

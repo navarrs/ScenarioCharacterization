@@ -78,6 +78,7 @@ class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         agent_to_agent_distance_breach (float | None): Distance threshold for considering an agent's distance to another
             agent as a breach / close-call.
         heading_threshold (float | None): Threshold for the heading difference between agents.
+        agent_max_deceleration (float | None): Maximum deceleration threshold for an agent.
     """
 
     scenario_id: str
@@ -99,10 +100,11 @@ class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     max_straight_absolute_heading_diff: float = 30.0  # degrees
 
     # Optional thresholds for scenario characterization
-    agent_to_agent_max_distance: float = 50.0  # meters
-    agent_to_conflict_point_max_distance: float = 2.0  # meters
+    agent_to_agent_max_distance: float = 100.0  # meters
+    agent_to_conflict_point_max_distance: float = 10.0  # meters
     agent_to_agent_distance_breach: float = 0.5  # meters
     heading_threshold: float = 45.0  # degrees
+    agent_max_deceleration: float = 15.0  # m/s^2
 
     # To allow numpy and other arbitrary types in the model
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}

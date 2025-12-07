@@ -11,9 +11,10 @@ import seaborn as sns
 from numpy.typing import NDArray
 from rich.progress import track
 
-from characterization.schemas import Individual, ScenarioFeatures, ScenarioScores
+from characterization.schemas import Individual, Interaction, ScenarioFeatures, ScenarioScores
+from characterization.utils.common import BIG_EPS, SMALL_EPS, InteractionStatus
 from characterization.utils.io_utils import from_pickle, get_logger
-from characterization.utils.scenario_types import AgentType
+from characterization.utils.scenario_types import AgentPairType, AgentType, get_agent_pair_type
 
 logger = get_logger(__name__)
 
@@ -329,6 +330,84 @@ def regroup_individual_features(individual_features: dict[str, Any]) -> dict[Age
     return regrouped_features
 
 
+def regroup_interaction_features(interaction_features: dict[str, Any]) -> dict[AgentPairType, Any]:
+    """Regroups interaction features by agent type.
+
+    Args:
+        interaction_features (dict[str, Any]): Dictionary containing interaction features with scenario IDs.
+
+    Returns:
+        dict[AgentType, Any]: Dictionary mapping each AgentType to its corresponding features.
+    """
+
+    def _init_empty() -> dict[str, list[float]]:
+        """Initializes an empty feature dictionary for each agent type."""
+        return {
+            "inv_separation": [],
+            "separation": [],
+            "intersection": [],
+            "collision": [],
+            "inv_mttcp": [],
+            "mttcp": [],
+            "inv_thw": [],
+            "thw": [],
+            "inv_ttc": [],
+            "ttc": [],
+            "drac": [],
+        }
+
+    def _append_feature(
+        feature_dict: dict[AgentPairType, Any], feature: Interaction, index: int, agent_pair: AgentPairType
+    ) -> None:
+        """Extends features to the corresponding agent type in the feature dictionary."""
+        if feature.separation is not None:
+            feature_dict[agent_pair]["inv_separation"].append(1 / (feature.separation[index] + SMALL_EPS))
+            feature_dict[agent_pair]["separation"].append(feature.separation[index])
+        if feature.intersection is not None:
+            feature_dict[agent_pair]["intersection"].append(feature.intersection[index])
+        if feature.collision is not None:
+            feature_dict[agent_pair]["collision"].append(feature.collision[index])
+        if feature.mttcp is not None:
+            inv_mttcp = min(1 / (feature.mttcp[index] + SMALL_EPS), 10.0)  # Cap at 10.0 for stability
+            feature_dict[agent_pair]["inv_mttcp"].append(inv_mttcp)
+            feature_dict[agent_pair]["mttcp"].append(feature.mttcp[index])
+        if feature.thw is not None:
+            inv_thw = min(1 / (feature.thw[index] + SMALL_EPS), 10.0)  # Cap at 10.0 for stability
+            feature_dict[agent_pair]["inv_thw"].append(inv_thw)
+            feature_dict[agent_pair]["thw"].append(feature.thw[index])
+        if feature.ttc is not None:
+            inv_ttc = min(1 / (feature.ttc[index] + SMALL_EPS), 10.0)  # Cap at 10.0 for stability
+            feature_dict[agent_pair]["inv_ttc"].append(inv_ttc)
+            feature_dict[agent_pair]["ttc"].append(feature.ttc[index])
+        if feature.drac is not None:
+            feature_dict[agent_pair]["drac"].append(feature.drac[index])
+
+    regrouped_features = {
+        agent_pair: _init_empty() for agent_pair in AgentPairType if agent_pair != AgentPairType.TYPE_UNSET
+    }
+
+    for _, features in zip(interaction_features["scenario_ids"], interaction_features["features"], strict=False):
+        interaction_agent_types = features.interaction_agent_types
+        interaction_status = features.interaction_status
+        if interaction_agent_types is None or interaction_status is None:
+            continue
+
+        for i, (agent_types, status) in enumerate(zip(interaction_agent_types, interaction_status, strict=False)):
+            if status not in [InteractionStatus.COMPUTED_OK, InteractionStatus.PARTIAL_INVALID_HEADING]:
+                continue
+            agent_pair_type = get_agent_pair_type(agent_types[0], agent_types[1])
+            _append_feature(regrouped_features, features, i, agent_pair_type)
+
+    for key in regrouped_features:  # noqa: PLC0206
+        for feature_name in regrouped_features[key]:
+            regrouped_features[key][feature_name] = np.array(  # pyright: ignore[reportArgumentType]
+                regrouped_features[key][feature_name], dtype=np.float32
+            )
+            regrouped_features[key][feature_name][np.isinf(regrouped_features[key][feature_name])] = BIG_EPS
+
+    return regrouped_features
+
+
 def compute_jaccard_index(set1: set[Any], set2: set[Any]) -> float:
     """Calculates the Jaccard index between two sets.
 
@@ -391,10 +470,23 @@ def get_scenario_splits(
     return scenario_splits
 
 
+def _filter_percentiles(percentile_values: list[int], percentiles: list[float]) -> tuple[list[int], list[float]]:
+    """Filters percentiles to keep only those where the value changes from the previous one."""
+    filtered_percentiles = []
+    filtered_percentile_values = []
+    prev_value = None
+    for p, v in zip(percentile_values, percentiles, strict=False):
+        if prev_value is None or v != prev_value:
+            filtered_percentile_values.append(p)
+            filtered_percentiles.append(v)
+            prev_value = v
+    return filtered_percentile_values, filtered_percentiles
+
+
 def plot_feature_distributions(
-    feature_data: dict[AgentType, Any],
+    feature_data: dict[AgentType, Any] | dict[AgentPairType, Any],
     output_dir: Path,
-    dpi: int = 100,
+    dpi: int = 300,
     percentile_values: list[int] = [1, 10, 25, 50, 75, 90, 95, 99],  # noqa: B006
 ) -> None:
     """Plots the distribution of a feature using a histogram and density curve.
@@ -407,11 +499,13 @@ def plot_feature_distributions(
     """
     feature_percentiles = {}
     for agent_type, features in feature_data.items():
-        num_features = len(features)
-        _, axs = plt.subplots(1, num_features, figsize=(8 * num_features, 6))
+        if agent_type == AgentPairType.TYPE_OTHER:
+            continue
 
         for feature_name, feature_values in features.items():
-            ax = axs if num_features == 1 else axs[list(features.keys()).index(feature_name)]
+            logger.info("Plotting %s for %s with %d samples", feature_name, agent_type.name, feature_values.shape[0])
+
+            _, ax = plt.subplots(1, 1, figsize=(10, 6))
             sns.histplot(
                 feature_values,
                 color=FEATURE_COLOR_MAP.get(feature_name, "gray"),
@@ -423,22 +517,25 @@ def plot_feature_distributions(
             )
 
             sns.despine(top=True, right=True)
-
             ax.set_xlabel(f"{feature_name} values")
             ax.set_ylabel("Density")
             ax.set_title(f"{feature_name} Distribution ({feature_values.shape[0]} samples)")
             ax.grid(visible=True, linestyle="--", alpha=0.4)
 
             percentiles = np.percentile(feature_values, percentile_values)
-            feature_percentiles[feature_name] = dict(zip(percentile_values, percentiles, strict=False))
-            for p, v in zip(percentile_values, percentiles, strict=False):
+            filtered_percentile_values, filtered_percentiles = _filter_percentiles(percentile_values, percentiles)
+
+            feature_percentiles[feature_name] = dict(
+                zip(filtered_percentile_values, filtered_percentiles, strict=False)
+            )
+            for p, v in zip(filtered_percentile_values, filtered_percentiles, strict=False):
                 ax.axvline(v, color="black", linestyle="--", alpha=0.6)
                 ax.text(v, ax.get_ylim()[1] * 0.9, f"{p}th: {v:.2f}", rotation=90, verticalalignment="center")
 
-        plt.tight_layout()
-        output_filepath = output_dir / f"{agent_type.name.lower()}_distributions.png"
-        plt.savefig(output_filepath, dpi=dpi)
-        plt.close()
+            plt.tight_layout()
+            output_filepath = output_dir / f"{feature_name}_{agent_type.name.lower()}_distributions.png"
+            plt.savefig(output_filepath, dpi=dpi)
+            plt.close()
 
         output_filepath = output_dir / f"{agent_type.name.lower()}_feature_percentiles.json"
         with open(output_filepath, "w") as f:
@@ -466,6 +563,7 @@ def plot_agent_scores_distributions(
         agent_scores_flattened = []
         for scores in values:
             agent_scores_flattened.extend(scores.tolist())
+        agent_scores_flattened = [score for score in agent_scores_flattened if score >= 0]
 
         _, ax = plt.subplots(figsize=(10, 6))
         sns.histplot(
@@ -486,7 +584,11 @@ def plot_agent_scores_distributions(
         ax.grid(visible=True, linestyle="--", alpha=0.4)
 
         percentiles = np.percentile(agent_scores_flattened, percentile_values).tolist()
-        score_percentiles = dict(zip(percentile_values, percentiles, strict=False))
+
+        # Only keep percentiles where the value changes from the previous one
+        filtered_percentile_values, filtered_percentiles = _filter_percentiles(percentile_values, percentiles)
+
+        score_percentiles = dict(zip(filtered_percentile_values, filtered_percentiles, strict=False))
         for p, v in score_percentiles.items():
             ax.axvline(float(v), color="black", linestyle="--", alpha=0.6)
             ax.text(float(v), ax.get_ylim()[1] * 0.9, f"{p}th: {v:.2f}", rotation=90, verticalalignment="center")

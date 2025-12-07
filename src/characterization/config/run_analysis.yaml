@@ -11,8 +11,8 @@ scenario_types:
   # - ho
 
 criteria:
-  - critical_categorical
-  # - critical_continuous
+  # - critical_categorical
+  - critical_continuous
   # - average
 
 scores:
@@ -38,7 +38,7 @@ tag: 'full'
 
 
 # Scenario Visualization Parameters
-total_scenarios: 10
+total_scenarios: null
 scenario_viz_dir: ${output_dir}/scenario_viz
 viz_scored_scenarios: true
 scores_tag: 'gt_critical_categorical'

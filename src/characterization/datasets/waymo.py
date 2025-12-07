@@ -57,14 +57,14 @@ class WaymoData(BaseDataset):
         logger.info("Loading WOMD scenario base data from %s", self.scenario_base_path)
         with open(self.scenario_meta_path, "rb") as f:
             self.data.metas = pickle.load(f)[:: self.step]  # nosec B301
-        self.data.scenarios_ids = natsorted([f"sample_{x['scenario_id']}.pkl" for x in self.data.metas])
         self.data.scenarios = natsorted(
-            [f"{self.scenario_base_path}/sample_{x['scenario_id']}.pkl" for x in self.data.metas],
+            [f"{self.scenario_base_path}/{x['scenario_id']}.pkl" for x in self.data.metas],
         )
-        logger.info("Loading data took %2f seconds.", time.time() - start)
+        logger.info("Loading the metadata took %2f seconds.", time.time() - start)
 
         # TODO: remove this
         self.shard()
+        self.compute_metadata()
 
     def repack_agent_data(self, agent_data: dict[str, Any], ego_index: int) -> AgentData:
         """Packs agent information from Waymo format to AgentData format.

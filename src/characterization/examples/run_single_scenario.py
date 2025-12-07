@@ -5,7 +5,7 @@ from omegaconf import DictConfig
 
 from characterization.features.individual_features import IndividualFeatures
 from characterization.scorer.individual_scorer import IndividualScorer
-from characterization.utils.datasets.waymo import WaymoData
+from characterization.datasets.waymo import WaymoData
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 

@@ -43,9 +43,17 @@ def run(cfg: DictConfig) -> None:
         msg = f"No valid scenarios found in {cfg.features_path} for {cfg.scenario_types} and criteria {cfg.criteria}"
         raise ValueError(msg)
 
+    total_scenarios = (
+        min(len(scenario_ids), cfg.total_scenarios)
+        if cfg.total_scenarios and cfg.total_scenarios > 0
+        else len(scenario_ids)
+    )
+    logger.info("Found %d valid scenarios for analysis. Using %d scenarios.", len(scenario_ids), total_scenarios)
+    scenario_ids = scenario_ids[:total_scenarios]
+
     # Generate score histogram and density plot
     logger.info("Loading the features")
-    individual_features, _ = analysis_utils.load_scenario_features(
+    individual_features, interaction_features = analysis_utils.load_scenario_features(
         scenario_ids,
         cfg.scenario_types,
         cfg.criteria,
@@ -57,6 +65,12 @@ def run(cfg: DictConfig) -> None:
 
     logger.info("Visualizing feature distribution for individual features.")
     analysis_utils.plot_feature_distributions(individual_features, output_dir, cfg.dpi)
+
+    logger.info("Re-grouping interaction features by agent-pair type")
+    interaction_features = analysis_utils.regroup_interaction_features(interaction_features)
+
+    logger.info("Visualizing feature distribution for interaction features.")
+    analysis_utils.plot_feature_distributions(interaction_features, output_dir, cfg.dpi)
 
 
 if __name__ == "__main__":

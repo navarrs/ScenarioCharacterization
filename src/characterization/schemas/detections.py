@@ -100,7 +100,7 @@ class FeatureWeights(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     speed_limit_diff: float = 1.0
     acceleration: float = 1.0
     deceleration: float = 1.0
-    jerk: float = 1.0
+    jerk: float = 0.1
     waiting_period: float = 1.0
     waiting_intervals: float = 1.0
     waiting_distances: float = 1.0
