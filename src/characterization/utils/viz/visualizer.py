@@ -68,11 +68,12 @@ class BaseVisualizer(ABC):
         }
 
         self.agent_colors = {
-            AgentType.TYPE_PEDESTRIAN: "plum",
-            AgentType.TYPE_VEHICLE: "slategray",
-            AgentType.TYPE_CYCLIST: "forestgreen",
-            AgentType.TYPE_EGO_AGENT: "dodgerblue",
             AgentType.TYPE_UNSET: "gray",
+            AgentType.TYPE_VEHICLE: "slategray",
+            AgentType.TYPE_PEDESTRIAN: "plum",
+            AgentType.TYPE_CYCLIST: "forestgreen",
+            AgentType.TYPE_OTHER: "gray",
+            AgentType.TYPE_EGO_AGENT: "dodgerblue",
             AgentType.TYPE_RELEVANT: "coral"
         }
 
@@ -248,7 +249,7 @@ class BaseVisualizer(ABC):
             heading = ahead[end_timestep]
             length = alen[end_timestep]
             width = awid[end_timestep]
-            color = self.agent_colors[atype]
+            color = self.agent_colors.get(atype, self.agent_colors[AgentType.TYPE_UNSET])
 
             # Plot the trajectory
             ax.plot(pos[:, 0], pos[:, 1], color=color, linewidth=2, alpha=score)
