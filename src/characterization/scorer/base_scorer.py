@@ -57,7 +57,7 @@ class BaseScorer(ABC):
             scenario_features (ScenarioFeatures): ScenarioFeatures object containing agent-to-agent closest distances.
 
         Returns:
-            np.ndarray: The computed weights for each agent.
+            NDArray[np.float32]: The computed weights for each agent.
         """
         if scenario.agent_data.num_agents == 1:
             agent_relevance = scenario.agent_data.agent_relevance

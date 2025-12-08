@@ -12,8 +12,8 @@ def is_sharing_lane(lane_i: NDArray[np.float32] | None, lane_j: NDArray[np.float
     """Checks if two agents are sharing the same lane.
 
     Args:
-        lane_i (np.ndarray or None): The lane of the first agent.
-        lane_j (np.ndarray or None): The lane of the second agent.
+        lane_i (NDArray[np.float32] | None): The lane of the first agent.
+        lane_j (NDArray[np.float32] | None): The lane of the second agent.
 
     Returns:
         bool: True if both agents are sharing the same lane, False otherwise.
@@ -63,7 +63,7 @@ def find_leading_agent(
     Args:
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
-        mask (np.ndarray or None): Optional mask to filter positions.
+        mask (NDArray[np.bool_] | None): Optional mask to filter positions.
         angle_threshold (float): Angle threshold in degrees to determine if one agent is behind the other.
 
     Returns:
@@ -196,9 +196,9 @@ def compute_mttcp(
 def compute_thw(
     agent_i: InteractionAgent,
     agent_j: InteractionAgent,
-    leading_agent: np.ndarray,
-    valid_headings: np.ndarray | None = None,
-) -> np.ndarray:
+    leading_agent: NDArray[np.int32],
+    valid_headings: NDArray[np.bool_] | None = None,
+) -> NDArray[np.float32]:
     """Computes the following leader-follower interaction measurements.
 
         Time Headway (THW):
@@ -210,11 +210,11 @@ def compute_thw(
     Args:
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
-        leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
-        valid_headings (np.ndarray | None): Optional mask to filter valid headings.
+        leading_agent (NDArray[np.int32]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
+        valid_headings (NDArray[np.bool_] | None): Optional mask to filter valid headings.
 
     Returns:
-        np.ndarray: Array of time headway values for each timestep (shape: [T,]).
+        thw (NDArray[np.float32]): Array of time headway values for each timestep (shape: [T,]).
     """
     position_i, position_j = np.linalg.norm(agent_i.position, axis=-1), np.linalg.norm(agent_j.position, axis=-1)
     speed_i, speed_j = agent_i.speed, agent_j.speed
@@ -248,9 +248,9 @@ def compute_thw(
 def compute_ttc(
     agent_i: InteractionAgent,
     agent_j: InteractionAgent,
-    leading_agent: np.ndarray,
-    valid_headings: np.ndarray | None = None,
-) -> np.ndarray:
+    leading_agent: NDArray[np.int32],
+    valid_headings: NDArray[np.bool_] | None = None,
+) -> NDArray[np.float32]:
     """Computes the following leader-follower interaction measurement.
 
         Time-to-Collision (TTC):
@@ -265,11 +265,11 @@ def compute_ttc(
     Args:
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
-        leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
-        valid_headings (np.ndarray | None): Optional mask to filter valid headings.
+        leading_agent (NDArray[np.int32]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
+        valid_headings (NDArray[np.bool_] | None): Optional mask to filter valid headings.
 
     Returns:
-        np.ndarray: Array of time-to-collision values for each timestep (shape: [T,]).
+        ttc (NDArray[np.float32]): Array of time-to-collision values for each timestep (shape: [T,]).
     """
     position_i, position_j = np.linalg.norm(agent_i.position, axis=-1), np.linalg.norm(agent_j.position, axis=-1)
     speed_i, speed_j = agent_i.speed, agent_j.speed
@@ -306,10 +306,10 @@ def compute_ttc(
 def compute_drac(
     agent_i: InteractionAgent,
     agent_j: InteractionAgent,
-    leading_agent: np.ndarray,
-    valid_headings: np.ndarray | None = None,
+    leading_agent: NDArray[np.int32],
+    valid_headings: NDArray[np.bool_] | None = None,
     max_deceleration: float = MAX_DECELERATION,
-) -> np.ndarray:
+) -> NDArray[np.float32]:
     """Computes the following leader-follower interaction measurement.
 
         Deceleration Rate to Avoid a Crash (DRAC):
@@ -323,12 +323,12 @@ def compute_drac(
     Args:
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
-        leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
-        valid_headings (np.ndarray | None): Optional mask to filter valid headings.
+        leading_agent (NDArray[np.int32]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
+        valid_headings (NDArray[np.bool_] | None): Optional mask to filter valid headings.
         max_deceleration (float): Maximum deceleration value to clip DRAC values.
 
     Returns:
-        np.ndarray: Array of time-to-collision values for each timestep (shape: [T,]).
+        drac (NDArray[np.float32]): Array of time-to-collision values for each timestep (shape: [T,]).
     """
     position_i, position_j = np.linalg.norm(agent_i.position, axis=-1), np.linalg.norm(agent_j.position, axis=-1)
     speed_i, speed_j = agent_i.speed, agent_j.speed

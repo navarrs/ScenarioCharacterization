@@ -134,7 +134,7 @@ class AgentTrajectoryMasker:
         """Initializes the AgentTrajectoryMasker with trajectory data.
 
         Args:
-            trajectory (np.ndarray): The trajectory data of shape (N, T, D=10) or (T, D=10).
+            trajectory (NDArray[np.float32]): The trajectory data of shape (N, T, D=10) or (T, D=10).
         """
         self._agent_trajectory = trajectory
 
@@ -251,7 +251,7 @@ class LaneMasker:
         """Initializes the LaneMasker with lane to agent metadata.
 
         Args:
-            lane_to_agent_metadata (np.ndarray): The lane to agent metadata of shape (N, T, D=6) or (T, D=6).
+            lane_to_agent_metadata (NDArray[np.float32]): The lane to agent metadata of shape (N, T, D=6) or (T, D=6).
         """
         self._lane_to_agent_metadata = lane_to_agent_metadata
 
@@ -300,86 +300,86 @@ class InteractionAgent:
         self.reset()
 
     @property
-    def position(self) -> np.ndarray:
-        """np.ndarray: The positions of the agent over time (shape: [T, 2])."""
+    def position(self) -> NDArray[np.float32]:
+        """NDArray[np.float32]: The positions of the agent over time (shape: [T, 2])."""
         return self._position
 
     @position.setter
-    def position(self, value: np.ndarray) -> None:
+    def position(self, value: NDArray[np.float32]) -> None:
         """Sets the positions of the agent.
 
         Args:
-            value (np.ndarray): The positions of the agent over time (shape: [T, 2]).
+            value (NDArray[np.float32]): The positions of the agent over time (shape: [T, 2]).
         """
         self._position = np.asarray(value, dtype=np.float32)
 
     @property
-    def speed(self) -> np.ndarray:
-        """np.ndarray: The velocities of the agent over time (shape: [T,])."""
+    def speed(self) -> NDArray[np.float32]:
+        """NDArray[np.float32]: The velocities of the agent over time (shape: [T,])."""
         return self._speed
 
     @speed.setter
-    def speed(self, value: np.ndarray) -> None:
+    def speed(self, value: NDArray[np.float32]) -> None:
         """Sets the velocities of the agent.
 
         Args:
-            value (np.ndarray): The velocities of the agent over time (shape: [T,]).
+            value (NDArray[np.float32]): The velocities of the agent over time (shape: [T,]).
         """
         self._speed = np.asarray(value, dtype=np.float32)
 
     @property
-    def heading(self) -> np.ndarray:
-        """np.ndarray: The headings of the agent over time (shape: [T,])."""
+    def heading(self) -> NDArray[np.float32]:
+        """NDArray[np.float32]: The headings of the agent over time (shape: [T,])."""
         return self._heading
 
     @heading.setter
-    def heading(self, value: np.ndarray) -> None:
+    def heading(self, value: NDArray[np.float32]) -> None:
         """Sets the headings of the agent.
 
         Args:
-            value (np.ndarray): The headings of the agent over time (shape: [T,]).
+            value (NDArray[np.float32]): The headings of the agent over time (shape: [T,]).
         """
         self._heading = np.asarray(value, dtype=np.float32)
 
     @property
-    def length(self) -> np.ndarray:
-        """np.ndarray: The lengths of the agent over time (shape: [T,])."""
+    def length(self) -> NDArray[np.float32]:
+        """NDArray[np.float32]: The lengths of the agent over time (shape: [T,])."""
         return self._length
 
     @length.setter
-    def length(self, value: np.ndarray) -> None:
+    def length(self, value: NDArray[np.float32]) -> None:
         """Sets the lengths of the agent.
 
         Args:
-            value (np.ndarray): The lengths of the agent over time (shape: [T,]).
+            value (NDArray[np.float32]): The lengths of the agent over time (shape: [T,]).
         """
         self._length = np.asarray(value, dtype=np.float32)
 
     @property
-    def width(self) -> np.ndarray:
-        """np.ndarray: The widths of the agent over time (shape: [T,])."""
+    def width(self) -> NDArray[np.float32]:
+        """NDArray[np.float32]: The widths of the agent over time (shape: [T,])."""
         return self._width
 
     @width.setter
-    def width(self, value: np.ndarray) -> None:
+    def width(self, value: NDArray[np.float32]) -> None:
         """Sets the widths of the agent.
 
         Args:
-            value (np.ndarray): The widths of the agent over time (shape: [T,]).
+            value (NDArray[np.float32]): The widths of the agent over time (shape: [T,]).
         """
         self._width = np.asarray(value, dtype=np.float32)
 
     @property
-    def height(self) -> np.ndarray:
-        """np.ndarray: The heights of the agent over time (shape: [T,])."""
+    def height(self) -> NDArray[np.float32]:
+        """NDArray[np.float32]: The heights of the agent over time (shape: [T,])."""
         return self._height
 
     @height.setter
-    def height(self, value: np.ndarray) -> None:
+    def height(self, value: NDArray[np.float32]) -> None:
         """Sets the heights of the agent.
 
         Args:
-            value (np.ndarray): The heights of the agent over time (shape: [T,]).
+            value (NDArray[np.float32]): The heights of the agent over time (shape: [T,]).
         """
         self._height = np.asarray(value, dtype=np.float32)
 
@@ -440,30 +440,30 @@ class InteractionAgent:
         self._agent_to_conflict_point_max_distance = value
 
     @property
-    def dists_to_conflict(self) -> np.ndarray:
-        """np.ndarray: The distances to conflict points (shape: [T,])."""
+    def dists_to_conflict(self) -> NDArray[np.float32]:
+        """NDArray[np.float32]: The distances to conflict points (shape: [T,])."""
         return self._dists_to_conflict
 
     @dists_to_conflict.setter
-    def dists_to_conflict(self, value: np.ndarray) -> None:
+    def dists_to_conflict(self, value: NDArray[np.float32] | None) -> None:
         """Sets the distances to conflict points.
 
         Args:
-            value (np.ndarray | None): The distances to conflict points (shape: [T,]).
+            value (NDArray[np.float32] | None): The distances to conflict points (shape: [T,]).
         """
         self._dists_to_conflict = np.asarray(value, dtype=np.float32)
 
     @property
-    def lane(self) -> np.ndarray | None:
-        """np.ndarray or None: The lane of the agent, if available."""
+    def lane(self) -> NDArray[np.float32] | None:
+        """NDArray[np.float32] or None: The lane of the agent, if available."""
         return self._lane
 
     @lane.setter
-    def lane(self, value: np.ndarray | None) -> None:
+    def lane(self, value: NDArray[np.float32] | None) -> None:
         """Sets the lane of the agent.
 
         Args:
-            value (np.ndarray or None): The lane of the agent, if available.
+            value (NDArray[np.float32] | None): The lane of the agent, if available.
         """
         if value is not None:
             self._lane = np.asarray(value, dtype=np.float32)
