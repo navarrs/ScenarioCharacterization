@@ -136,10 +136,10 @@ def get_polyline_dir(polyline):
     """Computes direction vectors for each segment of a polyline.
 
     Args:
-        polyline (np.ndarray): Array of polyline points (shape: [N, 3]).
+        polyline (NDArray[np.float64]): Array of polyline points (shape: [N, 3]).
 
     Returns:
-        np.ndarray: Array of direction vectors (shape: [N, 3]).
+        NDArray[np.float64]: Array of direction vectors (shape: [N, 3]).
     """
     polyline_pre = np.roll(polyline, shift=1, axis=0)
     polyline_pre[0] = polyline[0]

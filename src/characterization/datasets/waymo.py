@@ -5,6 +5,7 @@ from typing import Any
 
 import numpy as np
 from natsort import natsorted
+from numpy.typing import NDArray
 from omegaconf import DictConfig
 
 from characterization.datasets.base_dataset import BaseDataset
@@ -97,17 +98,17 @@ class WaymoData(BaseDataset):
         return AgentData(agent_ids=object_ids, agent_types=object_types, agent_trajectories=trajectories)
 
     @staticmethod
-    def get_polyline_ids(polyline: dict[str, Any], key: str) -> np.ndarray:
+    def get_polyline_ids(polyline: dict[str, Any], key: str) -> NDArray[np.int32]:
         """Extracts polyline indices from the polyline dictionary."""
         return np.array([value["id"] for value in polyline[key]], dtype=np.int32)
 
     @staticmethod
-    def get_speed_limit_mph(polyline: dict[str, Any], key: str) -> np.ndarray:
+    def get_speed_limit_mph(polyline: dict[str, Any], key: str) -> NDArray[np.float32]:
         """Extracts speed limit in mph from the polyline dictionary."""
         return np.array([value["speed_limit_mph"] for value in polyline[key]], dtype=np.float32)
 
     @staticmethod
-    def get_polyline_idxs(polyline: dict[str, Any], key: str) -> np.ndarray | None:
+    def get_polyline_idxs(polyline: dict[str, Any], key: str) -> NDArray[np.int32] | None:
         """Extracts polyline start and end indices from the polyline dictionary."""
         polyline_idxs = np.array(
             [[value["polyline_index"][0], value["polyline_index"][1]] for value in polyline[key]],
