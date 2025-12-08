@@ -22,5 +22,7 @@ scenario_type: 'gt'
 return_criterion: 'critical'
 feature_type: 'continuous' # 'categorical' or 'continuous'
 ego_only: false
-score_wrt_ego_only: false
+score_wrt_ego_only: true
+reduce_distance_penalty: true
 aggregated_score_weight: 0.5
+categorize_scores: false

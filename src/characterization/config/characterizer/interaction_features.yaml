@@ -16,11 +16,3 @@ processor:
 
 characterizer:
   _target_: characterization.features.interaction_features.InteractionFeatures
-  config:
-    feature_type: ${feature_type}
-    vehicle_vehicle_categorization_file: ./meta/type_vehicle_vehicle_feature_percentiles.json
-    vehicle_pedestrian_categorization_file: ./meta/type_vehicle_pedestrian_feature_percentiles.json
-    vehicle_cyclist_categorization_file: ./meta/type_vehicle_cyclist_feature_percentiles.json
-    pedestrian_pedestrian_categorization_file: ./meta/type_pedestrian_pedestrian_feature_percentiles.json
-    pedestrian_cyclist_categorization_file: ./meta/type_pedestrian_cyclist_feature_percentiles.json
-    cyclist_cyclist_categorization_file: ./meta/type_cyclist_cyclist_feature_percentiles.json

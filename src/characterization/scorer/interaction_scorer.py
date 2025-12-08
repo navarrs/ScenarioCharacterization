@@ -75,6 +75,7 @@ class InteractionScorer(BaseScorer):
             agent_pair_score = self.score_function(
                 collision=features.collision[n] if features.collision is not None else 0.0,
                 collision_weight=self.weights.collision,
+                collision_detection=self.detections.collision,
                 mttcp=features.mttcp[n] if features.mttcp is not None else np.inf,
                 mttcp_weight=self.weights.mttcp,
                 mttcp_detection=self.detections.mttcp,

@@ -18,6 +18,7 @@ class FeatureDetections(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         thw (float): Time headway threshold in seconds.
         ttc (float): Time to collision threshold in seconds.
         drac (float): Deceleration rate to avoid collision threshold in m/s^2.
+        collision (float): Collision threshold.
     """
 
     # NOTE: While speed detection values are largely dependent on the context (ie.., urban vs rural vs highways, etc),
@@ -53,6 +54,8 @@ class FeatureDetections(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     # NOTE: Detection value for deceleration rate to avoid a collision, which accounts for other agent vehicle is set
     # from https://arxiv.org/pdf/2202.07438 (Table 3) with k=1
     drac: float = 3.0  # in m/s^2
+    # NOTE: Collision detection threshold
+    collision: float = 1.0
 
     @classmethod
     def from_dict(cls, data: dict[str, float] | None) -> "FeatureDetections":

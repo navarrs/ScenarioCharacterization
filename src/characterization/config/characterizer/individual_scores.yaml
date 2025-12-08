@@ -10,5 +10,3 @@ processor:
 
 characterizer:
   _target_: characterization.scorer.individual_scorer.IndividualScorer
-  config:
-    individual_score_function: simple

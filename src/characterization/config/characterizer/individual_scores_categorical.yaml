@@ -11,15 +11,12 @@ processor:
 characterizer:
   _target_: characterization.scorer.individual_scorer.IndividualScorer
   config:
-    score_wrt_ego_only: true
-    reduce_distance_penalty: true
-
-    categorize_scores: true
+    categorize_scores: ${categorize_scores}
     categorization_file: ./meta/${scenario_type}_${return_criterion}_${feature_type}_individual.json
 
     score_clip:
       min: 0.0
-      max: 100.0
+      max: 60.0
 
     # NOTE: if weights are not specified here, will use default values from FeatureWeights in schemas/detections.py.
     weights:
@@ -38,10 +35,10 @@ characterizer:
     # Detections here are in percentile categories
     # 1: 0, 10: 1, 25: 2, 50: 3, 75: 4, 90: 5, 95: 6, 99: 7, 100: 8
     detections:
-      speed: 1
-      speed_limit_diff: 1
-      acceleration: 1
-      deceleration: 1
-      jerk: 1
-      waiting_period: 1
-      kalman_difficulty: 1
+      speed: 8
+      speed_limit_diff: 8
+      acceleration: 8
+      deceleration: 8
+      jerk: 8
+      waiting_period: 8
+      kalman_difficulty: 8
