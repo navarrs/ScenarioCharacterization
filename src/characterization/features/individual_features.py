@@ -1,3 +1,7 @@
+import json
+from itertools import pairwise
+from pathlib import Path
+
 import numpy as np
 from omegaconf import DictConfig
 
@@ -7,11 +11,13 @@ from characterization.schemas import Individual, Scenario, ScenarioFeatures
 from characterization.utils.common import (
     MIN_VALID_POINTS,
     AgentTrajectoryMasker,
+    FeatureType,
     LaneMasker,
     ReturnCriterion,
 )
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
+from characterization.utils.scenario_types import AgentType
 
 logger = get_logger(__name__)
 
@@ -42,8 +48,68 @@ class IndividualFeatures(BaseFeature):
         """
         super().__init__(config)
 
-    @staticmethod
-    def compute_individual_features(scenario: Scenario, return_criterion: ReturnCriterion) -> Individual:
+        self.categorize_features = FeatureType(self.config.get("feature_type", "continuous")) == FeatureType.CATEGORICAL
+        if self.categorize_features:
+            vehicle_file = Path(self.config.get("vehicle_categorization_file", ""))
+            assert vehicle_file.is_file(), f"Vehicle categorization file {vehicle_file} does not exist."
+            with vehicle_file.open("r") as f:
+                self.vehicle_categories = json.load(f)
+
+            cyclist_file = Path(self.config.get("cyclist_categorization_file", ""))
+            assert cyclist_file.is_file(), f"Cyclist categorization file {cyclist_file} does not exist."
+            with cyclist_file.open("r") as f:
+                self.cyclist_categories = json.load(f)
+
+            pedestrian_file = Path(self.config.get("pedestrian_categorization_file", ""))
+            assert pedestrian_file.is_file(), f"Pedestrian categorization file {pedestrian_file} does not exist."
+            with pedestrian_file.open("r") as f:
+                self.pedestrian_categories = json.load(f)
+
+    def categorize(self, value: float, agent_type: AgentType, feature_name: str) -> float:
+        """Categorize a feature value based on agent type and predefined percentiles.
+
+        Args:
+            value (float): The feature value to categorize.
+            agent_type (AgentType): The type of the agent (VEHICLE, CYCLIST, PEDESTRIAN).
+            feature_name (str): The name of the feature being categorized.
+
+        Returns:
+            float: The categorized feature value based on percentiles.
+        """
+        match agent_type:
+            case AgentType.TYPE_VEHICLE | AgentType.TYPE_EGO_AGENT:
+                categories = self.vehicle_categories.get(feature_name, None)
+            case AgentType.TYPE_CYCLIST:
+                categories = self.cyclist_categories.get(feature_name, None)
+            case AgentType.TYPE_PEDESTRIAN:
+                categories = self.pedestrian_categories.get(feature_name, None)
+            case _:
+                logger.warning("Unknown agent type: %s", agent_type)
+                return -1.0
+
+        if categories is None:
+            logger.warning("No categories found for feature %s and agent type %s.", feature_name, agent_type)
+            return -1.0
+
+        ranges = list(categories.values())
+
+        # If there is only one category, return 0.0 or 1.0 based on the value
+        if len(ranges) < 2:  # noqa: PLR2004
+            return 0.0 if value <= ranges[0] else 1.0
+
+        # If value is below the lowest range, return 0.0
+        if value < ranges[0]:
+            return 0.0
+
+        # Categorize based on ranges
+        for category, (lower_bound, upper_bound) in enumerate(pairwise(ranges)):
+            if lower_bound <= value < upper_bound:
+                return float(category + 1)  # Categories start from 1
+
+        # If value is above the highest range
+        return float(len(categories) + 1)
+
+    def compute_individual_features(self, scenario: Scenario) -> Individual:
         """Compute individual motion features for all valid agents in a scenario.
 
         Args:
@@ -73,6 +139,7 @@ class IndividualFeatures(BaseFeature):
         """
         # Unpack senario fields
         agent_data = scenario.agent_data
+        agent_types = agent_data.agent_types
         agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
 
         agent_positions = agent_trajectories.agent_xyz_pos
@@ -115,6 +182,7 @@ class IndividualFeatures(BaseFeature):
             if not mask.any() or mask.sum() < MIN_VALID_POINTS:
                 continue
 
+            agent_type = agent_types[n]
             velocities = agent_velocities[n][mask, :]
             positions = agent_positions[n][mask, :]
             headings = agent_headings[n][mask]
@@ -131,11 +199,13 @@ class IndividualFeatures(BaseFeature):
 
             # Acceleration/Deceleration Profile
             # NOTE: acc and dec are accumulated abs acceleration and deceleration profiles.
-            _, accelerations, _, decelerations, _ = individual.compute_acceleration_profile(speeds, timestamps)
+            _, accelerations, decelerations = individual.compute_acceleration_profile(speeds, timestamps)
             if accelerations is None or decelerations is None:
                 continue
 
             # Jerk Profile
+            # NOTE: Jerk values are not smoothed, nor they consider differences in the x, y components of velocity,
+            # nor vehicle dynamics. This can lead to high jerk values for noisy data.
             jerks = individual.compute_jerk(speeds, timestamps)
 
             # Waiting period
@@ -153,7 +223,7 @@ class IndividualFeatures(BaseFeature):
             # Kalman Difficulty
             kalman_difficulty = individual.compute_kalman_difficulty(agent_positions[n], mask, current_time_index + 1)
 
-            match return_criterion:
+            match self.return_criterion:
                 case ReturnCriterion.CRITICAL:
                     speed = speeds.max()
                     speed_limit_diff = speed_limit_diffs.max()
@@ -173,8 +243,17 @@ class IndividualFeatures(BaseFeature):
                     waiting_interval = waiting_intervals.mean()
                     waiting_distance = waiting_distances.mean()
                 case _:
-                    error_message = f"Unknown return criteria: {return_criterion}"
+                    error_message = f"Unknown return criteria: {self.return_criterion}"
                     raise ValueError(error_message)
+
+            if self.categorize_features:
+                speed = self.categorize(speed, agent_type, "speed")
+                speed_limit_diff = self.categorize(speed_limit_diff, agent_type, "speed_limit_diff")
+                acceleration = self.categorize(acceleration, agent_type, "acceleration")
+                deceleration = self.categorize(deceleration, agent_type, "deceleration")
+                jerk = self.categorize(jerk, agent_type, "jerk") if jerk is not None else -1.0
+                waiting_period = self.categorize(waiting_period, agent_type, "waiting_period")
+                kalman_difficulty = self.categorize(kalman_difficulty, agent_type, "kalman_difficulty")
 
             scenario_valid_idxs.append(n)
             scenario_speeds.append(speed)
@@ -190,7 +269,7 @@ class IndividualFeatures(BaseFeature):
 
         return Individual(
             valid_idxs=np.array(scenario_valid_idxs, dtype=np.int32) if scenario_valid_idxs else None,
-            agent_types=agent_data.agent_types if agent_data.agent_types else None,
+            agent_types=agent_types,
             agent_trajectory_types=scenario_trajectory_types,
             speed=np.array(scenario_speeds, dtype=np.float32) if scenario_speeds else None,
             speed_limit_diff=(
@@ -241,6 +320,6 @@ class IndividualFeatures(BaseFeature):
 
         return ScenarioFeatures(
             metadata=scenario.metadata,
-            individual_features=IndividualFeatures.compute_individual_features(scenario, self.return_criterion),
+            individual_features=self.compute_individual_features(scenario),
             agent_to_agent_closest_dists=agent_to_agent_closest_dists,
         )

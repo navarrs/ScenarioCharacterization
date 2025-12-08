@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import BeforeValidator
 
-from characterization.utils.ad_types import AgentType
+from characterization.utils.scenario_types import AgentType
 
 SMALL_EPS = 1e-6
 BIG_EPS = 1e6
@@ -14,6 +14,7 @@ SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
 SUPPORTED_CRITERIA = ["critical", "average"]
 MIN_VALID_POINTS = 2
 MAX_DECELERATION = 10.0  # m/s^2,
+SUPPORTED_SCORERS = ["individual", "interaction", "safeshift"]
 
 
 def mph_to_ms(mph: float) -> float:
@@ -63,6 +64,13 @@ Float32NDArray1D = Annotated[NDArray[np.float32], BeforeValidator(validate_array
 Int32NDArray1D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.int32, 1))]
 Int32NDArray2D = Annotated[NDArray[np.int32], BeforeValidator(validate_array(np.int32, 2))]
 Int64NDArray2D = Annotated[NDArray[np.int64], BeforeValidator(validate_array(np.int64, 2))]
+
+
+class FeatureType(Enum):
+    """Enumeration for feature types."""
+
+    CONTINUOUS = "continuous"
+    CATEGORICAL = "categorical"
 
 
 class InteractionStatus(Enum):

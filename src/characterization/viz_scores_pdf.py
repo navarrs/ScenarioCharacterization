@@ -7,8 +7,7 @@ import pandas as pd
 from omegaconf import DictConfig
 
 import characterization.utils.viz.utils as viz_utils
-from characterization.scorer import SUPPORTED_SCORERS
-from characterization.utils.common import SUPPORTED_SCENARIO_TYPES
+from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, SUPPORTED_SCORERS
 from characterization.utils.io_utils import from_pickle, get_logger
 from characterization.utils.viz.visualizer import BaseVisualizer
 
@@ -53,7 +52,7 @@ def run(cfg: DictConfig) -> None:  # noqa: PLR0912
         msg = f"Scorers {unsupported_scores} not in supported list {SUPPORTED_SCORERS}"
         raise ValueError(msg)
 
-    scenario_ids = viz_utils.get_valid_scenario_ids(cfg.scenario_types, cfg.criteria, cfg.scores_path)
+    scenario_ids = viz_utils.get_scored_scenario_ids(cfg.scenario_types, cfg.criteria, cfg.scores_path)
     if not scenario_ids:
         msg = f"No valid scenarios found in {cfg.scores_path} for {cfg.scenario_types} and criteria {cfg.criteria}"
         raise ValueError(msg)

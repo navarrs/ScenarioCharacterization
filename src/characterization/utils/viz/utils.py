@@ -1,5 +1,6 @@
 import os
 from itertools import product
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -40,14 +41,14 @@ def get_sample_to_plot(
     return df_subset.sample(n=sample_size, random_state=seed) # pyright: ignore[reportReturnType]
 
 
-def get_valid_scenario_ids(scenario_types: str, criteria: str, base_path: str) -> list[str]:
-    scenario_lists = []
-    for scenario_type, criteria in product(scenario_types, criteria):
-        scenario_type_scores_path = os.path.join(base_path, f"{scenario_type}_{criteria}")
-        scenario_type_scores_files = os.listdir(scenario_type_scores_path)
-        scenario_lists.append(scenario_type_scores_files)
-    scenario_ids = list(set.intersection(*[set(scenario_list) for scenario_list in scenario_lists]))
-    return scenario_ids
+def get_scored_scenario_ids(scenario_types: str, criteria: str, base_path: Path) -> dict[str, list[str]]:
+    scenario_lists = {}
+    for scenario_type, criterion in product(scenario_types, criteria):
+        key = f"{scenario_type}_{criterion}"
+        scenario_type_criterion_path = base_path / key
+        scenario_type_scores_files = [file.name for file in scenario_type_criterion_path.glob("*.pkl")]
+        scenario_lists[key] = scenario_type_scores_files
+    return scenario_lists
 
 
 def plot_histograms_from_dataframe(

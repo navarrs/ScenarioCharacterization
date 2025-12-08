@@ -6,7 +6,7 @@ from enum import Enum
 from pathlib import Path
 import time
 import numpy as np
-from characterization.schemas import DynamicMapData, Scenario, ScenarioScores, StaticMapData
+from characterization.schemas import DynamicMapData, Scenario, Score, StaticMapData
 from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, AgentTrajectoryMasker, MIN_VALID_POINTS
 from characterization.utils.io_utils import get_logger
 from matplotlib.axes import Axes
@@ -14,7 +14,8 @@ from matplotlib.patches import Rectangle
 from natsort import natsorted
 from omegaconf import DictConfig
 from PIL import Image
-
+from characterization.utils.scenario_types import AgentType
+import matplotlib.cm as cm
 from warnings import warn
 
 logger = get_logger(__name__)
@@ -44,30 +45,38 @@ class BaseVisualizer(ABC):
             error_message = f"Scenario type {self.scenario_type} not in supported types: {SUPPORTED_SCENARIO_TYPES}"
             raise AssertionError(error_message)
 
-        self.static_map_keys = config.get("static_map_keys", None)
-        if self.static_map_keys is None:
-            error_message = "static_map_keys must be provided in the configuration."
-            raise AssertionError(error_message)
+        self.map_colors = {
+            "lane": "black",
+            "crosswalk": "gray",
+            "speed_bump": "orange",
+            "road_edge": "black",
+            "road_line": "black",
+            "stop_sign": "red",
+            "stop_point": "purple"
+        }
 
-        self.dynamic_map_keys = config.get("dynamic_map_keys", None)
-        if self.dynamic_map_keys is None:
-            error_message = "dynamic_map_keys must be provided in the configuration."
-            raise AssertionError(error_message)
+        self.map_alphas = {
+            "lane": 0.1,
+            "crosswalk": 0.6,
+            "speed_bump": 0.6,
+            "road_edge": 0.1,
+            "road_line": 0.1,
+            "stop_sign": 0.8,
+            "stop_point": 0.8
+        }
 
-        self.map_colors = config.get("map_colors", None)
-        if self.map_colors is None:
-            error_message = "map_colors must be provided in the configuration."
-            raise AssertionError(error_message)
+        self.agent_colors = {
+            AgentType.TYPE_PEDESTRIAN: "plum",
+            AgentType.TYPE_VEHICLE: "slategray",
+            AgentType.TYPE_CYCLIST: "forestgreen",
+            AgentType.TYPE_EGO_AGENT: "dodgerblue",
+            AgentType.TYPE_UNSET: "gray",
+            AgentType.TYPE_RELEVANT: "coral"
+        }
 
-        self.map_alphas = config.get("map_alphas", None)
-        if self.map_alphas is None:
-            error_message = "map_alphas must be provided in the configuration."
-            raise AssertionError(error_message)
-
-        self.agent_colors = config.get("agent_colors", None)
-        if self.agent_colors is None:
-            error_message = "agent_colors must be provided in the configuration."
-            raise AssertionError(error_message)
+        # Initialize the color map for categorical visualization
+        colormap = config.get("colormap", "autumn_r")
+        self.color_map = cm.get_cmap(colormap)
 
         # Set up panes to plot. It will fail if an invalid pane is provided.
         panes = config.get("panes_to_plot", ["ALL_AGENTS"])
@@ -85,6 +94,7 @@ class BaseVisualizer(ABC):
         self.update_limits = config.get("update_limits", False)
         self.buffer_distance = config.get("distance_to_ego_zoom_in", 5.0)  # in meters
         self.distance_to_ego_zoom_in = config.get("distance_to_ego_zoom_in", 100.0)  # in meters
+        self.plot_categorical = config.get("plot_categorical", False)
 
     def plot_map_data(self, ax: Axes, scenario: Scenario, num_windows: int = 1) -> None:
         """Plots the map data.
@@ -106,11 +116,79 @@ class BaseVisualizer(ABC):
         else:
             self.plot_dynamic_map_data(ax, dynamic_map_data=scenario.dynamic_map_data, num_windows=num_windows)
 
+    def plot_sequences_categorical(  # noqa: PLR0913
+        self,
+        ax: Axes,
+        scenario: Scenario,
+        scores: Score | None = None,
+        *,
+        start_timestep: int = 0,
+        end_timestep: int = -1,
+        title: str = "",
+    ) -> None:
+        """Plots agent trajectories for a scenario, with optional highlighting and score-based transparency.
+
+        Args:
+            ax (matplotlib.axes.Axes): Axes to plot on.
+            scenario (Scenario): encapsulates the scenario to visualize.
+            scores (Score | None): encapsulates the scenario and agent scores.
+            start_timestep (int): starting timestep to plot the sequences.
+            end_timestep (int): ending timestep to plot the sequences.
+            title (str, optional): Title for the plot. Defaults to "".
+        """
+        agent_data = scenario.agent_data
+        ego_index = scenario.metadata.ego_vehicle_index
+        agent_types = np.asarray([atype for atype in agent_data.agent_types])
+
+        # Get the agent normalized scores
+        if scores is None or scores.agent_scores is None:
+            error_message = "Scores with agent_scores are required for categorical visualization."
+            raise ValueError(error_message)
+
+        agent_scores = scores.agent_scores
+        agent_scores = BaseVisualizer.get_normalized_agent_scores(agent_scores, ego_index)
+
+        # Zip information to plot
+        agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
+        zipped = zip(
+            agent_trajectories.agent_xy_pos,
+            agent_trajectories.agent_lengths,
+            agent_trajectories.agent_widths,
+            agent_trajectories.agent_headings,
+            agent_trajectories.agent_valid.squeeze(-1).astype(bool),
+            agent_scores,
+            agent_types,
+            strict=False,
+        )
+
+        for apos, alen, awid, ahead, amask, score, atype in zipped:
+            # Skip if there are less than 2 valid points
+            mask = amask[start_timestep:end_timestep]
+            if not mask.any() or mask.sum() < MIN_VALID_POINTS:
+                continue
+
+            pos = apos[start_timestep:end_timestep][mask]
+            heading = ahead[end_timestep]
+            length = alen[end_timestep]
+            width = awid[end_timestep]
+
+            # Determine color based on score
+            color = self.agent_colors[atype] if atype == AgentType.TYPE_EGO_AGENT else self.color_map(score)
+
+            # Plot the trajectory
+            ax.plot(pos[:, 0], pos[:, 1], color=color, linewidth=2, alpha=score)
+
+            # Plot the agent
+            self.plot_agent(ax, pos[-1, 0], pos[-1, 1], heading, length, width, score, color, plot_rectangle=True)
+
+        if self.add_title:
+            ax.set_title(title)
+
     def plot_sequences(  # noqa: PLR0913
         self,
         ax: Axes,
         scenario: Scenario,
-        scores: ScenarioScores | None = None,
+        scores: Score | None = None,
         *,
         show_relevant: bool = False,
         start_timestep: int = 0,
@@ -122,7 +200,7 @@ class BaseVisualizer(ABC):
         Args:
             ax (matplotlib.axes.Axes): Axes to plot on.
             scenario (Scenario): encapsulates the scenario to visualize.
-            scores (ScenarioScores | None): encapsulates the scenario and agent scores.
+            scores (Score | None): encapsulates the scenario and agent scores.
             show_relevant (bool, optional): If True, highlights relevant and SDC agents. Defaults to False.
             start_timestep (int): starting timestep to plot the sequences.
             end_timestep (int): ending timestep to plot the sequences.
@@ -130,22 +208,20 @@ class BaseVisualizer(ABC):
         """
         agent_data = scenario.agent_data
         agent_relevance = agent_data.agent_relevance
-        agent_types = np.asarray([atype.name for atype in agent_data.agent_types])
+        agent_types = np.asarray([atype for atype in agent_data.agent_types])
         ego_index = scenario.metadata.ego_vehicle_index
 
         # Get the agent normalized scores
-        agent_scores = (
-            np.ones(agent_data.num_agents, float)
-            if scores is None or scores.safeshift_scores is None or scores.safeshift_scores.agent_scores is None
-            else scores.safeshift_scores.agent_scores
-        )
-        agent_scores = BaseVisualizer.get_normalized_agent_scores(agent_scores, ego_index)
+        agent_scores = np.ones(agent_data.num_agents, float)
+        if scores is not None and scores.agent_scores is not None:
+            agent_scores = scores.agent_scores
+            agent_scores = BaseVisualizer.get_normalized_agent_scores(agent_scores, ego_index)
 
         # Mark any agents with a relevance score > 0 as "TYPE_RELEVANT"
         if show_relevant and agent_relevance is not None:
             relevant_indices = np.where(agent_relevance > 0.0)[0]
-            agent_types[relevant_indices] = "TYPE_RELEVANT"
-        agent_types[ego_index] = "TYPE_SDC"
+            agent_types[relevant_indices] = AgentType.TYPE_RELEVANT
+        agent_types[ego_index] = AgentType.TYPE_EGO_AGENT
 
         # Zip information to plot
         agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
@@ -170,7 +246,6 @@ class BaseVisualizer(ABC):
             heading = ahead[end_timestep]
             length = alen[end_timestep]
             width = awid[end_timestep]
-            atype = "TYPE_RELEVANT" if atype == "TYPE_RELEVAN" else atype
             color = self.agent_colors[atype]
 
             # Plot the trajectory
@@ -433,7 +508,6 @@ class BaseVisualizer(ABC):
         """
         min_score = np.nanmin(agent_scores)
         max_score = np.nanmax(agent_scores)
-
         if max_score > min_score:
             agent_scores = (agent_scores - min_score) / (max_score - min_score)
         else:
@@ -512,7 +586,7 @@ class BaseVisualizer(ABC):
     def visualize_scenario(
         self,
         scenario: Scenario,
-        scores: ScenarioScores | None = None,
+        scores: Score | None = None,
         output_dir: Path = Path("./temp"),
     ) -> Path:
         """Visualizes a single scenario and saves the output to a file.
@@ -523,7 +597,7 @@ class BaseVisualizer(ABC):
 
         Args:
             scenario (Scenario): encapsulates the scenario to visualize.
-            scores (ScenarioScores | None): encapsulates the scenario and agent scores.
+            scores (Score | None): encapsulates the scenario and agent scores.
             output_dir (str): the directory where to save the scenario visualization.
 
         Returns:

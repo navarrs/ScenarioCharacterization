@@ -183,6 +183,7 @@ pyproject.txt
 .vscode/
 /data/*
 visualization
+analysis
 samples*
 cache*
 src/scripts/cluster.py

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from characterization.schemas import Scenario, ScenarioScores
+from characterization.schemas import Scenario, Score
 from characterization.utils.io_utils import get_logger
 from characterization.utils.viz.visualizer import BaseVisualizer
 
@@ -24,7 +24,7 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
     def _plot_single_step(
         self,
         scenario: Scenario,
-        scores: ScenarioScores | None,
+        scores: Score | None,
         output_dir: Path,
         timestep_idx: int,
         timestamp: float,
@@ -33,7 +33,7 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
 
         Args:
             scenario (Scenario): encapsulates the scenario to visualize.
-            scores (ScenarioScores | None): encapsulates the scenario and agent scores.
+            scores (Score | None): encapsulates the scenario and agent scores.
             output_dir (str): the directory where to save the scenario visualization.
             timestep_idx (int): the timestep index (in the timestamps array) to visualize.
             timestamp (float): the timestamp corresponding to the timestep.
@@ -44,7 +44,10 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
         # Plot static and dynamic map information in the scenario
         self.plot_map_data(ax, scenario)
 
-        self.plot_sequences(ax, scenario, scores, show_relevant=True, end_timestep=timestep_idx)
+        if self.plot_categorical:
+            self.plot_sequences_categorical(ax, scenario, scores, end_timestep=timestep_idx)
+        else:
+            self.plot_sequences(ax, scenario, scores, show_relevant=True, end_timestep=timestep_idx)
 
         # Add timestamp annotation in the upper right corner
         if self.display_time:
@@ -71,7 +74,7 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
     def visualize_scenario(
         self,
         scenario: Scenario,
-        scores: ScenarioScores | None = None,
+        scores: Score | None = None,
         output_dir: Path = Path("./temp"),
     ) -> Path:
         """Visualizes a single scenario and saves the output to a file.
@@ -80,18 +83,14 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
 
         Args:
             scenario (Scenario): encapsulates the scenario to visualize.
-            scores (ScenarioScores | None): encapsulates the scenario and agent scores.
+            scores (Score | None): encapsulates the scenario and agent scores.
             output_dir (str): the directory where to save the scenario visualization.
 
         Returns:
             Path: The path to the saved visualization file.
         """
         scenario_id = scenario.metadata.scenario_id
-        suffix = (
-            ""
-            if scores is None or scores.safeshift_scores is None or scores.safeshift_scores.scene_score is None
-            else f"_{round(scores.safeshift_scores.scene_score, 2)}"
-        )
+        suffix = "" if scores is None or scores.scene_score is None else f"_{round(scores.scene_score, 2)}"
         output_filepath = output_dir / f"{scenario_id}{suffix}.gif"
 
         timestamp_seconds = scenario.metadata.timestamps_seconds
@@ -116,27 +115,37 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
             tmp_dir_path = pathlib.Path(tmp_dir)
             # matplotlib is not thread-safe
             # ThreadPoolExecutor would result in corrupt images
-            with ProcessPoolExecutor(max_workers=self.num_workers) as executor:
-                futures = [
-                    executor.submit(
-                        self._plot_single_step,
+            if self.num_workers > 1:
+                with ProcessPoolExecutor(max_workers=self.num_workers) as executor:
+                    futures = [
+                        executor.submit(
+                            self._plot_single_step,
+                            scenario,
+                            scores,
+                            tmp_dir_path,
+                            timestep,
+                            timestamp_seconds[timestep],
+                        )
+                        # For simplicity, the frames between the last timestamp
+                        # and the end of the scenario are ignored (range does not
+                        # include total_timesteps-1 when step_size > 1).
+                        # This is fine for typical scenarios around 30 s at 100 Hz
+                        # where we lose ~100 frames or up to 1 s, representing
+                        # ~3% of the scenario duration.
+                        for timestep in range(0, total_timesteps, step_size)
+                    ]
+
+                # tqdm progress bar
+                for _ in tqdm(as_completed(futures), total=len(futures), desc="Generating plots"):
+                    pass
+            else:
+                for timestep in tqdm(range(0, total_timesteps, step_size), desc="Generating plots"):
+                    self._plot_single_step(
                         scenario,
                         scores,
                         tmp_dir_path,
                         timestep,
                         timestamp_seconds[timestep],
                     )
-                    # For simplicity, the frames between the last timestamp
-                    # and the end of the scenario are ignored (range does not
-                    # include total_timesteps-1 when step_size > 1).
-                    # This is fine for typical scenarios around 30 s at 100 Hz
-                    # where we lose ~100 frames or up to 1 s, representing
-                    # ~3% of the scenario duration.
-                    for timestep in range(0, total_timesteps, step_size)
-                ]
-
-            # tqdm progress bar
-            for _ in tqdm(as_completed(futures), total=len(futures), desc="Generating plots"):
-                pass
             BaseVisualizer.to_gif(tmp_dir_path, output_filepath, fps=self.fps)
         return output_filepath

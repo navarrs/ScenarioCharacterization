@@ -283,6 +283,7 @@ def compute_ttc(
         length_j = length_j[valid_headings]
 
     ttc = np.full(position_i.shape[0], np.inf, dtype=np.float32)
+
     # ...where i is the agent ahead and j's speed is higher
     i_leads = np.where(leading_agent == 0)[0]
     j_faster = np.where(speed_j > speed_i)[0]
@@ -307,6 +308,7 @@ def compute_drac(
     agent_j: InteractionAgent,
     leading_agent: np.ndarray,
     valid_headings: np.ndarray | None = None,
+    max_deceleration: float = MAX_DECELERATION,
 ) -> np.ndarray:
     """Computes the following leader-follower interaction measurement.
 
@@ -323,6 +325,7 @@ def compute_drac(
         agent_j (InteractionAgent): The second agent.
         leading_agent (np.ndarray): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
         valid_headings (np.ndarray | None): Optional mask to filter valid headings.
+        max_deceleration (float): Maximum deceleration value to clip DRAC values.
 
     Returns:
         np.ndarray: Array of time-to-collision values for each timestep (shape: [T,]).
@@ -359,4 +362,4 @@ def compute_drac(
         drac[j_idx] = (v_ij**2) / (2 * d_ji + SMALL_EPS)
 
     # Clip drac values to avoid infinite or very high values
-    return np.clip(drac, 0.0, MAX_DECELERATION)
+    return np.clip(drac, 0.0, max_deceleration)

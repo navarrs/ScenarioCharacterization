@@ -3,7 +3,6 @@ from typing import Any, TypeVar
 import numpy as np
 from pydantic import BaseModel, NonNegativeInt, computed_field
 
-from characterization.utils.ad_types import AgentType
 from characterization.utils.common import (
     Float32NDArray1D,
     Float32NDArray2D,
@@ -12,6 +11,7 @@ from characterization.utils.common import (
     Int32NDArray1D,
     Int32NDArray2D,
 )
+from characterization.utils.scenario_types import AgentType
 
 DType = TypeVar("DType", bound=np.generic)
 
@@ -106,6 +106,15 @@ class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
 
     # To allow numpy and other arbitrary types in the model
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
+
+    @computed_field
+    @property
+    def duration_s(self) -> float:
+        """Get the total duration of the scenario in seconds."""
+        if self.timestamps_seconds:
+            return self.timestamps_seconds[-1] - self.timestamps_seconds[0]
+        err_msg = "timestamps_seconds is empty, cannot compute duration."
+        raise ValueError(err_msg)
 
 
 class TracksToPredict(BaseModel):  # pyright: ignore[reportUntypedBaseClass]

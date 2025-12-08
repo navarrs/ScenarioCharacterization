@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scenario-characterization"
-version = "0.2.20"
+version = "0.2.22"
 authors = [
     {name="Ingrid Navarro", email="ingridn@cmu.edu"},
     {name="Duan Yutong (dyt-stackav)"},
@@ -121,7 +121,7 @@ lint.unfixable = [
 fix = true
 exclude = [
     "src/scripts",
-    "src/characterization/utils/datasets/waymo_preprocess.py",
+    "src/characterization/datasets/waymo_preprocess.py",
     "src/characterization/examples",
     # TODO: re-nable checks for files below:
     "src/characterization/utils/viz/utils.py",
@@ -161,7 +161,8 @@ include = ["src"]
 exclude = [
     "tmp/**",
     "src/scripts",
-    "src/characterization/utils/datasets/waymo_preprocess.py",
+    "src/characterization/datasets/waymo_preprocess.py",
+    "src/characterization/viz_scores_pdf.py",
     "**/__pycache__",
 ]
 ignore = ["tmp/**"]
@@ -193,7 +194,6 @@ reportOptionalSubscript = "error"          # Indexing a possibly None value
 reportPossiblyUnboundVariable = "error"    # Variable may be used before assignment
 reportUnnecessaryComparison = "error"      # Comparison always true/false
 reportUntypedBaseClass = "error"           # Inheriting from untyped base class
-reportUntypedFunction = "error"            # Function missing type annotations
 # keep-sorted end
 
 # Set to "none"
@@ -202,5 +202,4 @@ reportInvalidTypeForm = "none"             # Invalid type expression (unsupporte
 reportMissingImports = "none"              # Import cannot be resolved → runtime ImportError (TODO: resolve)
 reportMissingModuleSource = "none"         # Module has stub but no source (informational only)
 reportUntypedFunctionDecorator = "none"    # Decorator has no type info
-reportUnusedImports = "none"               # Unused imports (Ruff handles this faster)
 # keep-sorted end

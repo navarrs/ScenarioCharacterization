@@ -7,6 +7,7 @@ import numpy as np
 from natsort import natsorted
 from omegaconf import DictConfig
 
+from characterization.datasets.base_dataset import BaseDataset
 from characterization.schemas.scenario import (
     AgentData,
     AgentType,
@@ -15,7 +16,6 @@ from characterization.schemas.scenario import (
     ScenarioMetadata,
     StaticMapData,
 )
-from characterization.utils.datasets.dataset import BaseDataset
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -30,12 +30,9 @@ class WaymoData(BaseDataset):
         # Three challengingness levels: 0 (easy), 1 (medium), 2 (hard) obtained from WOMD
         self.DIFFICULTY_WEIGHTS = {0: 0.8, 1: 0.9, 2: 1.0}
 
-        self.LAST_TIMESTEP = 91
-        self.HIST_TIMESTEP = 11
-
-        self.LAST_TIMESTEP_TO_CONSIDER = {
-            "gt": self.LAST_TIMESTEP,
-            "ho": self.HIST_TIMESTEP,
+        self.last_timestep_to_consider = {
+            "gt": config.last_timestep,
+            "ho": config.hist_timestep,
         }
 
         self.load = config.get("load", True)
@@ -60,14 +57,14 @@ class WaymoData(BaseDataset):
         logger.info("Loading WOMD scenario base data from %s", self.scenario_base_path)
         with open(self.scenario_meta_path, "rb") as f:
             self.data.metas = pickle.load(f)[:: self.step]  # nosec B301
-        self.data.scenarios_ids = natsorted([f"sample_{x['scenario_id']}.pkl" for x in self.data.metas])
         self.data.scenarios = natsorted(
-            [f"{self.scenario_base_path}/sample_{x['scenario_id']}.pkl" for x in self.data.metas],
+            [f"{self.scenario_base_path}/{x['scenario_id']}.pkl" for x in self.data.metas],
         )
-        logger.info("Loading data took %2f seconds.", time.time() - start)
+        logger.info("Loading the metadata took %2f seconds.", time.time() - start)
 
         # TODO: remove this
         self.shard()
+        self.compute_metadata()
 
     def repack_agent_data(self, agent_data: dict[str, Any], ego_index: int) -> AgentData:
         """Packs agent information from Waymo format to AgentData format.
@@ -85,7 +82,7 @@ class WaymoData(BaseDataset):
         trajectories = agent_data["trajs"]  # shape: [num_agents, num_timesteps, num_features]
         _, num_timesteps, _ = trajectories.shape
 
-        last_timestep = self.LAST_TIMESTEP_TO_CONSIDER[self.scenario_type]
+        last_timestep = self.last_timestep_to_consider[self.scenario_type]
         if num_timesteps < last_timestep:
             error_message = (
                 f"Scenario has only {num_timesteps} timesteps, but expected at least {last_timestep} timesteps."
@@ -93,15 +90,10 @@ class WaymoData(BaseDataset):
             raise AssertionError(error_message)
 
         self.total_steps = last_timestep
-        if self.ego_only:
-            trajectories = trajectories[ego_index, :last_timestep]
-            trajectories = np.expand_dims(trajectories, axis=0)
-            object_types = [AgentType[agent_data["object_type"][ego_index]]]
-            object_ids = [agent_data["object_id"][ego_index]]
-        else:
-            trajectories = trajectories[:, :last_timestep, :]  # shape: [num_agents, last_timestep, dim]
-            object_types = [AgentType[n] for n in agent_data["object_type"]]
-            object_ids = agent_data["object_id"]
+        trajectories = trajectories[:, :last_timestep, :]  # shape: [num_agents, last_timestep, dim]
+        object_types = [AgentType[n] for n in agent_data["object_type"]]
+        object_types[ego_index] = AgentType.TYPE_EGO_AGENT
+        object_ids = agent_data["object_id"]
         return AgentData(agent_ids=object_ids, agent_types=object_types, agent_trajectories=trajectories)
 
     @staticmethod
@@ -240,22 +232,17 @@ class WaymoData(BaseDataset):
 
         timestamps = scenario_data["timestamps_seconds"][: self.total_steps]
 
-        # TODO: compute this within agent_data and also return the ego-index
         # Select tracks to predict
-        if self.ego_only:
-            ego_vehicle_index = 0
-            agent_data.agent_relevance = np.ones(agent_data.num_agents, dtype=np.float32)
-        else:
-            agent_relevance = np.zeros(agent_data.num_agents, dtype=np.float32)
-            ego_vehicle_index = scenario_data["sdc_track_index"]
-            tracks_to_predict = scenario_data["tracks_to_predict"]
-            tracks_to_predict_index = np.asarray(tracks_to_predict["track_index"] + [ego_vehicle_index])
-            tracks_to_predict_difficulty = np.asarray(tracks_to_predict["difficulty"] + [2.0])
+        agent_relevance = np.zeros(agent_data.num_agents, dtype=np.float32)
+        ego_vehicle_index = scenario_data["sdc_track_index"]
+        tracks_to_predict = scenario_data["tracks_to_predict"]
+        tracks_to_predict_index = np.asarray(tracks_to_predict["track_index"] + [ego_vehicle_index])
+        tracks_to_predict_difficulty = np.asarray(tracks_to_predict["difficulty"] + [2.0])
 
-            # Set agent_relevance for tracks_to_predict_index based on tracks_to_predict_difficulty
-            for idx, difficulty in zip(tracks_to_predict_index, tracks_to_predict_difficulty, strict=False):
-                agent_relevance[idx] = self.DIFFICULTY_WEIGHTS.get(difficulty, 0.0)
-            agent_data.agent_relevance = agent_relevance
+        # Set agent_relevance for tracks_to_predict_index based on tracks_to_predict_difficulty
+        for idx, difficulty in zip(tracks_to_predict_index, tracks_to_predict_difficulty, strict=False):
+            agent_relevance[idx] = self.DIFFICULTY_WEIGHTS.get(difficulty, 0.0)
+        agent_data.agent_relevance = agent_relevance
 
         # Repack meta information
         freq = np.round(1 / np.mean(np.diff(timestamps))).item()
