@@ -6,6 +6,8 @@ from enum import Enum
 from pathlib import Path
 import time
 import numpy as np
+from numpy.typing import NDArray
+
 from characterization.schemas import DynamicMapData, Scenario, Score, StaticMapData
 from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, AgentTrajectoryMasker, MIN_VALID_POINTS
 from characterization.utils.io_utils import get_logger
@@ -391,8 +393,8 @@ class BaseVisualizer(ABC):
     @staticmethod
     def plot_stop_signs(  # noqa: PLR0913
         ax: Axes,
-        road_graph: np.ndarray,
-        polyline_idxs: np.ndarray,
+        road_graph: NDArray[np.float32],
+        polyline_idxs: NDArray[np.int32],
         num_windows: int = 0,
         color: str = "red",
         dim: int = 2,
@@ -401,8 +403,8 @@ class BaseVisualizer(ABC):
 
         Args:
             ax (matplotlib.axes.Axes): Axes to plot on.
-            road_graph (np.ndarray): Road graph points.
-            polyline_idxs (np.ndarray): Indices for stop sign polylines.
+            road_graph (NDArray[np.float32]): Road graph points.
+            polyline_idxs (NDArray[np.int32]): Indices for stop sign polylines.
             num_windows (int, optional): Number of subplot windows. Defaults to 0.
             color (str, optional): Color for stop signs. Defaults to "red".
             dim (int, optional): Number of dimensions to plot. Defaults to 2.
@@ -420,8 +422,8 @@ class BaseVisualizer(ABC):
     @staticmethod
     def plot_polylines(
         ax: Axes,
-        road_graph: np.ndarray,
-        polyline_idxs: np.ndarray,
+        road_graph: NDArray[np.float32],
+        polyline_idxs: NDArray[np.int32],
         num_windows: int = 0,
         color: str = "k",
         alpha: float = 1.0,
@@ -431,8 +433,8 @@ class BaseVisualizer(ABC):
 
         Args:
             ax (matplotlib.axes.Axes): Axes to plot on.
-            road_graph (np.ndarray): Road graph points.
-            polyline_idxs (np.ndarray): Indices for polylines to plot.
+            road_graph (NDArray[np.float32]): Road graph points.
+            polyline_idxs (NDArray[np.int32]): Indices for polylines to plot.
             num_windows (int, optional): Number of subplot windows. Defaults to 0.
             color (str, optional): Color for polylines. Defaults to "k".
             alpha (float, optional): Alpha transparency. Defaults to 1.0.
@@ -493,18 +495,18 @@ class BaseVisualizer(ABC):
 
     @staticmethod
     def get_normalized_agent_scores(
-        agent_scores: np.ndarray, ego_index: int, amin: float = 0.05, amax: float = 1.0
-    ) -> np.ndarray:
+        agent_scores: NDArray[np.float64], ego_index: int, amin: float = 0.05, amax: float = 1.0
+    ) -> NDArray[np.float64]:
         """Gets the agent scores and returns a normalized score array.
 
         Args:
-            agent_scores (np.ndarray): array containing the agent scores.
+            agent_scores (NDArray[np.float64]): array containing the agent scores.
             ego_index (int): index of the ego vehicle.
             amin (float): minimum value to clip the array.
             amax (float): maximum value to clip the array.
 
         Returns:
-            np.ndarray: normalized agent scores.
+            NDArray[np.float32]: normalized agent scores.
         """
         min_score = np.nanmin(agent_scores)
         max_score = np.nanmax(agent_scores)
@@ -522,7 +524,7 @@ class BaseVisualizer(ABC):
         return agent_scores
 
     @staticmethod
-    def get_first_and_last_ego_position(scenario: Scenario) -> tuple[np.ndarray, np.ndarray] | tuple[None, None]:
+    def get_first_and_last_ego_position(scenario: Scenario) -> tuple[NDArray[np.float64], NDArray[np.float64]] | tuple[None, None]:
         """Gets the first and last valid positions of the ego vehicle.
 
         Args:
@@ -530,7 +532,7 @@ class BaseVisualizer(ABC):
             distance_to_zoom_in (float): minimum distance to zoom in around the ego vehicle.
             buffer_distance (float): additional buffer distance to add to the zoom-in distance.
         Returns:
-            tuple[np.ndarray, float]: ego vehicle position and distance to set the plot limits.
+            tuple[NDArray[np.float64], float]: ego vehicle position and distance to set the plot limits.
         """
         ego_index = scenario.metadata.ego_vehicle_index
         agent_trajectories = AgentTrajectoryMasker(scenario.agent_data.agent_trajectories)

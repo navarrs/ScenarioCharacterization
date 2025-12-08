@@ -159,11 +159,11 @@ def compute_waiting_period(
 
     Returns:
         tuple:
-            waiting_period (np.ndarray): The waiting interval over the distance to the closest conflict point at that
-                distance (shape: [N,]).
-            waiting_intervals (np.ndarray): The duration of each waiting interval (shape: [N,]).
-            waiting_distances (np.ndarray): The minimum distance to conflict points during each waiting interval
-                (shape: [N,]).
+            waiting_period (NDArray[np.float32]): The waiting interval over the distance to the closest conflict point
+                at that distance (shape: [N,]).
+            waiting_intervals (NDArray[np.float32]): The duration of each waiting interval (shape: [N,]).
+            waiting_distances (NDArray[np.float32]): The minimum distance to conflict points during each waiting
+                interval (shape: [N,]).
     """
     waiting_intervals = np.zeros(shape=(position.shape[0]), dtype=np.float32)
     waiting_distances = np.inf * np.ones(shape=(position.shape[0]), dtype=np.float32)
