@@ -55,7 +55,7 @@ def find_valid_headings(
 def find_leading_agent(
     agent_i: InteractionAgent,
     agent_j: InteractionAgent,
-    mask: NDArray[np.bool_] | None = None,
+    mask: NDArray[np.intp] | None = None,
     angle_threshold: float = 90,
 ) -> NDArray[np.intp]:
     """Determines which agent is leading based on their positions and headings.
@@ -63,7 +63,7 @@ def find_leading_agent(
     Args:
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
-        mask (NDArray[np.bool_] | None): Optional mask to filter positions.
+        mask (NDArray[np.intp] | None): Optional mask to filter positions.
         angle_threshold (float): Angle threshold in degrees to determine if one agent is behind the other.
 
     Returns:
@@ -196,8 +196,8 @@ def compute_mttcp(
 def compute_thw(
     agent_i: InteractionAgent,
     agent_j: InteractionAgent,
-    leading_agent: NDArray[np.int32],
-    valid_headings: NDArray[np.bool_] | None = None,
+    leading_agent: NDArray[np.intp],
+    valid_headings: NDArray[np.intp] | None = None,
 ) -> NDArray[np.float32]:
     """Computes the following leader-follower interaction measurements.
 
@@ -210,8 +210,8 @@ def compute_thw(
     Args:
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
-        leading_agent (NDArray[np.int32]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
-        valid_headings (NDArray[np.bool_] | None): Optional mask to filter valid headings.
+        leading_agent (NDArray[np.intp]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
+        valid_headings (NDArray[np.intp] | None): Optional mask to filter valid headings.
 
     Returns:
         thw (NDArray[np.float32]): Array of time headway values for each timestep (shape: [T,]).
@@ -248,8 +248,8 @@ def compute_thw(
 def compute_ttc(
     agent_i: InteractionAgent,
     agent_j: InteractionAgent,
-    leading_agent: NDArray[np.int32],
-    valid_headings: NDArray[np.bool_] | None = None,
+    leading_agent: NDArray[np.intp],
+    valid_headings: NDArray[np.intp] | None = None,
 ) -> NDArray[np.float32]:
     """Computes the following leader-follower interaction measurement.
 
@@ -265,8 +265,8 @@ def compute_ttc(
     Args:
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
-        leading_agent (NDArray[np.int32]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
-        valid_headings (NDArray[np.bool_] | None): Optional mask to filter valid headings.
+        leading_agent (NDArray[np.intp]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
+        valid_headings (NDArray[np.intp] | None): Optional mask to filter valid headings.
 
     Returns:
         ttc (NDArray[np.float32]): Array of time-to-collision values for each timestep (shape: [T,]).
@@ -306,8 +306,8 @@ def compute_ttc(
 def compute_drac(
     agent_i: InteractionAgent,
     agent_j: InteractionAgent,
-    leading_agent: NDArray[np.int32],
-    valid_headings: NDArray[np.bool_] | None = None,
+    leading_agent: NDArray[np.intp],
+    valid_headings: NDArray[np.intp] | None = None,
     max_deceleration: float = MAX_DECELERATION,
 ) -> NDArray[np.float32]:
     """Computes the following leader-follower interaction measurement.
@@ -323,8 +323,8 @@ def compute_drac(
     Args:
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
-        leading_agent (NDArray[np.int32]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
-        valid_headings (NDArray[np.bool_] | None): Optional mask to filter valid headings.
+        leading_agent (NDArray[np.intp]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
+        valid_headings (NDArray[np.intp] | None): Optional mask to filter valid headings.
         max_deceleration (float): Maximum deceleration value to clip DRAC values.
 
     Returns:
