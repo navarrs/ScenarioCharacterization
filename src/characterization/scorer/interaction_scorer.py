@@ -61,20 +61,27 @@ class InteractionScorer(BaseScorer):
         # Get the agent weights
         weights = self.get_weights(scenario, scenario_features)
 
+        # Get the interaction to consider
         interaction_agent_indices = features.interaction_agent_indices
+        interaction_idxs = np.arange(len(interaction_agent_indices))
         if self.score_wrt_ego_only:
-            interaction_agent_indices = [
-                (i, j) for i, j in interaction_agent_indices if scenario.metadata.ego_vehicle_index in (i, j)
+            interaction_idxs = [
+                n for n, (i, j) in enumerate(interaction_agent_indices) if scenario.metadata.ego_vehicle_index in (i, j)
             ]
-        for n, (i, j) in enumerate(interaction_agent_indices):
+            interaction_agent_indices = [
+                (i, j) for (i, j) in interaction_agent_indices if scenario.metadata.ego_vehicle_index in (i, j)
+            ]
+
+        for n, (i, j) in zip(interaction_idxs, interaction_agent_indices, strict=False):
             status = features.interaction_status[n]
-            if status != InteractionStatus.COMPUTED_OK:
+            if status not in [InteractionStatus.COMPUTED_OK, InteractionStatus.PARTIAL_INVALID_HEADING]:
                 continue
 
             # Compute the agent-pair scores
             agent_pair_score = self.score_function(
                 collision=features.collision[n] if features.collision is not None else 0.0,
                 collision_weight=self.weights.collision,
+                collision_detection=self.detections.collision,
                 mttcp=features.mttcp[n] if features.mttcp is not None else np.inf,
                 mttcp_weight=self.weights.mttcp,
                 mttcp_detection=self.detections.mttcp,
