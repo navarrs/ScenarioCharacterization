@@ -14,15 +14,15 @@ on:
       - bug/*
       - feature/*
 
-
-
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pyright
-        run: npm install -g pyright
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6  # shared by uv and pre-commit
+      - uses: astral-sh/setup-uv@v7
+      - name: Set up Environment
+        run: uv sync --frozen --all-groups
       - uses: pre-commit/action@v3.0.1
         with:
-          extra_args: --all-files --show-diff-on-failure
+          extra_args: --all-files

@@ -17,19 +17,6 @@ repos:
         always_run: true
         pass_filenames: false
 
-  # Pyright
-  - repo: local
-    hooks:
-      - id: pyright
-        name: pyright type check
-        entry: pyright
-        # entry: uv run pyright
-        language: python
-        types: [python]
-        args: ["--project", "pyproject.toml", "src"]
-        pass_filenames: false
-        always_run: true
-
   # Scans staged files for hardcoded passwords, tokens, and keys
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.4.0
@@ -75,3 +62,8 @@ repos:
       - id: check-merge-conflict
       # Detect private key
       - id: detect-private-key
+
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.407
+    hooks:
+      - id: pyright
