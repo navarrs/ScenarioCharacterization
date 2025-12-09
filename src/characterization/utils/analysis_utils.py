@@ -114,7 +114,8 @@ def plot_histograms_from_dataframe(
 
     for i, col in enumerate(columns_to_plot):
         sns.histplot(
-            df[col],  # does df[[col]] here work?
+            data=df,
+            x=col,
             color=palette[i],
             label=col,
             kde=True,
