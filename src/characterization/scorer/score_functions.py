@@ -71,9 +71,15 @@ def simple_individual_score(
     )
 
 
+INDIVIDUAL_SCORE_FUNCTIONS = {
+    "simple": simple_individual_score,
+}
+
+
 def simple_interaction_score(
     collision: float = 0.0,
     collision_weight: float = 1.0,
+    collision_detection: float = 1.0,
     mttcp: float = np.inf,
     mttcp_weight: float = 1.0,
     mttcp_detection: float = 1.0,
@@ -92,6 +98,7 @@ def simple_interaction_score(
     Args:
         collision (float): Collision indicator (1 if collision occurred, else 0).
         collision_weight (float): Weight for the collision feature.
+        collision_detection (float): Detection threshold for the collision feature.
         mttcp (float): Minimum time to closest point of approach.
         mttcp_weight (float): Weight for the mttcp feature.
         mttcp_detection (float): Detection threshold for the mttcp feature.
@@ -112,17 +119,14 @@ def simple_interaction_score(
     inv_thw = 1.0 / (thw + SMALL_EPS)
     inv_ttc = 1.0 / (ttc + SMALL_EPS)
     return (
-        collision_weight * collision
+        collision_weight * min(collision_detection, collision)
         + mttcp_weight * min(mttcp_detection, inv_mttcp)
         + thw_weight * min(thw_detection, inv_thw)
         + ttc_weight * min(ttc_detection, inv_ttc)
-        + min(drac_detection, drac_weight * drac)
+        + drac_weight * min(drac_detection, drac)
     )
 
 
-INDIVIDUAL_SCORE_FUNCTIONS = {
-    "simple": simple_individual_score,
-}
 INTERACTION_SCORE_FUNCTIONS = {
     "simple": simple_interaction_score,
 }
