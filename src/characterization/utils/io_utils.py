@@ -1,6 +1,7 @@
 import logging
 import os
 import pickle  # nosec B403
+from warnings import warn
 
 import colorlog
 from omegaconf import DictConfig, OmegaConf
@@ -54,7 +55,7 @@ def get_logger(name: str = __name__) -> logging.Logger:
     return logger
 
 
-def from_pickle(data_file: str) -> dict:  # pyright: ignore[reportMissingTypeArgument]
+def from_pickle(data_file: str) -> dict | None:  # pyright: ignore[reportMissingTypeArgument]
     """Loads data from a pickle file.
 
     Args:
@@ -67,8 +68,9 @@ def from_pickle(data_file: str) -> dict:  # pyright: ignore[reportMissingTypeArg
         FileNotFoundError: If the data file does not exist.
     """
     if not os.path.exists(data_file):
-        error_message = f"Data file {data_file} does not exist."
-        raise FileNotFoundError(error_message)
+        warning_message = f"Data file {data_file} does not exist."
+        warn(warning_message, UserWarning, stacklevel=2)
+        return None
 
     with open(data_file, "rb") as f:
         return pickle.load(f)  # nosec B301

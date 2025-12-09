@@ -11,14 +11,14 @@ scenario_types:
   # - ho
 
 criteria:
-  - critical_categorical
-  # - critical_continuous
+  # - critical_categorical
+  - critical_continuous
   # - average
 
 scores:
   - individual
-  # - interaction
-  # - safeshift
+  - interaction
+  - safeshift
 
 dpi: 300
 output_dir: ${paths.cache_path}/analysis
