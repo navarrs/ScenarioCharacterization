@@ -62,5 +62,5 @@ uv run pip install -e ".[waymo]"
 
 ## Development
 
-Run `uv sync --locked` to set up environment.
-Run `pre-commit run --all-files` to fun all hooks on all files.
+Run `uv sync --frozen --all-groups` to set up environment.
+Run `pre-commit run --all-files` to run all hooks on all files.
