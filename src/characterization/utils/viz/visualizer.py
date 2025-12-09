@@ -6,6 +6,7 @@ from enum import Enum
 from pathlib import Path
 import time
 import numpy as np
+from typing import cast
 from numpy.typing import NDArray
 
 from characterization.schemas import DynamicMapData, Scenario, Score, StaticMapData
@@ -405,13 +406,13 @@ class BaseVisualizer(ABC):
         Args:
             ax (matplotlib.axes.Axes): Axes to plot on.
             road_graph (NDArray[np.float32]): Road graph points.
-            polyline_idxs (NDArray[np.int32]): Indices for stop sign polylines.
+            polyline_idxs (NDArray[np.int32]): (N, 2) array for indices for stop sign polylines.
             num_windows (int, optional): Number of subplot windows. Defaults to 0.
             color (str, optional): Color for stop signs. Defaults to "red".
             dim (int, optional): Number of dimensions to plot. Defaults to 2.
         """
         for polyline in polyline_idxs:
-            start_idx, end_idx = polyline
+            start_idx, end_idx = cast(NDArray[np.int32], polyline)
             pos = road_graph[start_idx:end_idx, :dim]
             if num_windows == 1:
                 ax.scatter(pos[:, 0], pos[:, 1], s=16, c=color, marker="H", alpha=1.0)
@@ -442,7 +443,7 @@ class BaseVisualizer(ABC):
             linewidth (float, optional): Line width. Defaults to 0.5.
         """
         for polyline in polyline_idxs:
-            start_idx, end_idx = polyline
+            start_idx, end_idx = cast(NDArray[np.int32], polyline)
             pos = road_graph[start_idx:end_idx]
             if num_windows == 1:
                 ax.plot(pos[:, 0], pos[:, 1], color, alpha=alpha, linewidth=linewidth)
@@ -496,7 +497,7 @@ class BaseVisualizer(ABC):
 
     @staticmethod
     def get_normalized_agent_scores(
-        agent_scores: NDArray[np.float64], ego_index: int, amin: float = 0.05, amax: float = 1.0
+        agent_scores: NDArray[np.floating], ego_index: int, amin: float = 0.05, amax: float = 1.0
     ) -> NDArray[np.float64]:
         """Gets the agent scores and returns a normalized score array.
 

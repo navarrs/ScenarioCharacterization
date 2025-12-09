@@ -59,3 +59,8 @@ uv run pip install -e ".[waymo]"
   keywords={Meters;Collaboration;Predictive models;Robustness;Iron;Trajectory;Safety},
   doi={10.1109/IV55156.2024.10588828}}
 ```
+
+## Development
+
+Run `uv sync --locked` to set up environment.
+Run `pre-commit run --all-files` to fun all hooks on all files.

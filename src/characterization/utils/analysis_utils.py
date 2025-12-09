@@ -57,7 +57,7 @@ def get_sample_to_plot(
     Returns:
         pd.DataFrame: A DataFrame containing the sampled rows within the specified range.
     """
-    df_subset = df[(df[key] >= min_value) & (df[key] < max_value)]
+    df_subset = df.loc[(df[key] >= min_value) & (df[key] < max_value)]
     subset_size = len(df_subset)
     logger.info("Found %d rows between [%.2f to %.2f] for %s", subset_size, min_value, max_value, key)
     sample_size = min(sample_size, subset_size)
@@ -114,7 +114,7 @@ def plot_histograms_from_dataframe(
 
     for i, col in enumerate(columns_to_plot):
         sns.histplot(
-            df[col],
+            df[col],  # does df[[col]] here work?
             color=palette[i],
             label=col,
             kde=True,
