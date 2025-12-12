@@ -57,15 +57,17 @@ class WaymoData(BaseDataset):
         start = time.time()
         logger.info("Loading WOMD scenario base data from %s", self.scenario_base_path)
         with open(self.scenario_meta_path, "rb") as f:
-            self.data.metas = pickle.load(f)[:: self.step]  # nosec B301
-        self.data.scenarios = natsorted(
-            [f"{self.scenario_base_path}/{x['scenario_id']}.pkl" for x in self.data.metas],
-        )
+            # self.data.metas = pickle.load(f)[:: self.step]  # nosec B301
+            metas = pickle.load(f)[:: self.step]  # nosec B301
+
+        self.scenarios = natsorted([f"{self.scenario_base_path}/{x['scenario_id']}.pkl" for x in metas])
         logger.info("Loading the metadata took %2f seconds.", time.time() - start)
 
         # TODO: remove this
         self.shard()
-        self.compute_metadata()
+
+        if self.create_metadata:
+            self.compute_metadata()
 
     def repack_agent_data(self, agent_data: dict[str, Any], ego_index: int) -> AgentData:
         """Packs agent information from Waymo format to AgentData format.
@@ -279,7 +281,7 @@ class WaymoData(BaseDataset):
         Raises:
             ValidationError: If the scenario data does not pass schema validation.
         """
-        scenario_filepath = Path(self.data.scenarios[index])
+        scenario_filepath = Path(self.scenarios[index])
         if not scenario_filepath.exists():
             return None
 
