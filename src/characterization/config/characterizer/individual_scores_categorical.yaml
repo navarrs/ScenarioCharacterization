@@ -1,0 +1,41 @@
+# @package _global_
+defaults:
+  - default.yaml
+  - individual_features.yaml
+
+processor:
+  _target_: characterization.processors.scores_processor.ScoresProcessor
+  config:
+    output_path: ${paths.output_paths.scores_cache_path}
+
+characterizer:
+  _target_: characterization.scorer.individual_scorer.IndividualScorer
+  config:
+    score_clip:
+      min: 0.0
+      max: 60.0
+
+    # NOTE: if weights are not specified here, will use default values from FeatureWeights in schemas/detections.py.
+    weights:
+      # Individual features
+      speed: 1.0
+      speed_diff: 1.0
+      acceleration: 1.0
+      deceleration: 1.0
+      jerk: 1.0
+      waiting_period: 1.0
+
+      # Individual features from Unitraj
+      trajectory_type: 0.1
+      kalman_difficulty: 1.0
+
+    # Detections here are in percentile categories
+    # 1: 0, 10: 1, 25: 2, 50: 3, 75: 4, 90: 5, 95: 6, 99: 7, 100: 8
+    detections:
+      speed: 8
+      speed_limit_diff: 8
+      acceleration: 8
+      deceleration: 8
+      jerk: 8
+      waiting_period: 8
+      kalman_difficulty: 8
