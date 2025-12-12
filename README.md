@@ -38,6 +38,12 @@ To install with Waymo dependencies (required for running the [example](#example)
 uv run pip install -e ".[waymo]"
 ```
 
+If installing with dev, run
+```bash
+uv run pip install -e. ".[dev]"
+uv run pre-commit install
+```
+
 ## Documentation
 
 - [Organization](./docs/ORGANIZATION.md): Overview of the Hydra configuration structure.

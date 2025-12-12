@@ -17,8 +17,8 @@ criteria:
 
 scores:
   - individual
-  # - interaction
-  # - safeshift
+  - interaction
+  - safeshift
 
 dpi: 300
 output_dir: ${paths.cache_path}/analysis
