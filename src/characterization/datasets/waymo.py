@@ -57,15 +57,17 @@ class WaymoData(BaseDataset):
         start = time.time()
         logger.info("Loading WOMD scenario base data from %s", self.scenario_base_path)
         with open(self.scenario_meta_path, "rb") as f:
-            self.data.metas = pickle.load(f)[:: self.step]  # nosec B301
-        self.data.scenarios = natsorted(
-            [f"{self.scenario_base_path}/{x['scenario_id']}.pkl" for x in self.data.metas],
-        )
+            # self.data.metas = pickle.load(f)[:: self.step]  # nosec B301
+            metas = pickle.load(f)[:: self.step]  # nosec B301
+
+        self.scenarios = natsorted([f"{self.scenario_base_path}/{x['scenario_id']}.pkl" for x in metas])
         logger.info("Loading the metadata took %2f seconds.", time.time() - start)
 
         # TODO: remove this
         self.shard()
-        self.compute_metadata()
+
+        if self.create_metadata:
+            self.compute_metadata()
 
     def repack_agent_data(self, agent_data: dict[str, Any], ego_index: int) -> AgentData:
         """Packs agent information from Waymo format to AgentData format.
@@ -136,38 +138,38 @@ class WaymoData(BaseDataset):
 
         return StaticMapData(
             map_polylines=map_polylines,
-            lane_ids=WaymoData.get_polyline_ids(static_map_data, "lane") if "lane" in static_map_data else None,
+            lane_ids=self.get_polyline_ids(static_map_data, "lane") if "lane" in static_map_data else None,
             lane_speed_limits_mph=WaymoData.get_speed_limit_mph(static_map_data, "lane")
             if "lane" in static_map_data
             else None,
             lane_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "lane")
             if "lane" in static_map_data
             else None,
-            road_line_ids=WaymoData.get_polyline_ids(static_map_data, "road_line")
+            road_line_ids=self.get_polyline_ids(static_map_data, "road_line")
             if "road_line" in static_map_data
             else None,
             road_line_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "road_line")
             if "road_line" in static_map_data
             else None,
-            road_edge_ids=WaymoData.get_polyline_ids(static_map_data, "road_edge")
+            road_edge_ids=self.get_polyline_ids(static_map_data, "road_edge")
             if "road_edge" in static_map_data
             else None,
             road_edge_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "road_edge")
             if "road_edge" in static_map_data
             else None,
-            crosswalk_ids=WaymoData.get_polyline_ids(static_map_data, "crosswalk")
+            crosswalk_ids=self.get_polyline_ids(static_map_data, "crosswalk")
             if "crosswalk" in static_map_data
             else None,
             crosswalk_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "crosswalk")
             if "crosswalk" in static_map_data
             else None,
-            speed_bump_ids=WaymoData.get_polyline_ids(static_map_data, "speed_bump")
+            speed_bump_ids=self.get_polyline_ids(static_map_data, "speed_bump")
             if "speed_bump" in static_map_data
             else None,
             speed_bump_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "speed_bump")
             if "speed_bump" in static_map_data
             else None,
-            stop_sign_ids=WaymoData.get_polyline_ids(static_map_data, "stop_sign")
+            stop_sign_ids=self.get_polyline_ids(static_map_data, "stop_sign")
             if "stop_sign" in static_map_data
             else None,
             stop_sign_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "stop_sign")
@@ -279,7 +281,7 @@ class WaymoData(BaseDataset):
         Raises:
             ValidationError: If the scenario data does not pass schema validation.
         """
-        scenario_filepath = Path(self.data.scenarios[index])
+        scenario_filepath = Path(self.scenarios[index])
         if not scenario_filepath.exists():
             return None
 

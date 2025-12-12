@@ -15,7 +15,7 @@ characterizer:
 
     score_clip:
       min: 0.0
-      max: 120.0
+      max: 16.0
 
     # NOTE: if weights are not specified here, will use default values from FeatureWeights in schemas/detections.py.
     weights:
@@ -32,11 +32,11 @@ characterizer:
       kalman_difficulty: 1.0
 
       # Interaction features
-      collision: 4.0
-      mttcp: 2.0
-      thw: 2.0
-      ttc: 2.0
-      drac: 2.0
+      collision: 2.0
+      mttcp: 1.0
+      thw: 1.0
+      ttc: 1.0
+      drac: 1.0
 
     # Detections here are in percentile categories
     # 1: 0, 10: 1, 25: 2, 50: 3, 75: 4, 90: 5, 95: 6, 99: 7, 100: 8

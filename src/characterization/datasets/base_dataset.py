@@ -43,9 +43,9 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         self.scenario_base_path = config.scenario_base_path
         self.scenario_meta_path = config.scenario_meta_path
 
+        self.create_metadata = config.get("create_metadata", False)
         self.conflict_points_path = Path(config.conflict_points_path)
         self.conflict_points_cfg = config.get("conflict_points", None)
-
         self.closest_lanes_path = Path(config.closest_lanes_path)
         self.closest_lanes_cfg = config.get("closest_lanes", None)
 
@@ -60,12 +60,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         self.config = config
         self.total_steps = config.get("total_steps", 91)
 
-        self.data = DictConfig(
-            {
-                "scenarios": [],
-                "metas": [],
-            },
-        )
+        self.scenarios = []
 
     @property
     def name(self) -> str:
@@ -83,16 +78,13 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         to this instance, based on the number of shards and the shard index.
         """
         if self.num_shards > 1:
-            n_per_shard = math.ceil(len(self.data.metas) / self.num_shards)
+            n_per_shard = math.ceil(len(self.scenarios) / self.num_shards)
             shard_start = int(n_per_shard * self.shard_index)
             shard_end = int(n_per_shard * (self.shard_index + 1))
-
-            self.data.metas = self.data.metas[shard_start:shard_end]
-            self.data.scenarios = self.data.scenarios[shard_start:shard_end]
+            self.scenarios = self.scenarios[shard_start:shard_end]
 
         if self.num_scenarios != -1:
-            self.data.metas = self.data.metas[: self.num_scenarios]
-            self.data.scenarios = self.data.scenarios[: self.num_scenarios]
+            self.scenarios = self.scenarios[: self.num_scenarios]
 
     def compute_metadata(self) -> None:
         """Computes and validates metadata for each scenario in the dataset."""
@@ -103,7 +95,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
 
     def _compute_metadata_parallel(self) -> None:
         """Computes and validates metadata for each scenario in the dataset."""
-        total = len(self.data.scenarios)
+        total = len(self.scenarios)
         logger.info("Checking metadata for %d scenarios using %d workers...", total, self.num_workers)
 
         def _process(index: int) -> None:
@@ -135,7 +127,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
 
     def _compute_metadata_sequential(self) -> None:
         """Computes metadata sequentially for each scenario in the dataset."""
-        total = len(self.data.scenarios)
+        total = len(self.scenarios)
         for i in tqdm(range(total), desc="Computing metadata"):
             # Load scenario
             scenario = self.load_scenario_information(i)
@@ -183,19 +175,18 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
             conflict_point_info (dict[str, Any] | None): The conflict points associated with the scenario or 'None' if
             not found.
         """
-        conflict_point_info = None
         conflict_points_filepath = self.conflict_points_path / f"{scenario_id}.pkl"
         if conflict_points_filepath.exists() and conflict_points_filepath.stat().st_size > 0:
             try:
                 with conflict_points_filepath.open("rb") as f:
-                    conflict_point_info = pickle.load(f)  # nosec B301
+                    return pickle.load(f)  # nosec B301
             except (EOFError, pickle.UnpicklingError) as e:
                 logger.warning(
                     "Failed to load conflict points from %s (will recompute): %s",
                     conflict_points_filepath,
                     e,
                 )
-        return conflict_point_info
+        return None
 
     def compute_closest_lanes_information(self, scenario: Scenario) -> dict[str, Any] | None:
         """Computes and stores closest lanes for a given scenario.
@@ -227,19 +218,18 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
             closest_lanes_info (dict[str, Any] | None): The closest lanes associated with the scenario or 'None' if
             not found.
         """
-        closest_lanes_info = None
         closest_lanes_filepath = self.closest_lanes_path / f"{scenario.metadata.scenario_id}.pkl"
         if closest_lanes_filepath.exists() and closest_lanes_filepath.stat().st_size > 0:
             try:
                 with closest_lanes_filepath.open("rb") as f:
-                    closest_lanes_info = pickle.load(f)  # nosec B301
+                    return pickle.load(f)  # nosec B301
             except (EOFError, pickle.UnpicklingError) as e:
                 logger.warning(
                     "Failed to load closest lanes from %s (will recompute): %s",
                     closest_lanes_filepath,
                     e,
                 )
-        return closest_lanes_info
+        return None
 
     def __len__(self) -> int:
         """Returns the number of scenarios in the dataset.
@@ -247,7 +237,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         Returns:
             int: The number of scenarios in the dataset.
         """
-        return len(self.data.scenarios)
+        return len(self.scenarios)
 
     def __getitem__(self, index: int) -> Scenario:
         """Retrieves a single scenario by index.

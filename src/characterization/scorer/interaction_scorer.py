@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from warnings import warn
 
 import numpy as np
@@ -40,6 +42,12 @@ class InteractionScorer(BaseScorer):
             )
             raise ValueError(error_message)
         self.score_function = INTERACTION_SCORE_FUNCTIONS[interaction_score_function]
+
+        if self.categorize_scores:
+            categorization_file = Path(self.config.get("interaction_categorization_file", ""))
+            assert categorization_file.is_file(), f"Categorization file {categorization_file} does not exist."
+            with categorization_file.open("r") as f:
+                self.categories = json.load(f)
 
     def compute_interaction_score(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> Score:
         """Computes interaction scores for agent pairs and a scene-level score from scenario features.
@@ -97,6 +105,11 @@ class InteractionScorer(BaseScorer):
             )
             scores[i] += weights[i] * agent_pair_score
             scores[j] += weights[j] * agent_pair_score
+
+        if self.categorize_scores:
+            # Categorize the scores
+            for idx in range(scores.shape[0]):
+                scores[idx] = self.categorize(scores[idx])
 
         # Replace NaNs with zeros as a safeguard
         scores = np.nan_to_num(scores, nan=0.0)

@@ -11,9 +11,6 @@ processor:
 characterizer:
   _target_: characterization.scorer.individual_scorer.IndividualScorer
   config:
-    categorize_scores: ${categorize_scores}
-    categorization_file: ./meta/${scenario_type}_${return_criterion}_${feature_type}_individual.json
-
     score_clip:
       min: 0.0
       max: 60.0

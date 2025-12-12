@@ -1,5 +1,6 @@
 import re
 from abc import ABC, abstractmethod
+from itertools import pairwise
 
 import numpy as np
 from numpy.typing import NDArray
@@ -35,6 +36,9 @@ class BaseScorer(ABC):
         logger.info("Feature weights set to: %s", self.weights)
         self.score_clip = self.config.score_clip
         self.score_wrt_ego_only = self.config.get("score_wrt_ego_only", False)
+
+        self.categorize_scores = self.config.get("categorize_scores", False)
+        self.categories = None
 
     @property
     def name(self) -> str:
@@ -93,6 +97,37 @@ class BaseScorer(ABC):
 
         # weights
         return relevant_agents_values[argmin_dist] * np.minimum(1.0 / min_dist, 1.0)  # Shape (num_agents, )
+
+    def categorize(self, score: NDArray[np.float32]) -> float:
+        """Categorizes a score based on predefined percentiles.
+
+        Args:
+            score (float): The score to categorize.
+
+        Returns:
+            float: The categorized score.
+        """
+        if self.categories is None:
+            error_message = "Categories not loaded. Cannot categorize scores."
+            raise ValueError(error_message)
+
+        ranges = list(self.categories.values())
+
+        # If there is only one category, return 1.0 or 2.0 based on the value
+        if len(ranges) < 2:  # noqa: PLR2004
+            return 1.0 if score < ranges[0] else 2.0
+
+        # If value is below the lowest range, return 1.0
+        if score < ranges[0]:
+            return 1.0
+
+        # Categorize based on ranges
+        for category, (lower_bound, upper_bound) in enumerate(pairwise(ranges)):
+            if lower_bound <= score < upper_bound:
+                return float(category + 2)  # Categories start from 2.0
+
+        # If value is above the highest range
+        return float(len(self.categories) + 1)
 
     @abstractmethod
     def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> ScenarioScores:

@@ -3,7 +3,6 @@ from pathlib import Path
 from warnings import warn
 
 import numpy as np
-from numpy.typing import NDArray
 from omegaconf import DictConfig
 
 from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores, Score
@@ -43,26 +42,11 @@ class IndividualScorer(BaseScorer):
             raise ValueError(error_message)
         self.score_function = INDIVIDUAL_SCORE_FUNCTIONS[individual_score_function]
 
-        self.categorize_scores = self.config.get("categorize_scores", False)
         if self.categorize_scores:
-            categorization_file = Path(self.config.get("categorization_file", ""))
+            categorization_file = Path(self.config.get("individual_categorization_file", ""))
             assert categorization_file.is_file(), f"Categorization file {categorization_file} does not exist."
             with categorization_file.open("r") as f:
-                self.category_percentiles = json.load(f)
-
-    def categorize(self, score: NDArray[np.float32]) -> float:
-        """Categorizes a score based on predefined percentiles.
-
-        Args:
-            score (float): The score to categorize.
-
-        Returns:
-            float: The categorized score.
-        """
-        for category, threshold in enumerate(self.category_percentiles.values()):
-            if score <= threshold:
-                return float(category)
-        return float(len(self.category_percentiles))
+                self.categories = json.load(f)
 
     def compute_individual_score(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> Score:
         """Computes individual agent scores and a scene-level score from scenario features.

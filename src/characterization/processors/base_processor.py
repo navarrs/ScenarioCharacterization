@@ -58,6 +58,7 @@ class BaseProcessor(ABC):
             shuffle=self.shuffle,
             num_workers=self.num_workers,
             collate_fn=self.dataset.collate_batch,  # pyright: ignore[reportAttributeAccessIssue]
+            persistent_workers=True,
         )
 
     @property
