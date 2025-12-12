@@ -138,38 +138,38 @@ class WaymoData(BaseDataset):
 
         return StaticMapData(
             map_polylines=map_polylines,
-            lane_ids=self.get_polyline_ids(static_map_data, "lane") if "lane" in static_map_data else None,
+            lane_ids=WaymoData.get_polyline_ids(static_map_data, "lane") if "lane" in static_map_data else None,
             lane_speed_limits_mph=WaymoData.get_speed_limit_mph(static_map_data, "lane")
             if "lane" in static_map_data
             else None,
             lane_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "lane")
             if "lane" in static_map_data
             else None,
-            road_line_ids=self.get_polyline_ids(static_map_data, "road_line")
+            road_line_ids=WaymoData.get_polyline_ids(static_map_data, "road_line")
             if "road_line" in static_map_data
             else None,
             road_line_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "road_line")
             if "road_line" in static_map_data
             else None,
-            road_edge_ids=self.get_polyline_ids(static_map_data, "road_edge")
+            road_edge_ids=WaymoData.get_polyline_ids(static_map_data, "road_edge")
             if "road_edge" in static_map_data
             else None,
             road_edge_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "road_edge")
             if "road_edge" in static_map_data
             else None,
-            crosswalk_ids=self.get_polyline_ids(static_map_data, "crosswalk")
+            crosswalk_ids=WaymoData.get_polyline_ids(static_map_data, "crosswalk")
             if "crosswalk" in static_map_data
             else None,
             crosswalk_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "crosswalk")
             if "crosswalk" in static_map_data
             else None,
-            speed_bump_ids=self.get_polyline_ids(static_map_data, "speed_bump")
+            speed_bump_ids=WaymoData.get_polyline_ids(static_map_data, "speed_bump")
             if "speed_bump" in static_map_data
             else None,
             speed_bump_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "speed_bump")
             if "speed_bump" in static_map_data
             else None,
-            stop_sign_ids=self.get_polyline_ids(static_map_data, "stop_sign")
+            stop_sign_ids=WaymoData.get_polyline_ids(static_map_data, "stop_sign")
             if "stop_sign" in static_map_data
             else None,
             stop_sign_polyline_idxs=WaymoData.get_polyline_idxs(static_map_data, "stop_sign")
