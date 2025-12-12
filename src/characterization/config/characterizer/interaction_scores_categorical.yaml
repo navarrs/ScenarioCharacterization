@@ -1,0 +1,34 @@
+# @package _global_
+defaults:
+  - default.yaml
+  - interaction_features.yaml
+
+processor:
+  _target_: characterization.processors.scores_processor.ScoresProcessor
+  config:
+    output_path: ${paths.output_paths.scores_cache_path}
+
+characterizer:
+  _target_: characterization.scorer.interaction_scorer.InteractionScorer
+  config:
+    score_clip:
+      min: 0.0
+      max: 70.0
+
+    # NOTE: if weights are not specified here, will use default values from FeatureWeights in schemas/detections.py.
+    weights:
+      # Interaction features
+      collision: 4.0
+      mttcp: 2.0
+      thw: 2.0
+      ttc: 2.0
+      drac: 2.0
+
+     # Detections here are in percentile categories
+    # 1: 0, 10: 1, 25: 2, 50: 3, 75: 4, 90: 5, 95: 6, 99: 7, 100: 8
+    detections:
+      collision: 1
+      mttcp: 8
+      thw: 8
+      ttc: 8
+      drac: 8

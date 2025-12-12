@@ -33,9 +33,30 @@ processor:
 
 characterizer:
   config:
-    score_wrt_ego_only: ${score_wrt_ego_only}
-    aggregated_score_weight: ${aggregated_score_weight}
     feature_type: ${feature_type}
+
+    # Individual feature categorization files
+    vehicle_categorization_file: ./meta/type_vehicle_feature_percentiles.json
+    cyclist_categorization_file: ./meta/type_cyclist_feature_percentiles.json
+    pedestrian_categorization_file: ./meta/type_pedestrian_feature_percentiles.json
+
+    # Interaction feature categorization files
+    vehicle_vehicle_categorization_file: ./meta/type_vehicle_vehicle_feature_percentiles.json
+    vehicle_pedestrian_categorization_file: ./meta/type_vehicle_pedestrian_feature_percentiles.json
+    vehicle_cyclist_categorization_file: ./meta/type_vehicle_cyclist_feature_percentiles.json
+    pedestrian_pedestrian_categorization_file: ./meta/type_pedestrian_pedestrian_feature_percentiles.json
+    pedestrian_cyclist_categorization_file: ./meta/type_pedestrian_cyclist_feature_percentiles.json
+    cyclist_cyclist_categorization_file: ./meta/type_cyclist_cyclist_feature_percentiles.json
+
+    # Scoring parameters
+    categorize_scores: ${categorize_scores}
+    score_wrt_ego_only: ${score_wrt_ego_only}
+    reduce_distance_penalty: ${reduce_distance_penalty}
+    aggregated_score_weight: ${aggregated_score_weight}
+    individual_score_function: simple
+    individual_categorization_file: ./meta/${scenario_type}_${return_criterion}_${feature_type}_individual.json
+    interaction_score_function: simple
+    interaction_categorization_file: ./meta/${scenario_type}_${return_criterion}_${feature_type}_interaction.json
     score_clip:
       min: 0.0
       max: 200.0
@@ -63,19 +84,23 @@ characterizer:
       ttc: 2.0
       drac: 2.0
 
-    # NOTE: if detections are not specified here, will use default values from FeatureDetections in schemas/detections.py.
+    # NOTE: if detections are not specified here, the code uses the default values from FeatureDetections which is
+    # defined in 'schemas/detections.py'. The current thresholds have been adjusted from FeatureDetections based on
+    # feature distribution analysis performed on a subset of the WOMD data, using 'run_feature_analysis.py'. We select
+    # the maximum value accross vehicles, pedestrians and cyclists at the 95th percentile as the detection threshold.
     detections:
-      speed: 30 # in m/s, i.e. ~108 km/h ~70 mph
-      speed_diff: 8 # in m/s, i.e. ~30 km/h over the speed limit
-      acceleration: 10 # in m/s^2
-      deceleration: 10 # in m/s^2
-      jerk: 10 # in m/s^3
-      waiting_period: 8 # in seconds
+      speed: 25 # in m/s, i.e. ~90 km/h ~56 mph
+      speed_diff: 18 # in m/s, i.e. ~61 km/h ~38 mph
+      acceleration: 6 # in m/s^2
+      deceleration: 6 # in m/s^2
+      jerk: 50 # in m/s^3
+      waiting_period: 6 # in seconds/distance
       waiting_intervals: 8 # in number of intervals
       waiting_distances: 8 # in meters
-      kalman_difficulty: 80.0
+      kalman_difficulty: 50.0
 
+      collision: 1
       mttcp: 4
       thw: 4
       ttc: 4
-      drac: 2
+      drac: 5
