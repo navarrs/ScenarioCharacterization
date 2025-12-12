@@ -74,6 +74,13 @@ class ScoresProcessor(BaseProcessor):
                 scenario_id = scenario.metadata.scenario_id
                 scenario_feature_file = os.path.join(self.feature_path, f"{scenario_id}.pkl")
                 scenario_features = from_pickle(scenario_feature_file)
+                if scenario_features is None:
+                    warning_message = (
+                        f"Features for scenario {scenario_id} could not be loaded from {scenario_feature_file}."
+                        " Scores will not be computed for this scenario."
+                    )
+                    logger.warning(warning_message)
+                    continue
 
                 # TODO: pre-check that features have been computed
                 scenario_features = ScenarioFeatures.model_validate(scenario_features)

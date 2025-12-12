@@ -510,6 +510,7 @@ def plot_feature_distributions(
             sns.histplot(
                 feature_values,
                 color=FEATURE_COLOR_MAP.get(feature_name, "gray"),
+                # log_scale=True,
                 kde=True,
                 stat="density",
                 alpha=0.6,
@@ -523,7 +524,8 @@ def plot_feature_distributions(
             ax.set_title(f"{feature_name} Distribution ({feature_values.shape[0]} samples)")
             ax.grid(visible=True, linestyle="--", alpha=0.4)
 
-            percentiles = np.percentile(feature_values, percentile_values)
+            percentiles = np.round(np.percentile(feature_values, percentile_values), decimals=2).tolist()
+            # Only keep percentiles where the value changes from the previous one
             filtered_percentile_values, filtered_percentiles = _filter_percentiles(percentile_values, percentiles)
 
             feature_percentiles[feature_name] = dict(
@@ -570,6 +572,7 @@ def plot_agent_scores_distributions(
         sns.histplot(
             agent_scores_flattened,
             color="blue",
+            # log_scale=True,
             kde=True,
             stat="density",
             alpha=0.6,
@@ -584,8 +587,7 @@ def plot_agent_scores_distributions(
         ax.set_title(f"Scores Distribution ({len(agent_scores_flattened)} agents)")
         ax.grid(visible=True, linestyle="--", alpha=0.4)
 
-        percentiles = np.percentile(agent_scores_flattened, percentile_values).tolist()
-
+        percentiles = np.round(np.percentile(agent_scores_flattened, percentile_values), decimals=2).tolist()
         # Only keep percentiles where the value changes from the previous one
         filtered_percentile_values, filtered_percentiles = _filter_percentiles(percentile_values, percentiles)
 
