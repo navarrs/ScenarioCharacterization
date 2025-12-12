@@ -93,9 +93,9 @@ class IndividualFeatures(BaseFeature):
 
         ranges = list(categories.values())
 
-        # If there is only one category, return 0.0 or 1.0 based on the value
+        # If there is only one category, return 1.0 or 2.0 based on the value
         if len(ranges) < 2:  # noqa: PLR2004
-            return 0.0 if value <= ranges[0] else 1.0
+            return 1.0 if value <= ranges[0] else 2.0
 
         # If value is below the lowest range, return 0.0
         if value < ranges[0]:
