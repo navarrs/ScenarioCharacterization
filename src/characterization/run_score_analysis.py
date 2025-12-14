@@ -60,13 +60,19 @@ def run(cfg: DictConfig) -> None:
         Path(cfg.scores_path),
     )
 
-    logger.info("Visualizing density function for scores: %s", cfg.scores)
     scene_scores_df = pd.DataFrame(scene_scores)
+    float_cols = scene_scores_df.select_dtypes(include="float").columns
+    scene_scores_df[float_cols] = scene_scores_df[float_cols].round(3)
+    output_filepath = output_dir / "scene_to_scores_mapping.csv"
+    scene_scores_df.to_csv(output_filepath, index=False)
+    logger.info("Saving scene to scores mapping to %s", output_filepath)
+
     output_filepath = output_dir / f"{cfg.tag}_score_density_plot.png"
-    logger.info("Saving density plot: %s", output_filepath)
     analysis_utils.plot_histograms_from_dataframe(scene_scores_df, output_filepath, cfg.dpi)
-    logger.info("Generating score split files")
+    logger.info("Visualizing density function for scores: %s to %s", cfg.scores, output_filepath)
+
     scenario_splits = analysis_utils.get_scenario_splits(scene_scores_df, cfg.test_percentile, add_jaccard_index=True)
+    logger.info("Generating score split files")
 
     output_filepath = output_dir / "scenario_splits.json"
     with output_filepath.open("w") as f:
@@ -74,6 +80,7 @@ def run(cfg: DictConfig) -> None:
     logger.info("Saved scenario splits to %s", output_filepath)
 
     analysis_utils.plot_agent_scores_distributions(agent_scores, output_dir, cfg.dpi)
+    logger.info("Visualized agent score distributions to %s", output_dir)
 
 
 if __name__ == "__main__":
