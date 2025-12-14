@@ -86,8 +86,6 @@ class FeatureWeights(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         deceleration (float): Deceleration threshold in m/s^2.
         jerk (float): Jerk threshold in m/s^3.
         waiting_period (float): Waiting period threshold in s/m.
-        waiting_intervals (float): Waiting intervals threshold in number of intervals.
-        waiting_distances (float): Waiting distances threshold in meters.
         kalman_difficulty (float): Kalman filter difficulty threshold.
         trajectory_type (float): Trajectory type threshold.
         collision (float): Collision threshold.
@@ -103,8 +101,6 @@ class FeatureWeights(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     deceleration: float = 1.0
     jerk: float = 0.1
     waiting_period: float = 1.0
-    waiting_intervals: float = 1.0
-    waiting_distances: float = 1.0
     kalman_difficulty: float = 1.0
     trajectory_type: float = 1.0
     collision: float = 1.0

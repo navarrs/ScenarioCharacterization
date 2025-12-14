@@ -54,8 +54,6 @@ scorer_config = DictConfig(
             "deceleration": 1.0,
             "jerk": 1.0,
             "waiting_period": 1.0,
-            "waiting_intervals": 1.0,
-            "waiting_distances": 1.0,
         },
         "detections": {
             "speed": 10,
@@ -63,8 +61,6 @@ scorer_config = DictConfig(
             "deceleration": 10,
             "jerk": 10,
             "waiting_period": 8,
-            "waiting_intervals": 8,
-            "waiting_distances": 8,
         },
     },
 )

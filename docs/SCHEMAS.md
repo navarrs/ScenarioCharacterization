@@ -101,8 +101,6 @@ class Individual(BaseModel):
     deceleration: Float32NDArray1D | None = None
     jerk: Float32NDArray1D | None = None
     waiting_period: Float32NDArray1D | None = None
-    waiting_interval: Float32NDArray1D | None = None
-    waiting_distance: Float32NDArray1D | None = None
 
 
 class Interaction(BaseModel):
