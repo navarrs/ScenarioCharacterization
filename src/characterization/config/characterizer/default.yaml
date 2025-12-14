@@ -65,13 +65,11 @@ characterizer:
     weights:
       # Individual features
       speed: 1.0
-      speed_diff: 1.0
+      speed_limit_diff: 1.0
       acceleration: 1.0
       deceleration: 1.0
       jerk: 0.1
       waiting_period: 1.0
-      waiting_intervals: 1.0
-      waiting_distances: 1.0
 
       # Individual features from Unitraj
       trajectory_type: 0.1
@@ -90,13 +88,11 @@ characterizer:
     # the maximum value accross vehicles, pedestrians and cyclists at the 95th percentile as the detection threshold.
     detections:
       speed: 25 # in m/s, i.e. ~90 km/h ~56 mph
-      speed_diff: 18 # in m/s, i.e. ~61 km/h ~38 mph
+      speed_limit_diff: 18 # in m/s, i.e. ~61 km/h ~38 mph
       acceleration: 6 # in m/s^2
       deceleration: 6 # in m/s^2
       jerk: 50 # in m/s^3
-      waiting_period: 6 # in seconds/distance
-      waiting_intervals: 8 # in number of intervals
-      waiting_distances: 8 # in meters
+      waiting_period: 6 # in s/m
       kalman_difficulty: 50.0
 
       collision: 1

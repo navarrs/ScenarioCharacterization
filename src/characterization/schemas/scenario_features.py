@@ -25,8 +25,6 @@ class Individual(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         deceleration (Float32NDArray1D | None): Deceleration of each agent at each timestep.
         jerk (Float32NDArray1D | None): Jerk (rate of change of acceleration) of each agent at each timestep.
         waiting_period (Float32NDArray1D | None): Waiting period of each agent at each timestep.
-        waiting_interval (Float32NDArray1D | None): Waiting interval of each agent at each timestep.
-        waiting_distance (Float32NDArray1D | None): Waiting distance of each agent at each timestep.
         kalman_difficulty (Float32NDArray1D | None): Kalman filter difficulty value for each agent.
     """
 
@@ -42,8 +40,6 @@ class Individual(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     deceleration: Float32NDArray1D | None = None
     jerk: Float32NDArray1D | None = None
     waiting_period: Float32NDArray1D | None = None
-    waiting_interval: Float32NDArray1D | None = None
-    waiting_distance: Float32NDArray1D | None = None
     kalman_difficulty: Float32NDArray1D | None = None
 
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
