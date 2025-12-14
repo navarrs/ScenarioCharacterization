@@ -61,6 +61,12 @@ class FeatureProcessor(BaseProcessor):
                 features: ScenarioFeatures = self.characterizer.compute(scenario)  # pyright: ignore[reportCallIssue]
 
                 if self.save:
-                    to_pickle(self.output_path, features.model_dump(), scenario_id, overwrite=self.overwrite)
+                    to_pickle(
+                        self.output_path,
+                        features.model_dump(),
+                        scenario_id,
+                        overwrite=self.overwrite,
+                        update=self.update,
+                    )
 
         logger.info("Finished processing %s features for %s.", self.characterizer.name, self.dataset.name)  # pyright: ignore[reportAttributeAccessIssue]

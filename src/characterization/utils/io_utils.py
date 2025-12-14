@@ -76,14 +76,15 @@ def from_pickle(data_file: str) -> dict | None:  # pyright: ignore[reportMissing
         return pickle.load(f)  # nosec B301
 
 
-def to_pickle(output_path: str, input_data: dict, tag: str, *, overwrite: bool = True) -> None:  # pyright: ignore[reportMissingTypeArgument]
+def to_pickle(output_path: str, input_data: dict, tag: str, *, overwrite: bool = False, update: bool = False) -> None:  # pyright: ignore[reportMissingTypeArgument]
     """Saves data to a pickle file, merging with existing data if present.
 
     Args:
         output_path (str): Directory where the pickle file will be saved.
         input_data (dict): The data to save.
         tag (str): The tag to use for the output file name.
-        overwrite (bool, optional): Whether to overwrite existing data. Defaults to True.
+        overwrite (bool, optional): Whether to overwrite existing data. Defaults to False.
+        update (bool, optional): Whether to update existing data. Defaults to False.
 
     Returns:
         None
@@ -95,6 +96,7 @@ def to_pickle(output_path: str, input_data: dict, tag: str, *, overwrite: bool =
             pickle.dump(input_data, f, protocol=pickle.HIGHEST_PROTOCOL)
         return
 
+    # If not overwriting and file exists, load existing data to merge with new data
     if os.path.exists(data_file):
         with open(data_file, "rb") as f:
             data = pickle.load(f)  # nosec B301
@@ -104,14 +106,18 @@ def to_pickle(output_path: str, input_data: dict, tag: str, *, overwrite: bool =
         error_message = "Mismatched scenario IDs when merging pickle data."
         raise AttributeError(error_message)
 
-    # NOTE: with current ScenarioScores and ScenarioFeatures implementation, computing interaction and individual
-    # features will cause overrides. Need to address this better in the future.
+    # Iterate over input values and merge into existing data
     for key, value in input_data.items():
         if value is None:
             continue
-        # if key in data and data[key] is not None:
-        #     continue
-        data[key] = value
+
+        # Only add/modify data if the key does not exist or if update is True
+        if key not in data or update:
+            if isinstance(value, dict) and key in data:
+                # Merge dictionaries
+                data[key].update(value)
+            else:
+                data[key] = value
 
     with open(data_file, "wb") as f:
         pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
