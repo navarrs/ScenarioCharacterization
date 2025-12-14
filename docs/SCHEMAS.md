@@ -1,85 +1,27 @@
 # Input/Output Schemas
 
 Input and output schemas are defined in [`./characterization/utils/schemas.py`](./characterization/utils/schemas.py) using [Pydantic](https://docs.pydantic.dev/latest/).
-This repository currently uses three main schemas:
+This repository currently uses the following schemas:
 - [Scenario](#scenario-schema)
 - [ScenarioFeatures](#scenario-features-schema)
 - [ScenarioScores](#scenario-scores-schema)
-
----
+- [FeatureDetections](#feature-detections-schema)
+- [FeatureWeights](#feature-weights-schema)
 
 ## Scenario Schema
 
 The dataset adapter class is responsible for converting data from a dataset-specific format into a structured representation.
 
-Schemas:
-```python
-class AgentData(BaseModel):
-    agent_ids: list[NonNegativeInt]
-    agent_types: list[AgentType]
-    agent_trajectories: Float32NDArray3D
-    agent_relevance: Float32NDArray2D | None = None
+The `Scenario` schema encapsulates:
+* Agent information (e.g., trajectories, agent types, etc)
+* Scenario metatada (e.g., scenario ID, scenario length, ego agent index, etc)
+* Static map information (e.g., road layout, conflict points, etc)
+* Dynamic map information (e.g., traffic lights and their states, etc)
+* Tracks to predict, if downstream task is trajectory prediction
 
+This model assumes that at least scenario metadata and agent information will be provided. All other fields are optional, in case information is unavailable.
 
-class ScenarioMetadata(BaseModel):
-    scenario_id: str
-    timestamps_seconds: list[float]
-    current_time_index: int
-    ego_vehicle_id: int
-    ego_vehicle_index: int
-    objects_of_interest: list[int]
-    track_length: int
-    dataset: str
-
-    # Thresholds
-    stationary_speed: float = 0.25  # m/s
-    agent_to_agent_max_distance: float = 50.0  # meters
-    agent_to_conflict_point_max_distance: float = 2.0  # meters
-    agent_to_agent_distance_breach: float = 1.0  # meters
-    heading_threshold: float = 45.0  # degrees
-
-class TracksToPredict(BaseModel):
-    track_index: list[NonNegativeInt]
-    difficulty: list[NonNegativeInt]
-    object_type: list[AgentType]
-
-
-class StaticMapData(BaseModel):
-    map_polylines: Float32NDArray2D | None = None
-    lane_ids: Int32NDArray1D | None = None
-    lane_speed_limits_mph: Float32NDArray1D | None = None
-    lane_polyline_idxs: Int32NDArray2D | None = None
-    road_line_ids: Int32NDArray1D | None = None
-    road_line_polyline_idxs: Int32NDArray2D | None = None
-    road_edge_ids: Int32NDArray1D | None = None
-    road_edge_polyline_idxs: Int32NDArray2D | None = None
-    crosswalk_ids: Int32NDArray1D | None = None
-    crosswalk_polyline_idxs: Int32NDArray2D | None = None
-    speed_bump_ids: Int32NDArray1D | None = None
-    speed_bump_polyline_idxs: Int32NDArray2D | None = None
-    stop_sign_ids: Int32NDArray1D | None = None
-    stop_sign_polyline_idxs: Int32NDArray2D | None = None
-    stop_sign_lane_ids: list[list[int]] | None = None
-
-    # Optional information that can be derived from existing map information
-    map_conflict_points: Float32NDArray2D | None = None
-    agent_distances_to_conflict_points: Float32NDArray3D | None = None
-
-class DynamicMapData(BaseModel):
-    stop_points: list[Any] | None = None
-    lane_ids: list[Any] | None = None
-    states: list[Any] | None = None  # Placeholder for state information, can be more specific if needed
-
-
-class Scenario(BaseModel):
-    metadata: ScenarioMetadata
-    agent_data: AgentData
-    tracks_to_predict: TracksToPredict | None = None
-    static_map_data: StaticMapData | None = None
-    dynamic_map_data: DynamicMapData | None = None
-```
-
-See [[SOURCE](../src/characterization/schemas/scenario.py)] for more details and descriptions.
+See the [[schema](../src/characterization/schemas/scenario.py)] for more details and descriptions.
 
 ---
 
@@ -87,46 +29,18 @@ See [[SOURCE](../src/characterization/schemas/scenario.py)] for more details and
 
 The feature processor takes a `Scenario` as input and produces `ScenarioFeatures`.
 
-Schemas:
-```python
-class Individual(BaseModel):
-    # Agent meta
-    valid_idxs: Int32NDArray1D | None = None
-    agent_types: list[AgentType] | None = None
+The `ScenarioFeatures` schema encapsulates:
+* **Metadata**: General information about the scenario, such as scenario ID and other relevant attributes. This should match the metadata from the scenario schema.
+* **Individual Features**: Per-agent features, including:
+    - Agent meta (e.g., valid indices, agent types)
+    - Kinematic features (e.g., speed, acceleration, deceleration, jerk)
+    - Behavioral features (e.g., waiting period, speed limit difference)
+* **Interaction Features**: Features describing interactions between agents, such as:
+    - Separation, intersection, and collision metrics
+    - Time-based metrics (e.g., minimum time to collision point, time headway, time to collision, deceleration rate to avoid collision)
+    - Interaction status and involved agent indices/types
 
-    # Individual Features
-    speed: Float32NDArray1D | None = None
-    speed_limit_diff: Float32NDArray1D | None = None
-    acceleration: Float32NDArray1D | None = None
-    deceleration: Float32NDArray1D | None = None
-    jerk: Float32NDArray1D | None = None
-    waiting_period: Float32NDArray1D | None = None
-
-
-class Interaction(BaseModel):
-    # Interaction Features
-    separation: Float32NDArray1D | None = None
-    intersection: Float32NDArray1D | None = None
-    collision: Float32NDArray1D | None = None
-    mttcp: Float32NDArray1D | None = None
-    thw: Float32NDArray1D | None = None
-    ttc: Float32NDArray1D | None = None
-    drac: Float32NDArray1D | None = None
-
-    interaction_status: list[InteractionStatus] | None = None
-    interaction_agent_indices: list[tuple[int, int]] | None = None
-    interaction_agent_types: list[tuple[AgentType, AgentType]] | None = None
-
-
-class ScenarioFeatures(BaseModel):
-    metadata: ScenarioMetadata
-    individual_features: Individual | None = None
-    interaction_features: Interaction | None = None
-    agent_to_agent_closest_dists: Float32NDArray2D | None = None
-
-```
-
-See [[SOURCE](../src/characterization/schemas/scenario_features.py)] for more details and descriptions.
+See the [[schema](../src/characterization/schemas/scenario_features.py)] for more details and descriptions.
 
 ---
 
@@ -134,17 +48,28 @@ See [[SOURCE](../src/characterization/schemas/scenario_features.py)] for more de
 
 The score processor takes a `Scenario` and its corresponding `ScenarioFeatures` as input, and produces `ScenarioScores`.
 
-Schemas:
-```python
-class Score(BaseModel):
-    agent_scores: Float32NDArray1D | None = None
-    scene_score: float | None = None
+The `ScenarioScores` schema encapsulates:
 
-class ScenarioScores(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
-    metadata: ScenarioMetadata
-    individual_scores: Score | None = None
-    interaction_scores: Score | None = None
-    safeshift_scores: Score | None = None
-```
+* **Metadata**: General information about the scenario, such as scenario ID and other relevant attributes. This matches the metadata from the scenario and features schemas.
+* **Individual Scores**: Per-agent scores, which may include:
+    - An array of scores for each agent in the scenario
+    - An overall scene-level score summarizing agent performance
+* **Interaction Scores**: Scores that quantify interactions between agents, such as:
+    - Metrics for safety, efficiency, or other interaction-based criteria
+    - Scene-level and per-agent interaction scores
+* **SafeShift Scores**: Per-agent scores combining individual and interaction features.
 
-See [[SOURCE](../src/characterization/schemas/scenario_scores.py)] for more details and descriptions.
+See the [[schema](../src/characterization/schemas/scenario_scores.py)] for more details and descriptions.
+
+
+## Feature Detections Schema
+
+The `FeatureDetections` schema specifies configurable thresholds for detecting key driving behaviors or events from scenario features. It covers both individual and interaction features, referencing their sources and default values based on empirical or domain knowledge. These thresholds guide downstream processors in flagging notable events and can be adjusted for different datasets or applications.
+
+See the [[schema](../src/characterization/schemas/detections.py)] for details.
+
+## Feature Weights Schema
+
+The `FeatureWeights` schema defines the relative importance (weights) assigned to each feature when aggregating or scoring scenario features. Each weight corresponds to a specific feature (e.g., speed, acceleration, collision) and can be tuned to emphasize or de-emphasize certain aspects of agent or interaction behavior in downstream metrics or composite scores. Default values are provided, but these can be customized to suit different evaluation criteria or application needs.
+
+See the [[schema](../src/characterization/schemas/detections.py)] for details.

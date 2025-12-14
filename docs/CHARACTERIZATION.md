@@ -16,21 +16,25 @@ uv run -m characterization.run_processor characterizer=[feature_type]
 Available feature groups (see `config/characterizer`):
 - **`individual_features`**: Computes descriptors for individual agents.
 - **`interaction_features`**: Computes descriptors for agent interactions.
+- **`safeshift_features`**: Combines individual and interaction features.
 
 ### Individual Features
 
 To run the individual features characterizer:
 ```bash
-uv run -m characterization.run_processor  characterizer=individual_features
+uv run -m characterization.run_processor characterizer=individual_features
 ```
 
 Currently supported features:
-- Agent speed
-- Agent acceleration
-- Agent jerk
-- Agent waiting period (interval an agent waits near a conflict point)
-- Agent speed limit difference (difference between agent speed and speed limit)
-- **TODO:** Agent in-lane deviation
+- Derived from [SafeShift](https://github.com/cmubig/SafeShift/tree/master):
+  - Agent speed
+  - Agent speed limit difference (difference between agent speed and speed limit)
+  - Agent acceleration
+  - Agent jerk
+  - Agent waiting period (interval an agent waits near a conflict point)
+- Derived from [UniTraj](https://github.com/vita-epfl/UniTraj/tree/main):
+  - Agent trajectory type (stationary, straight, straight-right, straight-left, right turn, right u-turn, left turn, left u-turn)
+  - Agent kalman difficulty (how difficult to predict is an agent's trajectory based on an estimated trajectory using Kalman filters)
 
 ### Interaction Features
 
@@ -40,11 +44,12 @@ uv run -m characterization.run_processor characterizer=interaction_features
 ```
 
 Currently supported features:
-- Collisions
-- Minimum Time to Conflict Point (mTTCP)
-- Time headway
-- Time to collision
-- Deceleration Rate to Avoid a Crash (DRAC)
+- Derived from [SafeShift](https://github.com/cmubig/SafeShift/tree/master):
+  - Collisions
+  - Minimum Time to Conflict Point (mTTCP)
+  - Time headway
+  - Time to collision
+  - Deceleration Rate to Avoid a Crash (DRAC)
 
 ---
 
@@ -60,20 +65,7 @@ uv run -m characterization.run_processor characterizer=[score_type]
 Available score groups (see `config/characterizer`):
 - **`individual_scores`**: Computes agent and scenario scores from individual agent descriptors.
 - **`interaction_scores`**: Computes agent and scenario scores from interaction descriptors.
-
-### Individual Scorer
-
-To run the individual scorer:
-```bash
-uv run -m characterization.run_processor characterizer=individual_scores
-```
-
-### Interaction Scorer
-
-To run the interaction scorer:
-```bash
-uv run -m characterization.run_processor characterizer=interaction_scores
-```
+- **`safeshift_scores`**: Combines individual and interaction scores.
 
 ---
 

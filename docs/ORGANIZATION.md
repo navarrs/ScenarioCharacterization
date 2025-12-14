@@ -7,8 +7,12 @@ The main configuration files are:
 1. **`run_processor.yaml`**
    Used for computing scenario features and scores.
 
-2. **`viz_scores_pdf.yaml`**
+2. **`run_analysis.yaml`**
+   Used for analyzing features and scores distributions.
+
+3. **`viz_scores_pdf.yaml`**
    Used for processing pre-computed scores, calculating a density function over the scored scenarios, and providing scenario visualizations.
+
 
 Both configuration files are built hierarchically from the following components:
 
