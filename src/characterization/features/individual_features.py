@@ -131,8 +131,6 @@ class IndividualFeatures(BaseFeature):
                 - deceleration: Maximum/average deceleration values per agent
                 - jerk: Maximum/average jerk values per agent
                 - waiting_period: Maximum/average waiting periods near conflict points
-                - waiting_interval: Maximum/average waiting intervals between movements
-                - waiting_distance: Minimum/average distances during waiting periods
 
         Raises:
             ValueError: If an unknown return_criterion is provided.
@@ -170,8 +168,6 @@ class IndividualFeatures(BaseFeature):
         scenario_decelerations = []
         scenario_jerks = []
         scenario_waiting_periods = []
-        scenario_waiting_intervals = []
-        scenario_waiting_distances = []
         scenario_trajectory_types = []
         scenario_kalman_difficulties = []
 
@@ -209,7 +205,7 @@ class IndividualFeatures(BaseFeature):
             jerks = individual.compute_jerk(speeds, timestamps)
 
             # Waiting period
-            waiting_periods, waiting_intervals, waiting_distances = individual.compute_waiting_period(
+            waiting_periods, _, _ = individual.compute_waiting_period(
                 positions,
                 speeds,
                 timestamps,
@@ -231,8 +227,6 @@ class IndividualFeatures(BaseFeature):
                     deceleration = decelerations.max()
                     jerk = jerks.max() if jerks is not None else None
                     waiting_period = waiting_periods.max()
-                    waiting_interval = waiting_intervals.max()
-                    waiting_distance = waiting_distances.min()
                 case ReturnCriterion.AVERAGE:
                     speed = speeds.mean()
                     speed_limit_diff = speed_limit_diffs.mean()
@@ -240,8 +234,6 @@ class IndividualFeatures(BaseFeature):
                     deceleration = decelerations.mean()
                     jerk = jerks.mean() if jerks is not None else None
                     waiting_period = waiting_periods.mean()
-                    waiting_interval = waiting_intervals.mean()
-                    waiting_distance = waiting_distances.mean()
                 case _:
                     error_message = f"Unknown return criteria: {self.return_criterion}"
                     raise ValueError(error_message)
@@ -262,8 +254,6 @@ class IndividualFeatures(BaseFeature):
             scenario_decelerations.append(deceleration)
             scenario_jerks.append(jerk)
             scenario_waiting_periods.append(waiting_period)
-            scenario_waiting_intervals.append(waiting_interval)
-            scenario_waiting_distances.append(waiting_distance)
             scenario_trajectory_types.append(trajectory_type)
             scenario_kalman_difficulties.append(kalman_difficulty)
 
@@ -279,12 +269,6 @@ class IndividualFeatures(BaseFeature):
             deceleration=np.array(scenario_decelerations, dtype=np.float32) if scenario_decelerations else None,
             jerk=np.array(scenario_jerks, dtype=np.float32) if scenario_jerks else None,
             waiting_period=np.array(scenario_waiting_periods, dtype=np.float32) if scenario_waiting_periods else None,
-            waiting_interval=(
-                np.array(scenario_waiting_intervals, dtype=np.float32) if scenario_waiting_intervals else None
-            ),
-            waiting_distance=(
-                np.array(scenario_waiting_distances, dtype=np.float32) if scenario_waiting_distances else None
-            ),
             kalman_difficulty=(
                 np.array(scenario_kalman_difficulties, dtype=np.float32) if scenario_kalman_difficulties else None
             ),

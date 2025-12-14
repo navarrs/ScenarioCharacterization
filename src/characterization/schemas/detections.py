@@ -10,9 +10,7 @@ class FeatureDetections(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         acceleration (float): Acceleration threshold in m/s^2.
         deceleration (float): Deceleration threshold in m/s^2.
         jerk (float): Jerk threshold in m/s^3.
-        waiting_period (float): Waiting period threshold in seconds.
-        waiting_intervals (float): Waiting intervals threshold in number of intervals.
-        waiting_distances (float): Waiting distances threshold in meters.
+        waiting_period (float): Waiting period threshold in seconds / meters.
         kalman_difficulty (float): Kalman filter difficulty threshold.
         mttcp (float): Minimum time to collision with a pedestrian threshold in seconds.
         thw (float): Time headway threshold in seconds.
@@ -40,9 +38,7 @@ class FeatureDetections(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     # NOTE: Waiting period at traffic signals detection value is derived form: "Measurement and comparative analysis of
     # driver's perception-reaction time to green phase at the intersections with and without a countdown timer", which
     # suggests reaction time beyond 4 seconds as slow.
-    waiting_period: float = 4.0  # in seconds
-    waiting_intervals: float = 8.0  # in number of intervals
-    waiting_distances: float = 8.0  # in meters
+    waiting_period: float = 4.0  # in s / m
     # NOTE: Kalman difficulty value derived from UniTraj: https://arxiv.org/pdf/2403.15098, which considers difficulty
     # levels above 50 as challenging for trajectory prediction tasks.
     kalman_difficulty: float = 50.0
@@ -56,6 +52,8 @@ class FeatureDetections(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     drac: float = 3.0  # in m/s^2
     # NOTE: Collision detection threshold
     collision: float = 1.0
+
+    model_config = {"validate_default": True, "validate_assignment": True, "extra": "forbid", "frozen": True}
 
     @classmethod
     def from_dict(cls, data: dict[str, float] | None) -> "FeatureDetections":
@@ -87,9 +85,7 @@ class FeatureWeights(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         acceleration (float): Acceleration threshold in m/s^2.
         deceleration (float): Deceleration threshold in m/s^2.
         jerk (float): Jerk threshold in m/s^3.
-        waiting_period (float): Waiting period threshold in seconds.
-        waiting_intervals (float): Waiting intervals threshold in number of intervals.
-        waiting_distances (float): Waiting distances threshold in meters.
+        waiting_period (float): Waiting period threshold in s/m.
         kalman_difficulty (float): Kalman filter difficulty threshold.
         trajectory_type (float): Trajectory type threshold.
         collision (float): Collision threshold.
@@ -105,8 +101,6 @@ class FeatureWeights(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     deceleration: float = 1.0
     jerk: float = 0.1
     waiting_period: float = 1.0
-    waiting_intervals: float = 1.0
-    waiting_distances: float = 1.0
     kalman_difficulty: float = 1.0
     trajectory_type: float = 1.0
     collision: float = 1.0
@@ -114,6 +108,8 @@ class FeatureWeights(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     thw: float = 1.0
     ttc: float = 1.0
     drac: float = 1.0
+
+    model_config = {"validate_default": True, "validate_assignment": True, "extra": "forbid", "frozen": True}
 
     @classmethod
     def from_dict(cls, data: dict[str, float] | None) -> "FeatureWeights":

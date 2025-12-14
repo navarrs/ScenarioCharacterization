@@ -25,7 +25,7 @@ characterizer:
     weights:
       # Individual features
       speed: 1.0
-      speed_diff: 1.0
+      speed_limit_diff: 1.0
       acceleration: 1.0
       deceleration: 1.0
       jerk: 1.0

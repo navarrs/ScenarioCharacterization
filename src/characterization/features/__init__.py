@@ -11,8 +11,6 @@ SUPPORTED_FEATURES = [
     "deceleration",
     "jerk",
     "waiting_period",
-    "waiting_interval",
-    "waiting_distance",
     "trajectory_type",
     "kalman_difficulty",
     "separation",
