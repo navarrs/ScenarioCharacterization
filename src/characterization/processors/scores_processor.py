@@ -91,4 +91,6 @@ class ScoresProcessor(BaseProcessor):
                 )
 
                 if self.save:
-                    to_pickle(self.output_path, scores.model_dump(), scenario_id, overwrite=self.overwrite)
+                    to_pickle(
+                        self.output_path, scores.model_dump(), scenario_id, overwrite=self.overwrite, update=self.update
+                    )
