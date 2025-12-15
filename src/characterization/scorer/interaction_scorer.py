@@ -7,7 +7,7 @@ from omegaconf import DictConfig
 
 from characterization.features.interaction_features import InteractionStatus
 from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores, Score
-from characterization.scorer.base_scorer import BaseScorer
+from characterization.scorer.base_scorer import BaseScorer, ScoreWeightingMethod
 from characterization.utils.io_utils import get_logger
 
 from .score_functions import INTERACTION_SCORE_FUNCTIONS
@@ -72,7 +72,7 @@ class InteractionScorer(BaseScorer):
         # Get the interaction to consider
         interaction_agent_indices = features.interaction_agent_indices
         interaction_idxs = np.arange(len(interaction_agent_indices))
-        if self.score_wrt_ego_only:
+        if self.score_weighting_method == ScoreWeightingMethod.DISTANCE_TO_EGO_AGENT:
             interaction_idxs = [
                 n for n, (i, j) in enumerate(interaction_agent_indices) if scenario.metadata.ego_vehicle_index in (i, j)
             ]
