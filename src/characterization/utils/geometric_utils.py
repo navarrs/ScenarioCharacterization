@@ -116,7 +116,7 @@ def find_conflict_points(
     agent_positions = agent_trajectories.agent_xyz_pos
 
     # Static Conflict Points: Crosswalks, Speed Bumps and Stop Signs
-    static_conflict_points_list = []
+    static_conflict_points_list: list[NDArray[np.float32]] = []
     crosswalks_idxs = scenario.static_map_data.crosswalk_polyline_idxs
     speed_bumps_idxs = scenario.static_map_data.speed_bump_polyline_idxs
     stop_signs_idxs = scenario.static_map_data.stop_sign_polyline_idxs
@@ -131,13 +131,15 @@ def find_conflict_points(
     for start, end in conflict_idxs:
         points = polylines[start:end][:, :ndim]
         points = resample(points, points.shape[0] * resample_factor)
-        static_conflict_points_list.append(points)
+        static_conflict_points_list.append(points)  # pyright: ignore[reportArgumentType]
     static_conflict_points = (
-        np.concatenate(static_conflict_points_list) if len(static_conflict_points_list) > 0 else np.empty((0, ndim))
+        np.concatenate(static_conflict_points_list, dtype=np.float32)
+        if len(static_conflict_points_list) > 0
+        else np.empty((0, ndim), dtype=np.float32)
     )
 
     # Lane Intersections
-    lane_intersections_list = []
+    lane_intersections_list: list[NDArray[np.float32]] = []
     lane_idxs = scenario.static_map_data.lane_polyline_idxs
     if lane_idxs is not None:
         num_lanes = len(lane_idxs)
@@ -172,22 +174,24 @@ def find_conflict_points(
                 lane_intersections_list.append(lane_j[j_idx])
 
     lane_intersections = (
-        np.concatenate(lane_intersections_list) if len(lane_intersections_list) > 0 else np.empty((0, 3))
+        np.concatenate(lane_intersections_list, dtype=np.float32)
+        if len(lane_intersections_list) > 0
+        else np.empty((0, 3), dtype=np.float32)
     )
 
     # Dynamic Conflict Points: Traffic Lights
-    dynamic_conflict_points = np.empty((0, ndim))
+    dynamic_conflict_points = np.empty((0, ndim), dtype=np.float32)
     if scenario.dynamic_map_data is not None:
         stops = (
             scenario.dynamic_map_data.stop_points
             if scenario.dynamic_map_data.stop_points is not None
-            else np.empty((0, ndim))
+            else np.empty((0, ndim), dtype=np.float32)
         )
         if len(stops) > 0 and len(stops[0]) > 0 and stops[0].shape[1] == ndim:
             dynamic_conflict_points = np.concatenate(stops[0])
 
     # Concatenate all conflict points into a single array if they are not empty
-    conflict_point_list = []
+    conflict_point_list: list[NDArray[np.float32]] = []
     if static_conflict_points.shape[0] > 0:
         conflict_point_list.append(static_conflict_points)
     if dynamic_conflict_points.shape[0] > 0:

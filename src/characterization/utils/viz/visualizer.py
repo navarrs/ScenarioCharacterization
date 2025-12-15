@@ -1,3 +1,4 @@
+# pyright: reportUnknownMemberType=false
 """Base class for scenario visualizers."""
 
 from abc import ABC, abstractmethod
@@ -576,7 +577,7 @@ class BaseVisualizer(ABC):
                 ax.set_ylim(first_ego_position[1] - distance, first_ego_position[1] + distance)
 
         else:
-            for n, a in enumerate(ax.reshape(-1)): # pyright: ignore
+            for n, a in enumerate(ax.reshape(-1)): # pyright: ignore[reportAttributeAccessIssue]
                 a.set_xticks([])
                 a.set_yticks([])
                 if n == 0:

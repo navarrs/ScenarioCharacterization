@@ -1,3 +1,4 @@
+# pyright: reportUnknownMemberType=false
 from pathlib import Path
 
 import matplotlib.pyplot as plt

@@ -101,7 +101,7 @@ def to_pickle(output_path: str, input_data: dict, tag: str, *, overwrite: bool =
         with open(data_file, "rb") as f:
             data = pickle.load(f)  # nosec B301
 
-    scenario_id_data = data.get("scenario_id", None)
+    scenario_id_data = data.get("scenario_id", None)  # pyright: ignore[reportUnknownMemberType]
     if scenario_id_data is not None and scenario_id_data != input_data["scenario_id"]:
         error_message = "Mismatched scenario IDs when merging pickle data."
         raise AttributeError(error_message)
@@ -115,7 +115,7 @@ def to_pickle(output_path: str, input_data: dict, tag: str, *, overwrite: bool =
         if key not in data or update:
             if isinstance(value, dict) and key in data:
                 # Merge dictionaries
-                data[key].update(value)
+                data[key].update(value)  # pyright: ignore[reportUnknownMemberType]
             else:
                 data[key] = value
 

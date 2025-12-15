@@ -60,7 +60,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         self.config = config
         self.total_steps = config.get("total_steps", 91)
 
-        self.scenarios = []
+        self.scenarios: list[str] = []
 
     @property
     def name(self) -> str:
