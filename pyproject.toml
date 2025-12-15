@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scenario-characterization"
-version = "0.2.24"
+version = "0.3.0"
 authors = [
     {name="Ingrid Navarro", email="ingridn@cmu.edu"},
     {name="Duan Yutong (dyt-stackav)"},
