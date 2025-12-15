@@ -49,7 +49,7 @@ characterizer:
 
     # Scoring parameters
     categorize_scores: ${categorize_scores}
-    score_wrt_ego_only: ${score_wrt_ego_only}
+    score_weighting_method: ${score_weighting_method}
     reduce_distance_penalty: ${reduce_distance_penalty}
     aggregated_score_weight: ${aggregated_score_weight}
     individual_score_function: simple

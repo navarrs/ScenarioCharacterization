@@ -23,7 +23,7 @@ scenario_type: 'gt'
 return_criterion: 'critical'
 feature_type: 'continuous' # 'categorical' or 'continuous'
 ego_only: false
-score_wrt_ego_only: true
+score_weighting_method: "distance_to_ego_agent" # "uniform" or "distance_to_ego_agent" or "distance_to_relevant_agents"
 reduce_distance_penalty: true
 aggregated_score_weight: 0.5
 categorize_scores: false
