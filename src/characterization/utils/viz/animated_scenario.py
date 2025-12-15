@@ -1,3 +1,4 @@
+# pyright: reportUnknownMemberType=false
 import pathlib
 import tempfile
 from concurrent.futures import ProcessPoolExecutor, as_completed

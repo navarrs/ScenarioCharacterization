@@ -14,6 +14,7 @@ from characterization.utils.common import (
     FeatureType,
     LaneMasker,
     ReturnCriterion,
+    TrajectoryType,
 )
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
@@ -159,17 +160,17 @@ class IndividualFeatures(BaseFeature):
 
         # Meta information to be included within ScenarioFeatures. For an agent to be valid it needs to have at least
         # two valid timestamps. The indeces of such agents will be added to `valid_idxs` list.
-        scenario_valid_idxs = []
+        scenario_valid_idxs: list[int] = []
 
         # Features to be included in ScenarioFeatures
-        scenario_speeds = []
-        scenario_speed_limit_diffs = []
-        scenario_accelerations = []
-        scenario_decelerations = []
-        scenario_jerks = []
-        scenario_waiting_periods = []
-        scenario_trajectory_types = []
-        scenario_kalman_difficulties = []
+        scenario_speeds: list[float] = []
+        scenario_speed_limit_diffs: list[float] = []
+        scenario_accelerations: list[float] = []
+        scenario_decelerations: list[float] = []
+        scenario_jerks: list[float | None] = []
+        scenario_waiting_periods: list[float] = []
+        scenario_trajectory_types: list[TrajectoryType] = []
+        scenario_kalman_difficulties: list[float] = []
 
         # NOTE: Handling sequentially since each agent may have different valid masks which will
         # result in trajectories of different lengths.

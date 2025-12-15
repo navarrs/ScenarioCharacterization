@@ -1,3 +1,4 @@
+# pyright: reportUnknownMemberType=false
 import os
 from itertools import product
 from pathlib import Path

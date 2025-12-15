@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 
 from omegaconf import DictConfig
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
+from characterization.datasets import BaseDataset
 from characterization.features import BaseFeature
 from characterization.scorer import BaseScorer
 from characterization.utils.io_utils import get_logger
@@ -16,7 +17,7 @@ class BaseProcessor(ABC):
     def __init__(
         self,
         config: DictConfig,
-        dataset: Dataset,  # pyright: ignore[reportMissingTypeArgument]
+        dataset: BaseDataset,
         characterizer: BaseFeature | BaseScorer,
     ) -> None:
         """Initializes the BaseProcessor with configuration, dataset, and characterizer.
@@ -24,7 +25,7 @@ class BaseProcessor(ABC):
         Args:
             config (DictConfig): Configuration for the processor. Should include parameters such as batch size,
                 number of workers, shuffle, save, output path, and scenario type.
-            dataset (Dataset): The dataset to process. Must be a subclass of torch.utils.data.Dataset and implement
+            dataset (BaseDataset): The dataset to process. Must be a subclass of torch.utils.data.Dataset and implement
                 a collate_batch method.
             characterizer (BaseFeature | BaseScorer): An instance of a feature extractor or scorer to apply across the
                 dataset scenarios.
@@ -53,12 +54,12 @@ class BaseProcessor(ABC):
                 raise ValueError(error_message)
             logger.info("Features %s will be saved to %s", self.characterizer.name, self.output_path)
 
-        self.dataloader = DataLoader(
+        self.dataloader = DataLoader(  # pyright: ignore[reportUnknownMemberType]
             dataset,
             batch_size=self.batch_size,
             shuffle=self.shuffle,
             num_workers=self.num_workers,
-            collate_fn=self.dataset.collate_batch,  # pyright: ignore[reportAttributeAccessIssue]
+            collate_fn=self.dataset.collate_batch,  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType, reportArgumentType]
             persistent_workers=True,
         )
 
