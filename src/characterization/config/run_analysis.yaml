@@ -27,7 +27,7 @@ exp_tag: ""
 percentiles:
   - 10
   - 50
-  - 90
+  - 80
 
 # OOD test set percentile to split by
 test_percentile: 80
@@ -41,5 +41,7 @@ tag: 'full'
 total_scenarios: null
 scenario_viz_dir: ${output_dir}/scenario_viz
 viz_scored_scenarios: true
-scores_tag: 'gt_critical_categorical'
-score_to_visualize: 'individual'
+scores_tag: 'gt_critical_continuous'
+score_to_visualize: 'safeshift'
+organize_by_percentile: true
+scenario_to_score_mapping_filepath: ./meta/scene_to_scores_mapping.csv
