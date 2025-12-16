@@ -1,5 +1,6 @@
 import json
 from datetime import UTC, datetime
+from itertools import product
 from pathlib import Path
 
 import hydra
@@ -81,6 +82,11 @@ def run(cfg: DictConfig) -> None:
 
     analysis_utils.plot_agent_scores_distributions(agent_scores, output_dir, cfg.dpi)
     logger.info("Visualized agent score distributions to %s", output_dir)
+
+    for scenario_type, criterion in product(cfg.scenario_types, cfg.criteria):
+        analysis_utils.plot_agent_scores_heatmap(agent_scores, scenario_type, criterion, output_dir, cfg.dpi)
+        analysis_utils.plot_agent_scores_voxel(agent_scores, scenario_type, criterion, output_dir, cfg.dpi)
+    logger.info("Visualized agent score heatmaps to %s", output_dir)
 
 
 if __name__ == "__main__":
