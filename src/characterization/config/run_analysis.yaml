@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - run_processor.yaml
-  - viz: waymo
+  - viz: scenario
 
 scores_path: ${paths.cache_path}/scores
 features_path: ${paths.cache_path}/features
@@ -11,8 +11,8 @@ scenario_types:
   # - ho
 
 criteria:
-  # - critical_categorical
-  - critical_continuous
+  - critical_categorical
+  # - critical_continuous
   # - average
 
 scores:
@@ -35,7 +35,6 @@ test_percentile: 80
 min_scenarios_to_plot: 1
 viz_scenarios: true
 tag: 'full'
-
 
 # Scenario Visualization Parameters
 total_scenarios: null

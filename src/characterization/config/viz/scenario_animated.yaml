@@ -1,9 +1,9 @@
 defaults:
- - waymo.yaml
+ - scenario.yaml
 
 _target_: characterization.utils.viz.animated_scenario.AnimatedScenarioVisualizer
 config:
   scenario_type: ${scenario_type}
-  num_workers: 8
+  num_workers: ${num_workers}
   add_title: true
   update_limits: true

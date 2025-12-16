@@ -8,8 +8,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.colors import Normalize
 from numpy.typing import NDArray
 from rich.progress import track
+from tqdm import tqdm
 
 from characterization.schemas import Individual, Interaction, ScenarioFeatures, ScenarioScores
 from characterization.utils.common import BIG_EPS, SMALL_EPS, InteractionStatus
@@ -17,7 +19,6 @@ from characterization.utils.io_utils import from_pickle, get_logger
 from characterization.utils.scenario_types import AgentPairType, AgentType, get_agent_pair_type
 
 logger = get_logger(__name__)
-
 
 SUPPORTED_FEATURES = ["individual", "interaction"]
 FEATURE_COLOR_MAP = {
@@ -604,3 +605,147 @@ def plot_agent_scores_distributions(
         output_filepath = output_dir / f"{key}.json"
         with open(output_filepath, "w") as f:
             json.dump(score_percentiles, f, indent=4)
+
+
+def plot_agent_scores_heatmap(
+    agent_scores: dict[str, Any],
+    scenario_type: str,
+    criterion: str,
+    output_dir: Path,
+    dpi: int = 100,
+) -> None:
+    """Plots heatmaps of agent scores.
+
+    Args:
+        agent_scores (dict[str, Any]): Dictionary containing agent scores with scenario IDs.
+        criterion (str): Criterion used for filtering or labeling the heatmap.
+        scenario_type (str): Type of scenario being analyzed.
+        output_dir (Path): Directory to save the output plots.
+        dpi (int): Dots per inch for the saved figure.
+    """
+    individual_agent_scores = agent_scores.get(f"{scenario_type}_{criterion}_individual", None)
+    interaction_agent_scores = agent_scores.get(f"{scenario_type}_{criterion}_interaction", None)
+    if individual_agent_scores is None or interaction_agent_scores is None:
+        logger.error("Individual or interaction agent scores not found for criterion %s", criterion)
+        return
+
+    individual_agent_scores = np.concatenate(individual_agent_scores).astype(int)
+    interaction_agent_scores = np.concatenate(interaction_agent_scores).astype(int)
+    assert individual_agent_scores.shape == interaction_agent_scores.shape, (
+        f"Agent scores shapes do not match. {individual_agent_scores.shape}, {interaction_agent_scores.shape}"
+    )
+
+    heatmap = np.zeros(shape=(individual_agent_scores.max() + 1, interaction_agent_scores.max() + 1), dtype=int)
+    for individual, interaction in tqdm(
+        zip(individual_agent_scores, interaction_agent_scores, strict=True),
+        desc=f"Plotting agent scores heatmap for {criterion}",
+        total=len(individual_agent_scores),
+    ):
+        if individual < 0 or interaction < 0:
+            logger.warning("Skipping invalid scores: %d, %d", individual, interaction)
+            continue
+        heatmap[individual, interaction] += 1
+
+    sns.heatmap(
+        heatmap,
+        annot=True,
+        fmt="d",
+        cmap="rocket_r",
+        linewidths=0.5,
+        linecolor="black",
+        cbar_kws={"label": "Number of Agents"},
+        annot_kws={"fontsize": 6},
+    )
+    plt.xlabel("Interaction Agent Scores")
+    plt.ylabel("Individual Agent Scores")
+    plt.title(f"Agent Scores Heatmap for Criterion: {criterion}")
+    plt.tight_layout()
+
+    output_filepath = output_dir / f"agent_score_heatmap_{criterion}.png"
+    plt.savefig(output_filepath, dpi=dpi)
+    plt.close()
+
+
+def plot_agent_scores_voxel(
+    agent_scores: dict[str, Any],
+    scenario_type: str,
+    criterion: str,
+    output_dir: Path,
+    dpi: int = 100,
+) -> None:
+    """Plots a 3D voxel plot of agent scores.
+
+    Args:
+        agent_scores (dict[str, Any]): Dictionary containing agent scores with scenario IDs.
+        scenario_type (str): Type of scenario being analyzed.
+        criterion (str): Criterion used for filtering or labeling the plot.
+        output_dir (Path): Directory to save the output plots.
+        dpi (int): Dots per inch for the saved figure.
+    """
+    individual_agent_scores = agent_scores.get(f"{scenario_type}_{criterion}_individual", None)
+    interaction_agent_scores = agent_scores.get(f"{scenario_type}_{criterion}_interaction", None)
+    safeshift_agent_scores = agent_scores.get(f"{scenario_type}_{criterion}_safeshift", None)
+    if individual_agent_scores is None or interaction_agent_scores is None or safeshift_agent_scores is None:
+        logger.error("Individual or interaction or safeshift agent scores not found for criterion %s", criterion)
+        return
+
+    individual_agent_scores = np.concatenate(individual_agent_scores).astype(int)
+    interaction_agent_scores = np.concatenate(interaction_agent_scores).astype(int)
+    safeshift_agent_scores = np.concatenate(safeshift_agent_scores).astype(int)
+    assert individual_agent_scores.shape == interaction_agent_scores.shape == safeshift_agent_scores.shape, (
+        f"Agent scores shapes do not match. "
+        f"{individual_agent_scores.shape}, {interaction_agent_scores.shape}, {safeshift_agent_scores.shape}"
+    )
+
+    # Create voxel grid
+    voxels = np.zeros(
+        shape=(individual_agent_scores.max() + 1, interaction_agent_scores.max() + 1, safeshift_agent_scores.max() + 1),
+        dtype=int,
+    )
+    for individual, interaction, safeshift in tqdm(
+        zip(individual_agent_scores, interaction_agent_scores, safeshift_agent_scores, strict=True),
+        desc=f"Plotting agent scores voxel for {criterion}",
+        total=len(individual_agent_scores),
+    ):
+        if individual < 0 or interaction < 0 or safeshift < 0:
+            logger.warning("Skipping invalid scores: %d, %d, %d", individual, interaction, safeshift)
+            continue
+        voxels[individual, interaction, safeshift] += 1
+
+    # Create 3D voxel plot
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection="3d")
+    cmap = plt.get_cmap("magma_r")
+    norm = Normalize(vmin=0, vmax=voxels.max(initial=1))
+    filled = voxels > 0
+    ax.voxels(filled, facecolors=cmap(norm(voxels)), edgecolor="k", alpha=0.85, shade=False)  # pyright: ignore[reportAttributeAccessIssue]
+
+    ax.set_xlabel("Individual Agent Score", labelpad=10)
+    ax.set_ylabel("Interaction Agent Score", labelpad=10)
+    ax.set_zlabel("Safeshift Agent Score", labelpad=10)  # pyright: ignore[reportAttributeAccessIssue]
+    ax.set_title(f"Agent Scores for Criterion: {criterion}", pad=16, fontsize=14)
+
+    ax.view_init(elev=25, azim=250)  # pyright: ignore[reportAttributeAccessIssue]
+    ax.set_box_aspect((1, 1.3, 1.1))  # pyright: ignore[reportArgumentType]
+
+    # Make panes and grid subtle
+    ax.grid(visible=True)
+    for axis in (ax.xaxis, ax.yaxis, ax.zaxis):  # pyright: ignore[reportAttributeAccessIssue]
+        axis.pane.set_facecolor("white")  # pyright: ignore[reportAttributeAccessIssue]
+        axis.pane.set_edgecolor("white")  # pyright: ignore[reportAttributeAccessIssue]
+        axis._axinfo["grid"].update({"color": (0.5, 0.5, 0.5, 0.10), "linewidth": 0.8})  # noqa: SLF001 # pyright: ignore[reportAttributeAccessIssue]
+
+    ax.set_xticks(np.arange(0, voxels.shape[0] + 1, 1))
+    ax.set_yticks(np.arange(0, voxels.shape[1] + 1, 1))
+    ax.set_zticks(np.arange(0, voxels.shape[2] + 1, 1))  # pyright: ignore[reportAttributeAccessIssue]
+
+    # Add a colorbar mapping voxel to agent counts
+    mappable = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+    mappable.set_array([])
+    cbar = fig.colorbar(mappable, ax=ax, shrink=0.8, pad=0.01)
+    cbar.set_label("Voxel Count", fontsize=11)
+
+    plt.tight_layout()
+    output_filepath = output_dir / f"agent_score_voxel_{criterion}.png"
+    plt.savefig(output_filepath, dpi=dpi)
+    plt.close()

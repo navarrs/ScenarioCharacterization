@@ -220,6 +220,7 @@ class BaseVisualizer(ABC):
         agent_scores = np.ones(agent_data.num_agents, float)
         if scores is not None and scores.agent_scores is not None:
             agent_scores = scores.agent_scores
+            agent_scores[ego_index] = 0.0
             agent_scores = BaseVisualizer.get_normalized_agent_scores(agent_scores, ego_index)
 
         # Mark any agents with a relevance score > 0 as "TYPE_RELEVANT"
