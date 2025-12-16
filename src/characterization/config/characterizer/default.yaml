@@ -48,6 +48,7 @@ characterizer:
     cyclist_cyclist_categorization_file: ./meta/type_cyclist_cyclist_feature_percentiles.json
 
     # Scoring parameters
+    exclude_ego_from_scene_score: ${exclude_ego_from_scene_score}
     categorize_scores: ${categorize_scores}
     score_weighting_method: ${score_weighting_method}
     reduce_distance_penalty: ${reduce_distance_penalty}
@@ -84,18 +85,18 @@ characterizer:
     # NOTE: if detections are not specified here, the code uses the default values from FeatureDetections which is
     # defined in 'schemas/detections.py'. The current thresholds have been adjusted from FeatureDetections based on
     # feature distribution analysis performed on a subset of the WOMD data, using 'run_feature_analysis.py'. We select
-    # the maximum value accross vehicles, pedestrians and cyclists at the 95th percentile as the detection threshold.
+    # the ceil of maximum value accross vehicles, pedestrians and cyclists at the 95th percentile as the detection threshold.
     detections:
-      speed: 25 # in m/s, i.e. ~90 km/h ~56 mph
-      speed_limit_diff: 18 # in m/s, i.e. ~61 km/h ~38 mph
-      acceleration: 6 # in m/s^2
-      deceleration: 6 # in m/s^2
-      jerk: 50 # in m/s^3
-      waiting_period: 6 # in s/m
-      kalman_difficulty: 50.0
+      speed: 18 # in m/s, i.e. ~90 km/h ~56 mph
+      speed_limit_diff: 19 # in m/s, i.e. ~61 km/h ~38 mph
+      acceleration: 5 # in m/s^2
+      deceleration: 5 # in m/s^2
+      jerk: 60 # in m/s^3
+      waiting_period: 5 # in s/m
+      kalman_difficulty: 23.0
 
       collision: 1
-      mttcp: 4
-      thw: 4
-      ttc: 4
+      mttcp: 2
+      thw: 2
+      ttc: 2
       drac: 5

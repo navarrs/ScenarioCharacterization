@@ -27,3 +27,4 @@ score_weighting_method: "distance_to_ego_agent" # "uniform" or "distance_to_ego_
 reduce_distance_penalty: true
 aggregated_score_weight: 0.5
 categorize_scores: false
+exclude_ego_from_scene_score: false

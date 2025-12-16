@@ -116,7 +116,15 @@ class InteractionScorer(BaseScorer):
 
         # Normalize the scores
         denom = max(np.where(scores > 0.0)[0].shape[0], 1)
-        scene_score = np.clip(scores.sum() / denom, a_min=self.score_clip.min, a_max=self.score_clip.max)
+
+        # If specified, exclude ego agent from scene score calculation, but keep it in the agent scores
+        if self.exclude_ego_from_scene_score:
+            ego_score = scores[scenario.metadata.ego_vehicle_index]
+            scene_score = (scores.sum() - ego_score) / max(denom - 1, 1)
+            scene_score = np.clip(scene_score, a_min=self.score_clip.min, a_max=self.score_clip.max)
+        else:
+            scene_score = np.clip(scores.sum() / denom, a_min=self.score_clip.min, a_max=self.score_clip.max)
+
         return Score(agent_scores=scores, scene_score=scene_score)
 
     def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> ScenarioScores:

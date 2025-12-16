@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from enum import Enum
+from itertools import pairwise
 from typing import Annotated, Any, ClassVar
 
 import numpy as np
@@ -15,6 +16,36 @@ SUPPORTED_CRITERIA = ["critical", "average"]
 MIN_VALID_POINTS = 2
 MAX_DECELERATION = 10.0  # m/s^2,
 SUPPORTED_SCORERS = ["individual", "interaction", "safeshift"]
+
+
+def categorize_from_thresholds(value: float, threshold_values: list[float]) -> int:
+    """Categorizes a value based on provided ranges.
+
+    Args:
+        value (float): The value to categorize.
+        threshold_values (list[float]): A list of threshold values defining the ranges.
+
+    Returns:
+        int: The category index (1, 2, ..., n+1) based on the ranges.
+    """
+    num_thresholds = len(threshold_values)
+    assert num_thresholds >= 1, "At least one range must be provided."
+
+    # If there is only one category, return 1 or 2 based on the value
+    if num_thresholds < 2:  # noqa: PLR2004
+        return 1 if value < threshold_values[0] else 2
+
+    # If value is below the lowest range, return 1
+    if value < threshold_values[0]:
+        return 1
+
+    # Categorize based on ranges, starting from category 2
+    for category, (lower_bound, upper_bound) in enumerate(pairwise(threshold_values)):
+        if lower_bound <= value < upper_bound:
+            return category + 2
+
+    # If value is above the highest range
+    return num_thresholds + 1
 
 
 def mph_to_ms(mph: float) -> float:

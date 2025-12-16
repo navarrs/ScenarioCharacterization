@@ -489,7 +489,11 @@ def plot_feature_distributions(
     feature_data: dict[AgentType, Any] | dict[AgentPairType, Any],
     output_dir: Path,
     dpi: int = 300,
+    tag: str = "",
     percentile_values: list[int] = [1, 10, 25, 50, 75, 90, 95, 99],  # noqa: B006
+    *,
+    show_kde: bool = True,
+    show_percentiles: bool = True,
 ) -> None:
     """Plots the distribution of a feature using a histogram and density curve.
 
@@ -497,8 +501,12 @@ def plot_feature_distributions(
         feature_data (NDArray[np.float32]): Array of feature values to plot.
         output_dir (Path): Directory to save the output plots.
         dpi (int): Dots per inch for the saved figure.
+        tag (str): Optional tag to prepend to the output filenames.
         percentile_values (list[int]): List of percentiles to compute and display on the plot.
+        show_kde (bool): Whether to show the kernel density estimate on the plot.
+        show_percentiles (bool): Whether to display percentile lines on the plot.
     """
+    prefix = f"{tag}_" if tag else ""
     feature_percentiles = {}
     for agent_type, features in feature_data.items():
         if agent_type == AgentPairType.TYPE_OTHER:
@@ -511,8 +519,7 @@ def plot_feature_distributions(
             sns.histplot(
                 feature_values,
                 color=FEATURE_COLOR_MAP.get(feature_name, "gray"),
-                # log_scale=True,
-                kde=True,
+                kde=show_kde,
                 stat="density",
                 alpha=0.6,
                 edgecolor="white",
@@ -532,12 +539,14 @@ def plot_feature_distributions(
             feature_percentiles[feature_name] = dict(
                 zip(filtered_percentile_values, filtered_percentiles, strict=False)
             )
-            for p, v in zip(filtered_percentile_values, filtered_percentiles, strict=False):
-                ax.axvline(v, color="black", linestyle="--", alpha=0.6)
-                ax.text(v, ax.get_ylim()[1] * 0.9, f"{p}th: {v:.2f}", rotation=90, verticalalignment="center")
+            if show_percentiles:
+                for p, v in zip(filtered_percentile_values, filtered_percentiles, strict=False):
+                    ax.axvline(v, color="black", linestyle="--", alpha=0.6)
+                    y = ax.get_ylim()[1] * 0.9
+                    ax.text(v, y, f"{p}th: {v:.2f}", rotation=90, verticalalignment="center", fontsize=8)
 
             plt.tight_layout()
-            output_filepath = output_dir / f"{feature_name}_{agent_type.name.lower()}_distributions.png"
+            output_filepath = output_dir / f"{prefix}{feature_name}_{agent_type.name.lower()}_distributions.png"
             plt.savefig(output_filepath, dpi=dpi)
             plt.close()
 
@@ -573,9 +582,8 @@ def plot_agent_scores_distributions(
         sns.histplot(
             agent_scores_flattened,
             color="blue",
-            # log_scale=True,
             kde=True,
-            stat="density",
+            stat="probability",
             alpha=0.6,
             edgecolor="white",
             ax=ax,

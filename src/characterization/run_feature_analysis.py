@@ -64,13 +64,27 @@ def run(cfg: DictConfig) -> None:
     individual_features = analysis_utils.regroup_individual_features(individual_features)
 
     logger.info("Visualizing feature distribution for individual features.")
-    analysis_utils.plot_feature_distributions(individual_features, output_dir, cfg.dpi)
+    analysis_utils.plot_feature_distributions(
+        individual_features,
+        output_dir,
+        cfg.dpi,
+        tag="individual",
+        show_kde=cfg.show_kde,
+        show_percentiles=cfg.show_percentiles,
+    )
 
     logger.info("Re-grouping interaction features by agent-pair type")
     interaction_features = analysis_utils.regroup_interaction_features(interaction_features)
 
     logger.info("Visualizing feature distribution for interaction features.")
-    analysis_utils.plot_feature_distributions(interaction_features, output_dir, cfg.dpi)
+    analysis_utils.plot_feature_distributions(
+        interaction_features,
+        output_dir,
+        cfg.dpi,
+        tag="interaction",
+        show_kde=cfg.show_kde,
+        show_percentiles=cfg.show_percentiles,
+    )
 
 
 if __name__ == "__main__":

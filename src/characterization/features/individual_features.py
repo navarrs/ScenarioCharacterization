@@ -1,5 +1,4 @@
 import json
-from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -15,6 +14,7 @@ from characterization.utils.common import (
     LaneMasker,
     ReturnCriterion,
     TrajectoryType,
+    categorize_from_thresholds,
 )
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
@@ -89,26 +89,12 @@ class IndividualFeatures(BaseFeature):
                 return -1.0
 
         if categories is None:
-            logger.warning("No categories found for feature %s and agent type %s.", feature_name, agent_type)
-            return -1.0
+            logger.error("No categories found for feature %s and agent type %s.", feature_name, agent_type)
+            error_message = f"No categories found for feature {feature_name} and agent type {agent_type}."
+            raise ValueError(error_message)
 
-        ranges = list(categories.values())
-
-        # If there is only one category, return 1.0 or 2.0 based on the value
-        if len(ranges) < 2:  # noqa: PLR2004
-            return 1.0 if value <= ranges[0] else 2.0
-
-        # If value is below the lowest range, return 0.0
-        if value < ranges[0]:
-            return 0.0
-
-        # Categorize based on ranges
-        for category, (lower_bound, upper_bound) in enumerate(pairwise(ranges)):
-            if lower_bound <= value < upper_bound:
-                return float(category + 1)  # Categories start from 1
-
-        # If value is above the highest range
-        return float(len(categories) + 1)
+        threshold_values = list(categories.values())
+        return float(categorize_from_thresholds(value, threshold_values))
 
     def compute_individual_features(self, scenario: Scenario) -> Individual:
         """Compute individual motion features for all valid agents in a scenario.
@@ -188,7 +174,6 @@ class IndividualFeatures(BaseFeature):
             # Compute agent features
 
             # Speed Profile
-            # TODO: Add a agent-lane deviation feature
             closest_lane_n = LaneMasker(closest_lanes[n, mask]) if closest_lanes is not None else None
             speeds, speed_limit_diffs = individual.compute_speed_meta(velocities, closest_lane_n, lane_speed_limits)
             if speeds is None or speed_limit_diffs is None:
