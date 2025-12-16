@@ -37,14 +37,21 @@ class BaseScorer(ABC):
         self.config = config
         self.characterizer_type = "score"
         self.aggregated_score_weight = self.config.get("aggregated_score_weight", 0.5)
-        self.features = self.config.get("features", None)
-        self.detections = FeatureDetections.from_dict(config.get("detections", None))
         self.reduce_distance_penalty = self.config.get("reduce_distance_penalty", False)
 
-        logger.info("Feature detections set to: %s", self.detections)
+        self.detections = FeatureDetections.from_dict(config.get("detections", None))
+        logger.info(
+            "class [%s] initialized with feature detection thresholds: %s",
+            self.__class__.__name__,
+            self.detections,
+        )
         self.weights = FeatureWeights.from_dict(config.get("weights", None))
+        logger.info(
+            "class [%s] initialized with feature weights: %s",
+            self.__class__.__name__,
+            self.weights,
+        )
 
-        logger.info("Feature weights set to: %s", self.weights)
         self.score_clip = self.config.score_clip
         self.score_weighting_method = ScoreWeightingMethod(self.config.get("score_weighting_method", "uniform"))
 
