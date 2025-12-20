@@ -540,7 +540,7 @@ def compute_kalman_difficulty(
     past_positions = positions[:last_observed_time_index, :ndim][past_mask]
     # Check if we have sufficient data for prediction
     if future_mask.sum() == 0 or past_positions.shape[0] < MIN_VALID_POINTS:
-        return 0.0
+        return -1.0
 
     # Get the prediction target (last valid future position)
     last_valid_future_index = np.where(future_mask)[0][-1]
