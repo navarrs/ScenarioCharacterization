@@ -1,16 +1,16 @@
 import re
 from abc import ABC, abstractmethod
 from enum import Enum
-from itertools import pairwise
 
 import numpy as np
 from numpy.typing import NDArray
 from omegaconf import DictConfig
 
 from characterization.schemas import FeatureDetections, FeatureWeights, Scenario, ScenarioFeatures, ScenarioScores
-from characterization.utils.common import SMALL_EPS, AgentTrajectoryMasker
+from characterization.utils.common import SMALL_EPS, AgentTrajectoryMasker, categorize_from_thresholds
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
+from characterization.utils.scenario_types import AgentType
 
 logger = get_logger(__name__)
 
@@ -36,6 +36,8 @@ class BaseScorer(ABC):
         super().__init__()
         self.config = config
         self.characterizer_type = "score"
+        self.vru_priority_weight = self.config.get("vru_priority_weight", 1.0)
+        self.max_critical_distance = self.config.get("max_critical_distance", 0.5)
         self.aggregated_score_weight = self.config.get("aggregated_score_weight", 0.5)
         self.reduce_distance_penalty = self.config.get("reduce_distance_penalty", False)
 
@@ -104,7 +106,12 @@ class BaseScorer(ABC):
 
     @staticmethod
     def _get_weights_wrt_ego(
-        scenario: Scenario, scenario_features: ScenarioFeatures, *, reduce_distance_penalty: bool = False
+        scenario: Scenario,
+        scenario_features: ScenarioFeatures,
+        max_critical_distance: float = 0.5,
+        vru_priority_weight: float = 1.0,
+        *,
+        reduce_distance_penalty: bool = False,
     ) -> NDArray[np.float32]:
         """Computes the weights for scoring based on the scenario and features, with respect to the ego agent.
 
@@ -114,6 +121,8 @@ class BaseScorer(ABC):
         Args:
             scenario (Scenario): Scenario object containing agent relevance information.
             scenario_features (ScenarioFeatures): ScenarioFeatures object containing agent-to-agent closest distances.
+            max_critical_distance (float): Maximum critical distance to cap the weight.
+            vru_priority_weight (float): Weight multiplier for vulnerable road users.
             reduce_distance_penalty (bool): Whether to reduce the distance penalty by taking the square root.
 
         Returns:
@@ -129,11 +138,27 @@ class BaseScorer(ABC):
         min_dist = agent_to_agent_dists[:, ego_agent_index] + SMALL_EPS  # Shape (num_agents, 1)
         if reduce_distance_penalty:
             min_dist = np.sqrt(min_dist)
-        return np.minimum(1.0 / min_dist, 1.0)  # Shape (num_agents, )
+
+        # Return weights: shape(num_agents, )
+        critical_distance = max(max_critical_distance, SMALL_EPS)
+        weights = np.minimum(1.0 / min_dist, 1.0 / critical_distance)
+
+        # Adjust weights for vulnerable road users
+        agent_types = np.asarray(scenario.agent_data.agent_types)
+        vru_idxs = np.where((agent_types == AgentType.TYPE_CYCLIST) | (agent_types == AgentType.TYPE_PEDESTRIAN))[0]
+        weights[vru_idxs] *= vru_priority_weight
+
+        weights[ego_agent_index] = 1.0
+        return weights
 
     @staticmethod
     def _get_weights_wrt_relevant_agents(
-        scenario: Scenario, scenario_features: ScenarioFeatures, *, reduce_distance_penalty: bool = False
+        scenario: Scenario,
+        scenario_features: ScenarioFeatures,
+        max_critical_distance: float = 0.5,
+        vru_priority_weight: float = 1.0,
+        *,
+        reduce_distance_penalty: bool = False,
     ) -> NDArray[np.float32]:
         """Computes the weights for scoring based on the scenario and features, with respect to relevant agents.
 
@@ -143,7 +168,9 @@ class BaseScorer(ABC):
         Args:
             scenario (Scenario): Scenario object containing agent relevance information.
             scenario_features (ScenarioFeatures): ScenarioFeatures object containing agent-to-agent closest distances.
-            reduce_distance_penalty (bool): Whether to reduce the distance penalty by taking the square root
+            max_critical_distance (float): Maximum critical distance to cap the weight.
+            vru_priority_weight (float): Weight multiplier for vulnerable road users.
+            reduce_distance_penalty (bool): Whether to reduce the distance penalty by taking the square root.
 
         Returns:
             NDArray[np.float32]: The computed weights for each agent.
@@ -167,7 +194,16 @@ class BaseScorer(ABC):
 
         # The final weight is the relevance of the closest agent scaled by the inverse of the distance between them.
         argmin_dist = relevant_agents_dists.argmin(axis=1)
-        return relevant_agents_values[argmin_dist] * np.minimum(1.0 / min_dist, 1.0)  # Shape (num_agents, )
+        critical_distance = max(max_critical_distance, SMALL_EPS)
+        weights = relevant_agents_values[argmin_dist] * np.minimum(1.0 / min_dist, 1.0 / critical_distance)
+
+        # Adjust weights for vulnerable road users
+        agent_types = np.asarray(scenario.agent_data.agent_types)
+        vru_idxs = np.where((agent_types == AgentType.TYPE_CYCLIST) | (agent_types == AgentType.TYPE_PEDESTRIAN))[0]
+        weights[vru_idxs] *= vru_priority_weight
+
+        weights[scenario.metadata.ego_vehicle_index] = 1.0
+        return weights
 
     def get_weights(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> NDArray[np.float32]:
         """Computes the weights for scoring based on the scenario and features.
@@ -193,17 +229,25 @@ class BaseScorer(ABC):
                 return BaseScorer._get_weights_uniform(scenario)
             case ScoreWeightingMethod.DISTANCE_TO_EGO_AGENT:
                 return BaseScorer._get_weights_wrt_ego(
-                    scenario, scenario_features, reduce_distance_penalty=self.reduce_distance_penalty
+                    scenario,
+                    scenario_features,
+                    max_critical_distance=self.max_critical_distance,
+                    vru_priority_weight=self.vru_priority_weight,
+                    reduce_distance_penalty=self.reduce_distance_penalty,
                 )
             case ScoreWeightingMethod.DISTANCE_TO_RELEVANT_AGENTS:
                 return BaseScorer._get_weights_wrt_relevant_agents(
-                    scenario, scenario_features, reduce_distance_penalty=self.reduce_distance_penalty
+                    scenario,
+                    scenario_features,
+                    max_critical_distance=self.max_critical_distance,
+                    vru_priority_weight=self.vru_priority_weight,
+                    reduce_distance_penalty=self.reduce_distance_penalty,
                 )
             case _:
                 error_message = f"Unknown score weighting method: {self.score_weighting_method}"
                 raise ValueError(error_message)
 
-    def categorize(self, score: NDArray[np.float32]) -> float:
+    def categorize(self, score: float) -> float:
         """Categorizes a score based on predefined percentiles.
 
         Args:
@@ -216,23 +260,8 @@ class BaseScorer(ABC):
             error_message = "Categories not loaded. Cannot categorize scores."
             raise ValueError(error_message)
 
-        ranges = list(self.categories.values())
-
-        # If there is only one category, return 1.0 or 2.0 based on the value
-        if len(ranges) < 2:  # noqa: PLR2004
-            return 1.0 if score < ranges[0] else 2.0
-
-        # If value is below the lowest range, return 1.0
-        if score < ranges[0]:
-            return 1.0
-
-        # Categorize based on ranges
-        for category, (lower_bound, upper_bound) in enumerate(pairwise(ranges)):
-            if lower_bound <= score < upper_bound:
-                return float(category + 2)  # Categories start from 2.0
-
-        # If value is above the highest range
-        return float(len(self.categories) + 1)
+        threshold_values = list(self.categories.values())
+        return float(categorize_from_thresholds(score, threshold_values))
 
     @abstractmethod
     def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> ScenarioScores:

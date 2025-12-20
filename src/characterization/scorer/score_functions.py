@@ -67,7 +67,7 @@ def simple_individual_score(
         + jerk_weight * min(jerk_detection, jerk)
         + waiting_period_weight * min(waiting_period_detection, waiting_period)
         + trajectory_type_weight * TRAJECTORY_TYPE_WEIGHTS[trajectory_type]
-        + kalman_difficulty_weight * min(kalman_difficulty_detection, kalman_difficulty)
+        + kalman_difficulty_weight * min(kalman_difficulty_detection, max(kalman_difficulty, 0.0))
     )
 
 

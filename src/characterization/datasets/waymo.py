@@ -1,5 +1,4 @@
 import pickle  # nosec B403
-import time
 from pathlib import Path
 from typing import Any
 
@@ -54,18 +53,13 @@ class WaymoData(BaseDataset):
         Raises:
             AssertionError: If the number of scenarios and conflict points do not match.
         """
-        start = time.time()
         logger.info("Loading WOMD scenario base data from %s", self.scenario_base_path)
-        with open(self.scenario_meta_path, "rb") as f:
-            # self.data.metas = pickle.load(f)[:: self.step]  # nosec B301
-            metas = pickle.load(f)[:: self.step]  # nosec B301
+        self.scenarios = natsorted(list(map(str, self.scenario_base_path.rglob("*.pkl"))))
 
-        self.scenarios = natsorted([f"{self.scenario_base_path}/{x['scenario_id']}.pkl" for x in metas])
-        logger.info("Loading the metadata took %2f seconds.", time.time() - start)
+        if self.num_scenarios != -1:
+            self.scenarios = self.scenarios[: self.num_scenarios]
 
-        # TODO: remove this
-        self.shard()
-
+        logger.info("Total number of scenarios found: %d", len(self.scenarios))
         if self.create_metadata:
             self.compute_metadata()
 
@@ -286,7 +280,16 @@ class WaymoData(BaseDataset):
             return None
 
         with scenario_filepath.open("rb") as f:
-            return pickle.load(f)  # nosec B301
+            try:
+                scenario = pickle.load(f)  # nosec B301
+            except (EOFError, pickle.UnpicklingError) as e:
+                logger.warning(
+                    "Failed to load scenario from %s: %s",
+                    scenario_filepath,
+                    e,
+                )
+                return None
+            return scenario
 
     def collate_batch(self, batch_data: dict[str, Any]) -> dict[str, Any]:  # pyright: ignore[reportMissingParameterType]
         """Collates a batch of scenario data for processing.

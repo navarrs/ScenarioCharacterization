@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from characterization.utils.common import Float32NDArray1D
+from characterization.utils.common import BooleanNDArray1D, Float32NDArray1D
 
 from .scenario import ScenarioMetadata
 
@@ -12,10 +12,12 @@ class Score(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
 
     Attributes:
         agent_scores (Float32NDArray1D | None): Individual scores for each agent in the scenario.
+        agent_scores_valid (BooleanNDArray1D | None): Mask indicating if the agent score is valid.
         scene_score (float | None): Overall score for the scene based on individual agent scores.
     """
 
     agent_scores: Float32NDArray1D | None = None
+    agent_scores_valid: BooleanNDArray1D | None = None
     scene_score: float | None = None
 
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}

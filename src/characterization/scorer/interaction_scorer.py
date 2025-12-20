@@ -59,14 +59,15 @@ class InteractionScorer(BaseScorer):
         Returns:
             ScenarioScores: An object containing computed interaction agent-pair scores and the scene-level score.
         """
-        scores = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
         features = scenario_features.interaction_features
         if features is None or features.interaction_agent_indices is None or features.interaction_status is None:
-            warning_message = "interaction_features is None. Scores will default to zero(s)"
+            warning_message = f"Invalid interaction_features for {scenario.metadata.scenario_id}."
             warn(warning_message, UserWarning, stacklevel=2)
-            return Score(agent_scores=scores, scene_score=0.0)
+            return Score(agent_scores=None, agent_scores_valid=None, scene_score=None)
 
         # Get the agent weights
+        scores = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
+        valid = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=bool)
         weights = self.get_weights(scenario, scenario_features)
 
         # Get the interaction to consider
@@ -105,6 +106,8 @@ class InteractionScorer(BaseScorer):
             )
             scores[i] += weights[i] * agent_pair_score
             scores[j] += weights[j] * agent_pair_score
+            valid[i] = True
+            valid[j] = True
 
         if self.categorize_scores:
             # Categorize the scores
@@ -117,7 +120,7 @@ class InteractionScorer(BaseScorer):
         # Normalize the scores
         denom = max(np.where(scores > 0.0)[0].shape[0], 1)
         scene_score = np.clip(scores.sum() / denom, a_min=self.score_clip.min, a_max=self.score_clip.max)
-        return Score(agent_scores=scores, scene_score=scene_score)
+        return Score(agent_scores=scores, agent_scores_valid=valid, scene_score=scene_score)
 
     def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> ScenarioScores:
         """Computes interaction scores for agent pairs and a scene-level score from scenario features.
