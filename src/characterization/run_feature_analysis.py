@@ -38,9 +38,10 @@ def run(cfg: DictConfig) -> None:
         msg = f"Scenario types {unsupported_scenario_types} not in supported list {common.SUPPORTED_SCENARIO_TYPES}"
         raise ValueError(msg)
 
-    scenario_ids = analysis_utils.get_valid_scenario_ids(cfg.scenario_types, cfg.criteria, cfg.features_path)
+    features_path = Path(cfg.features_path)
+    scenario_ids = analysis_utils.get_valid_scenario_ids(cfg.scenario_types, cfg.criteria, features_path)
     if not scenario_ids:
-        msg = f"No valid scenarios found in {cfg.features_path} for {cfg.scenario_types} and criteria {cfg.criteria}"
+        msg = f"No valid scenarios found in {features_path} for {cfg.scenario_types} and criteria {cfg.criteria}"
         raise ValueError(msg)
 
     total_scenarios = (
@@ -57,20 +58,36 @@ def run(cfg: DictConfig) -> None:
         scenario_ids,
         cfg.scenario_types,
         cfg.criteria,
-        Path(cfg.features_path),
+        features_path,
     )
 
     logger.info("Re-grouping individual features by agent type")
     individual_features = analysis_utils.regroup_individual_features(individual_features)
 
     logger.info("Visualizing feature distribution for individual features.")
-    analysis_utils.plot_feature_distributions(individual_features, output_dir, cfg.dpi)
+    analysis_utils.plot_feature_distributions(
+        individual_features,
+        output_dir,
+        cfg.dpi,
+        tag="individual",
+        percentile_values=[10, 75, 90, 95, 99],
+        show_kde=cfg.show_kde,
+        show_percentiles=cfg.show_percentiles,
+    )
 
     logger.info("Re-grouping interaction features by agent-pair type")
     interaction_features = analysis_utils.regroup_interaction_features(interaction_features)
 
     logger.info("Visualizing feature distribution for interaction features.")
-    analysis_utils.plot_feature_distributions(interaction_features, output_dir, cfg.dpi)
+    analysis_utils.plot_feature_distributions(
+        interaction_features,
+        output_dir,
+        cfg.dpi,
+        tag="interaction",
+        percentile_values=[10, 75, 80, 90, 95, 99],
+        show_kde=cfg.show_kde,
+        show_percentiles=cfg.show_percentiles,
+    )
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 import json
-from itertools import combinations, pairwise
+from itertools import combinations
 from pathlib import Path
 from warnings import warn
 
@@ -16,6 +16,7 @@ from characterization.utils.common import (
     FeatureType,
     InteractionStatus,
     ReturnCriterion,
+    categorize_from_thresholds,
 )
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
@@ -108,23 +109,8 @@ class InteractionFeatures(BaseFeature):
             logger.warning("No categories found for feature %s and agent type %s.", feature_name, agent_pair_type)
             return -1.0
 
-        ranges = list(categories.values())
-
-        # If there is only one category, return 0.0 or 1.0 based on the value
-        if len(ranges) < 2:  # noqa: PLR2004
-            return 0.0 if value <= ranges[0] else 1.0
-
-        # If value is below the lowest range, return 0.0
-        if value < ranges[0]:
-            return 0.0
-
-        # Categorize based on ranges
-        for category, (lower_bound, upper_bound) in enumerate(pairwise(ranges)):
-            if lower_bound <= value < upper_bound:
-                return float(category + 1)  # Categories start from 1
-
-        # If value is above the highest range
-        return float(len(categories) + 1)
+        threshold_values = list(categories.values())
+        return float(categorize_from_thresholds(value, threshold_values))
 
     def compute_interaction_features(self, scenario: Scenario) -> Interaction | None:
         """Compute comprehensive pairwise interaction features for all agent combinations.
@@ -308,9 +294,10 @@ class InteractionFeatures(BaseFeature):
                     error_message = f"{self.return_criterion} not supported. Expected 'critical' or 'average'."
                     raise ValueError(error_message)
 
-            inv_mttcp = 1.0 / (mttcp + SMALL_EPS)
-            inv_ttc = 1.0 / (ttc + SMALL_EPS)
-            inv_thw = 1.0 / (thw + SMALL_EPS)
+            # TODO: add the stability cap to configuration
+            inv_mttcp = min(1.0 / (mttcp + SMALL_EPS), 10.0)
+            inv_ttc = min(1.0 / (ttc + SMALL_EPS), 10.0)
+            inv_thw = min(1.0 / (thw + SMALL_EPS), 10.0)
 
             if self.categorize_features:
                 agent_pair_type = get_agent_pair_type(agent_i.agent_type, agent_j.agent_type)

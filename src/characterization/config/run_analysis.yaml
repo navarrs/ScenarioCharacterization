@@ -32,9 +32,11 @@ percentiles:
 # OOD test set percentile to split by
 test_percentile: 80
 
-min_scenarios_to_plot: 1
-viz_scenarios: true
 tag: 'full'
+
+# Feature Analysis Parameters
+show_kde: true
+show_percentiles: true
 
 # Scenario Visualization Parameters
 total_scenarios: null
