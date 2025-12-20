@@ -9,6 +9,7 @@ seed: 42
 save: true
 overwrite: false
 update: false
+create_metadata: true
 
 num_scenarios: null
 num_shards: 0
