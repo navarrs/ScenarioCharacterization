@@ -3,4 +3,3 @@ defaults:
 
 base_path: /data/driving/scenario_characterization
 scenario_base_path: ${paths.base_path}/samples/scenarios
-scenario_meta_path: ${paths.base_path}/samples/processed_scenario_samples_infos.pkl
