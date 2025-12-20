@@ -187,8 +187,6 @@ def regroup_scenario_scores(
     scenario_types: list[str],
     scenario_scorers: list[str],
     criteria: list[str],
-    *,
-    return_valid_only: bool = True,
 ) -> tuple[dict[str, Any], ...]:
     """Loads scenario scores for given scenario types, scorers, and criteria.
 
@@ -199,7 +197,6 @@ def regroup_scenario_scores(
         scenario_scorers (list[str]): List of scenario scorers.
         criteria (list[str]): List of criteria.
         scores_path (Path): Path to the directory containing score files.
-        return_valid_only (bool): Whether to return only valid agent scores.
 
     Returns:
         Tuple containing three dictionaries:
@@ -209,11 +206,13 @@ def regroup_scenario_scores(
     """
     scene_scores = {"scenario_ids": scenario_ids}
     agent_scores = {"scenario_ids": scenario_ids}
+    agent_scores_valid = {"scenario_ids": scenario_ids}
 
     for scenario_type, scorer, criterion in product(scenario_types, scenario_scorers, criteria):
         key = f"{scenario_type}_{criterion}_{scorer}"
         scene_scores[key] = []
         agent_scores[key] = []
+        agent_scores_valid[key] = []
 
     for scenario_type, criterion in product(scenario_types, criteria):
         key = f"{scenario_type}_{criterion}"
@@ -224,16 +223,9 @@ def regroup_scenario_scores(
                 scene_score = scores[scores_key].scene_score
                 if scene_score is not None:
                     scene_scores[key].append(scene_score)
-                    agent_valid_scores = scores[scores_key].agent_scores
-                    valid_scores = scores[scores_key].agent_scores_valid
-                    if return_valid_only and valid_scores is not None:
-                        valid_scores = scores[scores_key].agent_scores_valid
-                        agent_valid_scores = agent_valid_scores[valid_scores]
-                    agent_scores[key].append(agent_valid_scores)
-    return (
-        scene_scores,
-        agent_scores,
-    )
+                    agent_scores[key].append(scores[scores_key].agent_scores)
+                    agent_scores_valid[key].append(scores[scores_key].agent_scores_valid)
+    return scene_scores, agent_scores, agent_scores_valid
 
 
 def load_features(
@@ -592,6 +584,7 @@ def plot_feature_distributions(
 
 def plot_agent_scores_distributions(
     agent_scores: dict[str, Any],
+    agent_scores_valid: dict[str, Any],
     output_dir: Path,
     dpi: int = 100,
     percentile_values: list[int] = [10, 25, 50, 75, 90, 95, 99],  # noqa: B006
@@ -600,6 +593,7 @@ def plot_agent_scores_distributions(
 
     Args:
         agent_scores (dict[str, Any]): Dictionary containing agent scores with scenario IDs.
+        agent_scores_valid (dict[str, Any]): Dictionary containing validity masks for agent scores.
         output_dir (Path): Directory to save the output plots.
         dpi (int): Dots per inch for the saved figure.
         percentile_values (list[int]): List of percentiles to compute and display on the plot.
@@ -609,8 +603,13 @@ def plot_agent_scores_distributions(
             continue
 
         agent_scores_flattened = []
-        for scores in values:
-            agent_scores_flattened.extend(scores.tolist())
+        valid = agent_scores_valid.get(key)
+        if valid is None:
+            for scores in values:
+                agent_scores_flattened.extend(scores.tolist())
+        else:
+            for scores, valid_mask in zip(values, valid, strict=True):
+                agent_scores_flattened.extend(scores[valid_mask].tolist())
         agent_scores_flattened = [score for score in agent_scores_flattened if score >= 0.0]
 
         _, ax = plt.subplots(figsize=(10, 6))
@@ -652,6 +651,7 @@ def plot_agent_scores_distributions(
 
 def plot_agent_scores_heatmap(
     agent_scores: dict[str, Any],
+    agent_scores_valid: dict[str, Any],
     scenario_type: str,
     criterion: str,
     output_dir: Path,
@@ -661,6 +661,7 @@ def plot_agent_scores_heatmap(
 
     Args:
         agent_scores (dict[str, Any]): Dictionary containing agent scores with scenario IDs.
+        agent_scores_valid (dict[str, Any]): Dictionary containing validity masks for agent scores.
         criterion (str): Criterion used for filtering or labeling the heatmap.
         scenario_type (str): Type of scenario being analyzed.
         output_dir (Path): Directory to save the output plots.
@@ -671,9 +672,18 @@ def plot_agent_scores_heatmap(
     if individual_agent_scores is None or interaction_agent_scores is None:
         logger.error("Individual or interaction agent scores not found for criterion %s", criterion)
         return
-
     individual_agent_scores = np.concatenate(individual_agent_scores).astype(int)
     interaction_agent_scores = np.concatenate(interaction_agent_scores).astype(int)
+
+    individual_agent_scores_valid = agent_scores_valid.get(f"{scenario_type}_{criterion}_individual", None)
+    interaction_agent_scores_valid = agent_scores_valid.get(f"{scenario_type}_{criterion}_interaction", None)
+    if individual_agent_scores_valid is not None and interaction_agent_scores_valid is not None:
+        individual_agent_scores_valid = np.concatenate(individual_agent_scores_valid)
+        interaction_agent_scores_valid = np.concatenate(interaction_agent_scores_valid)
+        mask = individual_agent_scores_valid & interaction_agent_scores_valid
+        individual_agent_scores = individual_agent_scores[mask]
+        interaction_agent_scores = interaction_agent_scores[mask]
+
     assert individual_agent_scores.shape == interaction_agent_scores.shape, (
         f"Agent scores shapes do not match. {individual_agent_scores.shape}, {interaction_agent_scores.shape}"
     )
@@ -711,6 +721,7 @@ def plot_agent_scores_heatmap(
 
 def plot_agent_scores_voxel(
     agent_scores: dict[str, Any],
+    agent_scores_valid: dict[str, Any],
     scenario_type: str,
     criterion: str,
     output_dir: Path,
@@ -720,6 +731,7 @@ def plot_agent_scores_voxel(
 
     Args:
         agent_scores (dict[str, Any]): Dictionary containing agent scores with scenario IDs.
+        agent_scores_valid (dict[str, Any]): Dictionary containing validity masks for agent scores.
         scenario_type (str): Type of scenario being analyzed.
         criterion (str): Criterion used for filtering or labeling the plot.
         output_dir (Path): Directory to save the output plots.
@@ -731,10 +743,20 @@ def plot_agent_scores_voxel(
     if individual_agent_scores is None or interaction_agent_scores is None or safeshift_agent_scores is None:
         logger.error("Individual or interaction or safeshift agent scores not found for criterion %s", criterion)
         return
-
     individual_agent_scores = np.concatenate(individual_agent_scores).astype(int)
     interaction_agent_scores = np.concatenate(interaction_agent_scores).astype(int)
     safeshift_agent_scores = np.concatenate(safeshift_agent_scores).astype(int)
+
+    individual_agent_scores_valid = agent_scores_valid.get(f"{scenario_type}_{criterion}_individual", None)
+    interaction_agent_scores_valid = agent_scores_valid.get(f"{scenario_type}_{criterion}_interaction", None)
+    if individual_agent_scores_valid is not None and interaction_agent_scores_valid is not None:
+        individual_agent_scores_valid = np.concatenate(individual_agent_scores_valid)
+        interaction_agent_scores_valid = np.concatenate(interaction_agent_scores_valid)
+        mask = individual_agent_scores_valid & interaction_agent_scores_valid
+        individual_agent_scores = individual_agent_scores[mask]
+        interaction_agent_scores = interaction_agent_scores[mask]
+        safeshift_agent_scores = safeshift_agent_scores[mask]
+
     assert individual_agent_scores.shape == interaction_agent_scores.shape == safeshift_agent_scores.shape, (
         f"Agent scores shapes do not match. "
         f"{individual_agent_scores.shape}, {interaction_agent_scores.shape}, {safeshift_agent_scores.shape}"
