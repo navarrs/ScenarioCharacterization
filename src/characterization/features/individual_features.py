@@ -229,9 +229,13 @@ class IndividualFeatures(BaseFeature):
                 speed_limit_diff = self.categorize(speed_limit_diff, agent_type, "speed_limit_diff")
                 acceleration = self.categorize(acceleration, agent_type, "acceleration")
                 deceleration = self.categorize(deceleration, agent_type, "deceleration")
-                jerk = self.categorize(jerk, agent_type, "jerk") if jerk is not None else -1.0
+                jerk = self.categorize(jerk, agent_type, "jerk") if jerk is not None else 0.0
                 waiting_period = self.categorize(waiting_period, agent_type, "waiting_period")
-                kalman_difficulty = self.categorize(kalman_difficulty, agent_type, "kalman_difficulty")
+                kalman_difficulty = (
+                    self.categorize(kalman_difficulty, agent_type, "kalman_difficulty")
+                    if kalman_difficulty >= 0
+                    else 0.0
+                )
 
             scenario_valid_idxs.append(n)
             scenario_speeds.append(speed)

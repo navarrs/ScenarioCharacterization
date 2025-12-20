@@ -48,11 +48,11 @@ characterizer:
     cyclist_cyclist_categorization_file: ./meta/type_cyclist_cyclist_feature_percentiles.json
 
     # Scoring parameters
-    exclude_ego_from_scene_score: ${exclude_ego_from_scene_score}
-    categorize_scores: ${categorize_scores}
-    score_weighting_method: ${score_weighting_method}
-    reduce_distance_penalty: ${reduce_distance_penalty}
-    aggregated_score_weight: ${aggregated_score_weight}
+    vru_priority_weight: ${vru_priority_weight} # Weight for VRU priority in scoring
+    categorize_scores: ${categorize_scores} # Whether to categorize scores
+    score_weighting_method: ${score_weighting_method} # Method for weighting scores ('uniform', 'wrt_ego', 'wrt_relevant')
+    reduce_distance_penalty: ${reduce_distance_penalty} # Whether to reduce distance penalty
+    aggregated_score_weight: ${aggregated_score_weight} # Weight for aggregated score in final score computation
     individual_score_function: simple
     individual_categorization_file: ./meta/${scenario_type}_${return_criterion}_${feature_type}_individual.json
     interaction_score_function: simple

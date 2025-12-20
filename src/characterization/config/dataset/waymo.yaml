@@ -1,6 +1,7 @@
 _target_: characterization.datasets.waymo.WaymoData
 config:
   load: true
+  create_metadata: ${create_metadata}
 
   # Predefined scenario parameters
   last_timestep: 91
@@ -19,12 +20,14 @@ config:
   step: ${step}
 
   scenario_base_path: ${paths.scenario_base_path}
-  scenario_meta_path: ${paths.scenario_meta_path}
 
   conflict_points_path: ${paths.output_paths.conflict_points_cache_path}
   conflict_points:
-    intersection_threshold: 0.5 # meters
-    resample_factor: 3
+    intersection_threshold: 0.1 # meters
+    resample_factor: 1
+    return_static_conflict_points: false
+    return_dynamic_conflict_points: false
+    return_lane_conflict_points: false
 
   closest_lanes_path: ${paths.output_paths.closest_lanes_cache_path}
   closest_lanes:

@@ -1,4 +1,3 @@
-import math
 import pickle
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -40,10 +39,10 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
             )
             raise ValueError(error_message)
 
-        self.scenario_base_path = config.scenario_base_path
-        self.scenario_meta_path = config.scenario_meta_path
+        self.scenario_base_path = Path(config.scenario_base_path)
+        assert self.scenario_base_path.exists(), f"Scenario base path {self.scenario_base_path} does not exist."
 
-        self.create_metadata = config.get("create_metadata", False)
+        self.create_metadata = config.get("create_metadata", True)
         self.conflict_points_path = Path(config.conflict_points_path)
         self.conflict_points_cfg = config.get("conflict_points", None)
         self.closest_lanes_path = Path(config.closest_lanes_path)
@@ -71,21 +70,6 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         """
         return f"{self.__class__.__name__} (loaded from: {self.scenario_base_path})"
 
-    def shard(self) -> None:
-        """Shards the dataset into smaller parts for distributed or parallel processing.
-
-        This method updates the internal data attributes to only include the shard assigned
-        to this instance, based on the number of shards and the shard index.
-        """
-        if self.num_shards > 1:
-            n_per_shard = math.ceil(len(self.scenarios) / self.num_shards)
-            shard_start = int(n_per_shard * self.shard_index)
-            shard_end = int(n_per_shard * (self.shard_index + 1))
-            self.scenarios = self.scenarios[shard_start:shard_end]
-
-        if self.num_scenarios != -1:
-            self.scenarios = self.scenarios[: self.num_scenarios]
-
     def compute_metadata(self) -> None:
         """Computes and validates metadata for each scenario in the dataset."""
         if self.num_workers > 1:
@@ -110,7 +94,8 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
             scenario = self.load_scenario_information(index)
             if scenario is None:
                 error_message = f"Scenario file for index {index} could not be loaded."
-                raise ValueError(error_message)
+                logger.warning(error_message)
+                return
 
             scenario = self.transform_scenario_data(scenario)
             if scenario.static_map_data is None:
@@ -158,6 +143,9 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
             scenario,
             resample_factor=self.conflict_points_cfg.get("resample_factor", 1),
             intersection_threshold=self.conflict_points_cfg.get("intersection_threshold", 0.5),
+            return_static_conflict_points=self.conflict_points_cfg.get("return_static_conflict_points", False),
+            return_lane_conflict_points=self.conflict_points_cfg.get("return_lane_conflict_points", False),
+            return_dynamic_conflict_points=self.conflict_points_cfg.get("return_dynamic_conflict_points", False),
         )
         if conflict_point_info is not None:
             # ensure directory exists before writing

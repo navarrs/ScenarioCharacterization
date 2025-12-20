@@ -1,4 +1,3 @@
-import json
 from datetime import UTC, datetime
 from itertools import product
 from pathlib import Path
@@ -46,19 +45,17 @@ def run(cfg: DictConfig) -> None:
         msg = f"Scorers {unsupported_scores} not in supported list {common.SUPPORTED_SCORERS}"
         raise ValueError(msg)
 
-    scenario_ids = analysis_utils.get_valid_scenario_ids(cfg.scenario_types, cfg.criteria, cfg.scores_path)
+    scores_path = Path(cfg.scores_path)
+    scenario_ids = analysis_utils.get_valid_scenario_ids(cfg.scenario_types, cfg.criteria, scores_path)
     if not scenario_ids:
         msg = f"No valid scenarios found in {cfg.scores_path} for {cfg.scenario_types} and criteria {cfg.criteria}"
         raise ValueError(msg)
 
     # Generate score histogram and density plot
     logger.info("Loading the scores")
-    scene_scores, agent_scores, _ = analysis_utils.load_scenario_scores(
-        scenario_ids,
-        cfg.scenario_types,
-        cfg.scores,
-        cfg.criteria,
-        Path(cfg.scores_path),
+    scenario_scores = analysis_utils.load_scenario_scores(scenario_ids, cfg.scenario_types, cfg.criteria, scores_path)
+    scene_scores, agent_scores = analysis_utils.regroup_scenario_scores(
+        scenario_scores, scenario_ids, cfg.scenario_types, cfg.scores, cfg.criteria
     )
 
     scene_scores_df = pd.DataFrame(scene_scores)
@@ -72,18 +69,16 @@ def run(cfg: DictConfig) -> None:
     analysis_utils.plot_histograms_from_dataframe(scene_scores_df, output_filepath, cfg.dpi)
     logger.info("Visualizing density function for scores: %s to %s", cfg.scores, output_filepath)
 
-    scenario_splits = analysis_utils.get_scenario_splits(scene_scores_df, cfg.test_percentile, add_jaccard_index=True)
-    logger.info("Generating score split files")
-
     output_filepath = output_dir / "scenario_splits.json"
-    with output_filepath.open("w") as f:
-        json.dump(scenario_splits, f, indent=4)
-    logger.info("Saved scenario splits to %s", output_filepath)
+    logger.info("Generating score split files to %s", output_filepath)
+    analysis_utils.get_scenario_splits(scene_scores_df, cfg.test_percentile, output_filepath, add_jaccard_index=True)
 
     analysis_utils.plot_agent_scores_distributions(agent_scores, output_dir, cfg.dpi)
     logger.info("Visualized agent score distributions to %s", output_dir)
 
     for scenario_type, criterion in product(cfg.scenario_types, cfg.criteria):
+        if "categorical" not in criterion:
+            continue
         analysis_utils.plot_agent_scores_heatmap(agent_scores, scenario_type, criterion, output_dir, cfg.dpi)
         analysis_utils.plot_agent_scores_voxel(agent_scores, scenario_type, criterion, output_dir, cfg.dpi)
     logger.info("Visualized agent score heatmaps to %s", output_dir)

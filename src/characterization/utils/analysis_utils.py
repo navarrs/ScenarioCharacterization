@@ -1,5 +1,4 @@
 import json
-import os
 from itertools import combinations, product
 from pathlib import Path
 from typing import Any
@@ -10,7 +9,6 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.colors import Normalize
 from numpy.typing import NDArray
-from rich.progress import track
 from tqdm import tqdm
 
 from characterization.schemas import Individual, Interaction, ScenarioFeatures, ScenarioScores
@@ -65,7 +63,7 @@ def get_sample_to_plot(
     return df_subset.sample(n=sample_size, random_state=seed)
 
 
-def get_valid_scenario_ids(scenario_types: list[str], criteria: list[str], base_path: str) -> list[str]:
+def get_valid_scenario_ids(scenario_types: list[str], criteria: list[str], base_path: Path) -> list[str]:
     """Finds scenario IDs that are common across all specified scenario types and criteria.
 
     Args:
@@ -74,13 +72,13 @@ def get_valid_scenario_ids(scenario_types: list[str], criteria: list[str], base_
         base_path (str): Base path where scenario score files are stored.
 
     Returns:
-        scenario_ids (list[str]): List of scenario IDs that are present in all specified scenario types and criteria.
+        scenario_ids (list[Path]): List of scenario IDs that are present in all specified scenario types and criteria.
     """
     scenario_lists = []
     for scenario_type, criterion in product(scenario_types, criteria):
-        scenario_type_scores_path = os.path.join(base_path, f"{scenario_type}_{criterion}")
-        scenario_type_scores_files = os.listdir(scenario_type_scores_path)
-        scenario_lists.append(scenario_type_scores_files)
+        scenarios_path = base_path / f"{scenario_type}_{criterion}"
+        scenario_files = [f.name for f in scenarios_path.iterdir()]
+        scenario_lists.append(scenario_files)
     return list(set.intersection(*[set(scenario_list) for scenario_list in scenario_lists]))
 
 
@@ -137,11 +135,7 @@ def plot_histograms_from_dataframe(
     plt.close()
 
 
-def load_scores(
-    scenario_ids: list[str],
-    scores_path: Path,
-    prefix: str,
-) -> dict[str, ScenarioScores]:
+def load_scores(scenario_ids: list[str], scores_path: Path, prefix: str) -> dict[str, ScenarioScores]:
     """Loads scenario scores from the specified path and updates the scores DataFrame.
 
     Args:
@@ -153,9 +147,9 @@ def load_scores(
         dict[str, ScenarioScores]: Dictionary mapping scenario IDs to their corresponding ScenarioScores.
     """
     scores_dict = {}
-    for scenario_id in track(scenario_ids, description=f"Loading {prefix} scores"):
-        filepath = str(scores_path / scenario_id)
-        scores = from_pickle(filepath)  # nosec B301
+    for scenario_id in tqdm(scenario_ids, f"Loading {prefix} scores"):
+        filename = str(scores_path / scenario_id)
+        scores = from_pickle(filename)  # nosec B301
         scores = ScenarioScores.model_validate(scores)
         scores_dict[scenario_id] = scores
     return scores_dict
@@ -164,18 +158,48 @@ def load_scores(
 def load_scenario_scores(
     scenario_ids: list[str],
     scenario_types: list[str],
-    scenario_scorers: list[str],
     criteria: list[str],
     scores_path: Path,
-) -> tuple[dict[str, Any], ...]:
+) -> dict[str, dict[str, ScenarioScores]]:
     """Loads scenario scores for given scenario types, scorers, and criteria.
 
     Args:
         scenario_ids (list[str]): List of scenario IDs to load scores for.
         scenario_types (list[str]): List of scenario types.
+        criteria (list[str]): List of criteria.
+        scores_path (Path): Path to the directory containing score files.
+
+    Returns:
+        dict[str, dict[str, ScenarioScores]]: Dictionary mapping scenario type and criterion keys to their corresponding
+            ScenarioScores.
+    """
+    scenario_scores = {}
+    for scenario_type, criterion in product(scenario_types, criteria):
+        key = f"{scenario_type}_{criterion}"
+        scenario_scores_path = scores_path / key
+        scenario_scores[key] = load_scores(scenario_ids, scenario_scores_path, key)
+    return scenario_scores
+
+
+def regroup_scenario_scores(
+    scenario_scores: dict[str, dict[str, ScenarioScores]],
+    scenario_ids: list[str],
+    scenario_types: list[str],
+    scenario_scorers: list[str],
+    criteria: list[str],
+    *,
+    return_valid_only: bool = True,
+) -> tuple[dict[str, Any], ...]:
+    """Loads scenario scores for given scenario types, scorers, and criteria.
+
+    Args:
+        scenario_scores (dict[str, dict[str, ScenarioScores]]): Dictionary containing scenario scores.
+        scenario_ids (list[str]): List of scenario IDs to load scores for.
+        scenario_types (list[str]): List of scenario types.
         scenario_scorers (list[str]): List of scenario scorers.
         criteria (list[str]): List of criteria.
         scores_path (Path): Path to the directory containing score files.
+        return_valid_only (bool): Whether to return only valid agent scores.
 
     Returns:
         Tuple containing three dictionaries:
@@ -183,7 +207,6 @@ def load_scenario_scores(
             - agent_scores: Dictionary mapping score keys to lists of agent scores.
             - scenario_scores: Dictionary mapping scenario IDs to their corresponding ScenarioScores.
     """
-    scenario_scores = {}
     scene_scores = {"scenario_ids": scenario_ids}
     agent_scores = {"scenario_ids": scenario_ids}
 
@@ -194,15 +217,23 @@ def load_scenario_scores(
 
     for scenario_type, criterion in product(scenario_types, criteria):
         key = f"{scenario_type}_{criterion}"
-        scenario_scores_path = scores_path / key
-        scenario_scores[key] = load_scores(scenario_ids, scenario_scores_path, key)
         for scores in scenario_scores[key].values():
             for scorer in scenario_scorers:
                 key = f"{scenario_type}_{criterion}_{scorer}"
                 scores_key = f"{scorer}_scores"
-                scene_scores[key].append(scores[scores_key].scene_score)
-                agent_scores[key].append(scores[scores_key].agent_scores)
-    return scene_scores, agent_scores, scenario_scores
+                scene_score = scores[scores_key].scene_score
+                if scene_score is not None:
+                    scene_scores[key].append(scene_score)
+                    agent_valid_scores = scores[scores_key].agent_scores
+                    valid_scores = scores[scores_key].agent_scores_valid
+                    if return_valid_only and valid_scores is not None:
+                        valid_scores = scores[scores_key].agent_scores_valid
+                        agent_valid_scores = agent_valid_scores[valid_scores]
+                    agent_scores[key].append(agent_valid_scores)
+    return (
+        scene_scores,
+        agent_scores,
+    )
 
 
 def load_features(
@@ -221,7 +252,7 @@ def load_features(
         dict[str, ScenarioFeatures]: Dictionary mapping scenario IDs to their corresponding ScenarioFeatures.
     """
     features_dict = {}
-    for scenario_id in track(scenario_ids, description=f"Loading {prefix} features"):
+    for scenario_id in tqdm(scenario_ids, desc=f"Loading {prefix} features"):
         filepath = str(features_path / scenario_id)
         features = from_pickle(filepath)  # nosec B301
         features = ScenarioFeatures.model_validate(features)
@@ -301,7 +332,9 @@ def regroup_individual_features(individual_features: dict[str, Any]) -> dict[Age
         if feature.waiting_period is not None:
             feature_dict[agent_type]["waiting_period"].extend(feature.waiting_period[mask].tolist())
         if feature.kalman_difficulty is not None:
-            feature_dict[agent_type]["kalman_difficulty"].extend(feature.kalman_difficulty[mask].tolist())
+            kalman_difficulty = feature.kalman_difficulty[mask]
+            kalman_difficulty = kalman_difficulty[kalman_difficulty >= 0]  # Filter out negative values
+            feature_dict[agent_type]["kalman_difficulty"].extend(kalman_difficulty.tolist())
 
     regrouped_features = {
         AgentType.TYPE_VEHICLE: _init_empty(),
@@ -310,6 +343,7 @@ def regroup_individual_features(individual_features: dict[str, Any]) -> dict[Age
     }
 
     for _, features in zip(individual_features["scenario_ids"], individual_features["features"], strict=False):
+        # Only consider the agent types for valid indeces, since we only computed features for valid agents.
         agent_types = np.asarray([features.agent_types[i] for i in features.valid_idxs])
 
         # Regroup vehicle features
@@ -370,17 +404,17 @@ def regroup_interaction_features(interaction_features: dict[str, Any]) -> dict[A
         if feature.collision is not None:
             feature_dict[agent_pair]["collision"].append(feature.collision[index])
         if feature.mttcp is not None:
-            inv_mttcp = min(1 / (feature.mttcp[index] + SMALL_EPS), 10.0)  # Cap at 10.0 for stability
-            feature_dict[agent_pair]["inv_mttcp"].append(inv_mttcp)
             feature_dict[agent_pair]["mttcp"].append(feature.mttcp[index])
+        if feature.inv_mttcp is not None:
+            feature_dict[agent_pair]["inv_mttcp"].append(feature.inv_mttcp[index])
         if feature.thw is not None:
-            inv_thw = min(1 / (feature.thw[index] + SMALL_EPS), 10.0)  # Cap at 10.0 for stability
-            feature_dict[agent_pair]["inv_thw"].append(inv_thw)
             feature_dict[agent_pair]["thw"].append(feature.thw[index])
+        if feature.inv_thw is not None:
+            feature_dict[agent_pair]["inv_thw"].append(feature.inv_thw[index])
         if feature.ttc is not None:
-            inv_ttc = min(1 / (feature.ttc[index] + SMALL_EPS), 10.0)  # Cap at 10.0 for stability
-            feature_dict[agent_pair]["inv_ttc"].append(inv_ttc)
             feature_dict[agent_pair]["ttc"].append(feature.ttc[index])
+        if feature.inv_ttc is not None:
+            feature_dict[agent_pair]["inv_ttc"].append(feature.inv_ttc[index])
         if feature.drac is not None:
             feature_dict[agent_pair]["drac"].append(feature.drac[index])
 
@@ -402,9 +436,7 @@ def regroup_interaction_features(interaction_features: dict[str, Any]) -> dict[A
 
     for key in regrouped_features:  # noqa: PLC0206
         for feature_name in regrouped_features[key]:
-            regrouped_features[key][feature_name] = np.array(  # pyright: ignore[reportArgumentType]
-                regrouped_features[key][feature_name], dtype=np.float32
-            )
+            regrouped_features[key][feature_name] = np.array(regrouped_features[key][feature_name], dtype=np.float32)  # pyright: ignore[reportArgumentType]
             regrouped_features[key][feature_name][np.isinf(regrouped_features[key][feature_name])] = BIG_EPS
 
     return regrouped_features
@@ -426,13 +458,14 @@ def compute_jaccard_index(set1: set[Any], set2: set[Any]) -> float:
 
 
 def get_scenario_splits(
-    scene_scores_df: pd.DataFrame, test_percentile: float, *, add_jaccard_index: bool = True
+    scene_scores_df: pd.DataFrame, test_percentile: float, output_filepath: Path, *, add_jaccard_index: bool = True
 ) -> dict[str, Any]:
     """Splits scenarios into in-distribution and out-of-distribution sets based on score percentiles.
 
     Args:
         scene_scores_df (pd.DataFrame): DataFrame containing scenario scores.
         test_percentile (float): Percentile threshold to define out-of-distribution scenarios.
+        output_filepath (Path): Path to save the scenario splits JSON file.
         add_jaccard_index (bool): Whether to compute and include Jaccard indices between OOD sets of different scores.
 
     Returns:
@@ -469,6 +502,8 @@ def get_scenario_splits(
             logger.info("Jaccard index for %s: %.4f", key, jaccard_index)
         scenario_splits["jaccard_indices"] = jaccard_indices
 
+    with output_filepath.open("w") as f:
+        json.dump(scenario_splits, f, indent=4)
     return scenario_splits
 
 
@@ -576,7 +611,7 @@ def plot_agent_scores_distributions(
         agent_scores_flattened = []
         for scores in values:
             agent_scores_flattened.extend(scores.tolist())
-        agent_scores_flattened = [score for score in agent_scores_flattened if score >= 0]
+        agent_scores_flattened = [score for score in agent_scores_flattened if score >= 0.0]
 
         _, ax = plt.subplots(figsize=(10, 6))
         sns.histplot(

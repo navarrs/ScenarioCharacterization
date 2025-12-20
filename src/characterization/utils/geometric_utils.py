@@ -85,8 +85,15 @@ def compute_agent_to_agent_closest_dists(positions: NDArray[np.float32]) -> NDAr
     return np.nan_to_num(np.nanmin(dists, axis=-1), nan=np.inf).astype(np.float32)
 
 
-def find_conflict_points(
-    scenario: Scenario, ndim: int = 3, resample_factor: int = 3, intersection_threshold: float = 0.5
+def find_conflict_points(  # noqa: PLR0912
+    scenario: Scenario,
+    ndim: int = 3,
+    resample_factor: int = 3,
+    intersection_threshold: float = 0.5,
+    *,
+    return_static_conflict_points: bool = True,
+    return_lane_conflict_points: bool = True,
+    return_dynamic_conflict_points: bool = True,
 ) -> dict[str, Any] | None:
     """Finds the conflict points in the map for a scenario.
 
@@ -95,6 +102,9 @@ def find_conflict_points(
         ndim: Number of dimensions to consider (2 or 3). Defaults to 3.
         resample_factor: Factor to resample polylines for better intersection detection. Defaults to 3.
         intersection_threshold: Distance threshold in meters to consider two lanes intersecting. Defaults to 0.5.
+        return_static_conflict_points: Whether to return static conflict points only. Defaults to True.
+        return_lane_conflict_points: Whether to return lane intersection conflict points only. Defaults to True.
+        return_dynamic_conflict_points: Whether to return dynamic conflict points only. Defaults to True.
 
     Returns:
         Dictionary containing the conflict points in the map with keys:
@@ -151,7 +161,6 @@ def find_conflict_points(
             lane_j = polylines[lane_j_idxs[0] : lane_j_idxs[1]][:, :ndim]
 
             dists_ij = np.linalg.norm(lane_i[:, None] - lane_j, axis=-1)
-
             i_idx, j_idx = np.where(dists_ij < intersection_threshold)
             i_idx, j_idx = np.unique(i_idx), np.unique(j_idx)
 
@@ -205,13 +214,18 @@ def find_conflict_points(
         compute_dists_to_conflict_points(conflict_points, agent_positions) if conflict_points is not None else None
     )
 
-    return {
-        "static": static_conflict_points,
-        "dynamic": dynamic_conflict_points,
-        "lane_intersections": lane_intersections,
+    # Prepare output dictionary
+    conflict_points_output = {
         "all_conflict_points": conflict_points,
         "agent_distances_to_conflict_points": dists_to_conflict_points,
     }
+    if return_static_conflict_points:
+        conflict_points_output["static"] = static_conflict_points
+    if return_dynamic_conflict_points:
+        conflict_points_output["dynamic"] = dynamic_conflict_points
+    if return_lane_conflict_points:
+        conflict_points_output["lane_intersections"] = lane_intersections
+    return conflict_points_output
 
 
 def compute_k_closest_lanes(

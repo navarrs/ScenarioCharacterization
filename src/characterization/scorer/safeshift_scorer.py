@@ -35,6 +35,7 @@ class SafeShiftScorer(BaseScorer):
             ValueError: If any required feature (agent_to_agent_closest_dists, interaction_agent_indices,
                 interaction_status, collision, mttcp) is missing in scenario_features.
         """
+        valid_scores = None
         scores = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
 
         # Compute individual scores
@@ -51,7 +52,6 @@ class SafeShiftScorer(BaseScorer):
         scores_int = interaction_scores.agent_scores
         if scores_int is None:
             scores_int = scores.copy()
-
         scene_score_int = interaction_scores.scene_score
         if scene_score_int is None:
             scene_score_int = 0.0
@@ -63,11 +63,14 @@ class SafeShiftScorer(BaseScorer):
             a_min=self.score_clip.min,
             a_max=self.score_clip.max,
         )
+        valid_scores = None
+        if individual_scores.agent_scores_valid is not None and interaction_scores.agent_scores_valid is not None:
+            valid_scores = individual_scores.agent_scores_valid | interaction_scores.agent_scores_valid
 
         # Get the agents' critical times
         return ScenarioScores(
             metadata=scenario.metadata,
             individual_scores=individual_scores,
             interaction_scores=interaction_scores,
-            safeshift_scores=Score(agent_scores=agent_scores, scene_score=scene_score),
+            safeshift_scores=Score(agent_scores=agent_scores, agent_scores_valid=valid_scores, scene_score=scene_score),
         )

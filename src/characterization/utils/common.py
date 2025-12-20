@@ -33,15 +33,15 @@ def categorize_from_thresholds(value: float, threshold_values: list[float]) -> i
 
     # If there is only one category, return 1 or 2 based on the value
     if num_thresholds < 2:  # noqa: PLR2004
-        return 1 if value < threshold_values[0] else 2
+        return 1 if value <= threshold_values[0] else 2
 
     # If value is below the lowest range, return 1
-    if value < threshold_values[0]:
+    if value <= threshold_values[0]:
         return 1
 
     # Categorize based on ranges, starting from category 2
     for category, (lower_bound, upper_bound) in enumerate(pairwise(threshold_values)):
-        if lower_bound <= value < upper_bound:
+        if lower_bound < value <= upper_bound:
             return category + 2
 
     # If value is above the highest range
@@ -85,6 +85,7 @@ def validate_array(
 
 
 # Reusable types
+BooleanNDArray1D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 1))]
 BooleanNDArray2D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 2))]
 BooleanNDArray3D = Annotated[NDArray[np.bool_], BeforeValidator(validate_array(np.bool_, 3))]
 Float64NDArray3D = Annotated[NDArray[np.float64], BeforeValidator(validate_array(np.float64, 3))]

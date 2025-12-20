@@ -294,9 +294,10 @@ class InteractionFeatures(BaseFeature):
                     error_message = f"{self.return_criterion} not supported. Expected 'critical' or 'average'."
                     raise ValueError(error_message)
 
-            inv_mttcp = 1.0 / (mttcp + SMALL_EPS)
-            inv_ttc = 1.0 / (ttc + SMALL_EPS)
-            inv_thw = 1.0 / (thw + SMALL_EPS)
+            # TODO: add the stability cap to configuration
+            inv_mttcp = min(1.0 / (mttcp + SMALL_EPS), 10.0)
+            inv_ttc = min(1.0 / (ttc + SMALL_EPS), 10.0)
+            inv_thw = min(1.0 / (thw + SMALL_EPS), 10.0)
 
             if self.categorize_features:
                 agent_pair_type = get_agent_pair_type(agent_i.agent_type, agent_j.agent_type)

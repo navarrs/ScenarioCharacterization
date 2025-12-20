@@ -10,6 +10,7 @@ from characterization.schemas import FeatureDetections, FeatureWeights, Scenario
 from characterization.utils.common import SMALL_EPS, AgentTrajectoryMasker, categorize_from_thresholds
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
+from characterization.utils.scenario_types import AgentType
 
 logger = get_logger(__name__)
 
@@ -35,7 +36,7 @@ class BaseScorer(ABC):
         super().__init__()
         self.config = config
         self.characterizer_type = "score"
-        self.exclude_ego_from_scene_score = self.config.get("exclude_ego_from_scene_score", False)
+        self.vru_priority_weight = self.config.get("vru_priority_weight", 1.0)
         self.max_critical_distance = self.config.get("max_critical_distance", 0.5)
         self.aggregated_score_weight = self.config.get("aggregated_score_weight", 0.5)
         self.features = self.config.get("features", None)
@@ -101,6 +102,7 @@ class BaseScorer(ABC):
         scenario: Scenario,
         scenario_features: ScenarioFeatures,
         max_critical_distance: float = 0.5,
+        vru_priority_weight: float = 1.0,
         *,
         reduce_distance_penalty: bool = False,
     ) -> NDArray[np.float32]:
@@ -113,6 +115,7 @@ class BaseScorer(ABC):
             scenario (Scenario): Scenario object containing agent relevance information.
             scenario_features (ScenarioFeatures): ScenarioFeatures object containing agent-to-agent closest distances.
             max_critical_distance (float): Maximum critical distance to cap the weight.
+            vru_priority_weight (float): Weight multiplier for vulnerable road users.
             reduce_distance_penalty (bool): Whether to reduce the distance penalty by taking the square root.
 
         Returns:
@@ -131,13 +134,22 @@ class BaseScorer(ABC):
 
         # Return weights: shape(num_agents, )
         critical_distance = max(max_critical_distance, SMALL_EPS)
-        return np.minimum(1.0 / min_dist, 1.0 / critical_distance)
+        weights = np.minimum(1.0 / min_dist, 1.0 / critical_distance)
+
+        # Adjust weights for vulnerable road users
+        agent_types = np.asarray(scenario.agent_data.agent_types)
+        vru_idxs = np.where((agent_types == AgentType.TYPE_CYCLIST) | (agent_types == AgentType.TYPE_PEDESTRIAN))[0]
+        weights[vru_idxs] *= vru_priority_weight
+
+        weights[ego_agent_index] = 1.0
+        return weights
 
     @staticmethod
     def _get_weights_wrt_relevant_agents(
         scenario: Scenario,
         scenario_features: ScenarioFeatures,
         max_critical_distance: float = 0.5,
+        vru_priority_weight: float = 1.0,
         *,
         reduce_distance_penalty: bool = False,
     ) -> NDArray[np.float32]:
@@ -150,6 +162,7 @@ class BaseScorer(ABC):
             scenario (Scenario): Scenario object containing agent relevance information.
             scenario_features (ScenarioFeatures): ScenarioFeatures object containing agent-to-agent closest distances.
             max_critical_distance (float): Maximum critical distance to cap the weight.
+            vru_priority_weight (float): Weight multiplier for vulnerable road users.
             reduce_distance_penalty (bool): Whether to reduce the distance penalty by taking the square root.
 
         Returns:
@@ -175,7 +188,15 @@ class BaseScorer(ABC):
         # The final weight is the relevance of the closest agent scaled by the inverse of the distance between them.
         argmin_dist = relevant_agents_dists.argmin(axis=1)
         critical_distance = max(max_critical_distance, SMALL_EPS)
-        return relevant_agents_values[argmin_dist] * np.minimum(1.0 / min_dist, 1.0 / critical_distance)
+        weights = relevant_agents_values[argmin_dist] * np.minimum(1.0 / min_dist, 1.0 / critical_distance)
+
+        # Adjust weights for vulnerable road users
+        agent_types = np.asarray(scenario.agent_data.agent_types)
+        vru_idxs = np.where((agent_types == AgentType.TYPE_CYCLIST) | (agent_types == AgentType.TYPE_PEDESTRIAN))[0]
+        weights[vru_idxs] *= vru_priority_weight
+
+        weights[scenario.metadata.ego_vehicle_index] = 1.0
+        return weights
 
     def get_weights(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> NDArray[np.float32]:
         """Computes the weights for scoring based on the scenario and features.
@@ -204,6 +225,7 @@ class BaseScorer(ABC):
                     scenario,
                     scenario_features,
                     max_critical_distance=self.max_critical_distance,
+                    vru_priority_weight=self.vru_priority_weight,
                     reduce_distance_penalty=self.reduce_distance_penalty,
                 )
             case ScoreWeightingMethod.DISTANCE_TO_RELEVANT_AGENTS:
@@ -211,6 +233,7 @@ class BaseScorer(ABC):
                     scenario,
                     scenario_features,
                     max_critical_distance=self.max_critical_distance,
+                    vru_priority_weight=self.vru_priority_weight,
                     reduce_distance_penalty=self.reduce_distance_penalty,
                 )
             case _:
