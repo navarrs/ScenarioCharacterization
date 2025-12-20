@@ -32,14 +32,14 @@ characterizer:
       kalman_difficulty: 1.0
 
       # Interaction features
-      collision: 2.0
-      mttcp: 1.0
+      collision: 4.0
+      mttcp: 3.0
       thw: 1.0
-      ttc: 1.0
-      drac: 1.0
+      ttc: 2.0
+      drac: 2.0
 
     # Detections here are in percentile categories
-    # 1: 0, 10: 1, 25: 2, 50: 3, 75: 4, 90: 5, 95: 6, 99: 7, 100: 8
+    # 1: 1, 10: 2, 75: 3, 90: 4, 95: 5, 99: 6, 100: 7
     detections:
       speed: 8
       speed_limit_diff: 8

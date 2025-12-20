@@ -1,4 +1,5 @@
 import random
+from datetime import UTC, datetime
 from pathlib import Path
 
 import hydra
@@ -73,7 +74,8 @@ def run(cfg: DictConfig) -> None:
         ValueError: If unsupported scorers are specified in the configuration.
     """
     random.seed(cfg.seed)
-    scenario_viz_dir = Path(cfg.scenario_viz_dir)
+    date = datetime.now(UTC).strftime("%Y%m%d_%H%M%S_")
+    scenario_viz_dir = Path(cfg.scenario_viz_dir) / f"{date}_{cfg.scores_tag}_{cfg.score_to_visualize}"
     scenario_viz_dir.mkdir(parents=True, exist_ok=True)
 
     # Instantiate dataset and visualizer

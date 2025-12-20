@@ -62,21 +62,15 @@ class IndividualScorer(BaseScorer):
             ValueError: If any required feature (valid_idxs, speed, acceleration, deceleration, jerk, waiting_period)
                 is missing in scenario_features.
         """
-        scores = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
         features = scenario_features.individual_features
-        if features is None:
-            warning_message = "individual_features is None. Cannot compute individual scores."
+        if features is None or features.valid_idxs is None:
+            warning_message = f"Invalid individual features for {scenario.metadata.scenario_id}."
             warn(warning_message, UserWarning, stacklevel=2)
-            return Score(agent_scores=scores, scene_score=0.0)
-
-        if features.valid_idxs is None:
-            warning_message = (
-                "valid_idxs must not be None if individual_features is not None. Score will default to zero(s)."
-            )
-            warn(warning_message, UserWarning, stacklevel=2)
-            return Score(agent_scores=scores, scene_score=0.0)
+            return Score(agent_scores=None, agent_scores_valid=None, scene_score=None)
 
         # Get the agent weights
+        scores = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
+        valid = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=bool)
         weights = self.get_weights(scenario, scenario_features)
 
         valid_idxs = features.valid_idxs
@@ -109,17 +103,18 @@ class IndividualScorer(BaseScorer):
             )
 
             if self.categorize_scores:
-                score_value = self.categorize(score_value)
+                score_value = self.categorize(score_value.item())
 
             scores[valid_idx] = score_value
+            valid[valid_idx] = True
 
         # As a safeguard, replace NaNs with zeros
         scores = np.nan_to_num(scores, nan=0.0)
 
-        # Normalize the scores
+        # Score normalization factor
         denom = max(np.where(scores > 0.0)[0].shape[0], 1)
         scene_score = np.clip(scores.sum() / denom, a_min=self.score_clip.min, a_max=self.score_clip.max)
-        return Score(agent_scores=scores, scene_score=scene_score)
+        return Score(agent_scores=scores, agent_scores_valid=valid, scene_score=scene_score)
 
     def compute(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> ScenarioScores:
         """Computes individual agent scores and a scene-level score from scenario features.

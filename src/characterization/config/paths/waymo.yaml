@@ -1,7 +1,8 @@
 defaults:
  - default.yaml
 
-base_path: /data/driving/waymo
+base_path: /data/driving/waymo/processed/mini_causal
 
-scenario_base_path: ${paths.base_path}/new_processed_scenarios_testing
-scenario_meta_path: ${paths.base_path}/new_processed_scenarios_test_infos.pkl
+# scenario_base_path: ${paths.base_path}/validation
+scenario_base_path: ${paths.base_path}/training
+# scenario_base_path: ${paths.base_path}/testing
