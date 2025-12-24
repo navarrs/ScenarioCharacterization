@@ -47,6 +47,11 @@ def run(cfg: DictConfig) -> None:
 
     scores_path = Path(cfg.scores_path)
     scenario_ids = analysis_utils.get_valid_scenario_ids(cfg.scenario_types, cfg.criteria, scores_path)
+    scenario_ids = (
+        scenario_ids[: cfg.total_scenarios]
+        if cfg.total_scenarios is not None and cfg.total_scenarios > 0
+        else scenario_ids
+    )
     if not scenario_ids:
         msg = f"No valid scenarios found in {cfg.scores_path} for {cfg.scenario_types} and criteria {cfg.criteria}"
         raise ValueError(msg)
@@ -54,7 +59,7 @@ def run(cfg: DictConfig) -> None:
     # Generate score histogram and density plot
     logger.info("Loading the scores")
     scenario_scores = analysis_utils.load_scenario_scores(scenario_ids, cfg.scenario_types, cfg.criteria, scores_path)
-    scene_scores, agent_scores = analysis_utils.regroup_scenario_scores(
+    scene_scores, agent_scores, agent_scores_valid = analysis_utils.regroup_scenario_scores(
         scenario_scores, scenario_ids, cfg.scenario_types, cfg.scores, cfg.criteria
     )
 
@@ -73,14 +78,18 @@ def run(cfg: DictConfig) -> None:
     logger.info("Generating score split files to %s", output_filepath)
     analysis_utils.get_scenario_splits(scene_scores_df, cfg.test_percentile, output_filepath, add_jaccard_index=True)
 
-    analysis_utils.plot_agent_scores_distributions(agent_scores, output_dir, cfg.dpi)
+    analysis_utils.plot_agent_scores_distributions(agent_scores, agent_scores_valid, output_dir, cfg.dpi)
     logger.info("Visualized agent score distributions to %s", output_dir)
 
     for scenario_type, criterion in product(cfg.scenario_types, cfg.criteria):
         if "categorical" not in criterion:
             continue
-        analysis_utils.plot_agent_scores_heatmap(agent_scores, scenario_type, criterion, output_dir, cfg.dpi)
-        analysis_utils.plot_agent_scores_voxel(agent_scores, scenario_type, criterion, output_dir, cfg.dpi)
+        analysis_utils.plot_agent_scores_heatmap(
+            agent_scores, agent_scores_valid, scenario_type, criterion, output_dir, cfg.dpi
+        )
+        analysis_utils.plot_agent_scores_voxel(
+            agent_scores, agent_scores_valid, scenario_type, criterion, output_dir, cfg.dpi
+        )
     logger.info("Visualized agent score heatmaps to %s", output_dir)
 
 
