@@ -66,7 +66,7 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
         # Prepare and save plot
         self.set_axes(ax, scenario)
         if self.add_title:
-            ax.set_title(f"Scenario: {scenario_id}")
+            ax.set_title(f"Scenario: {scenario_id}", fontsize=self.title_fontsize)
 
         plt.subplots_adjust(wspace=0.05)
         plt.savefig(f"{output_dir}/temp_{timestep_idx}.png", dpi=300, bbox_inches="tight")
