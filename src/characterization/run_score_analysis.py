@@ -27,8 +27,10 @@ def run(cfg: DictConfig) -> None:
     Raises:
         ValueError: If unsupported scorers are specified in the configuration.
     """
-    subdir = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
-    subdir = f"{subdir}_{cfg.exp_tag}" if cfg.exp_tag else subdir
+    subdir = ""
+    if cfg.add_timestamp:
+        subdir = f"{datetime.now(tz=UTC).strftime('%Y%m%d_%H%M%S')}_"
+    subdir = f"{subdir}{cfg.exp_tag}" if cfg.exp_tag else subdir
     output_dir = Path(cfg.output_dir) / subdir
     output_dir.mkdir(parents=True, exist_ok=True)
 
