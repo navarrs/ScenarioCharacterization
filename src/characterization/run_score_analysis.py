@@ -93,9 +93,13 @@ def run(cfg: DictConfig) -> None:
     for scenario_type, criterion in product(cfg.scenario_types, cfg.criteria):
         if "categorical" not in criterion:
             continue
+
+        # Plots the individual and interaction scores as a 2D heatmap
         analysis_utils.plot_agent_scores_heatmap(
             agent_scores, agent_scores_valid, scenario_type, criterion, output_dir, cfg.dpi
         )
+
+        # Plots the (individual, interaction, safeshift) scores as a 3D voxel plot
         analysis_utils.plot_agent_scores_voxel(
             agent_scores,
             agent_scores_valid,
@@ -104,6 +108,8 @@ def run(cfg: DictConfig) -> None:
             output_dir,
             cfg.dpi,
         )
+
+        # Plots the (individual, interaction, safeshift) scores as a 3D voxel plot separated by agent type
         analysis_utils.plot_agent_scores_voxel_by_agent_type(
             agent_scores,
             agent_scores_valid,

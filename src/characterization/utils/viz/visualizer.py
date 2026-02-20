@@ -123,7 +123,8 @@ class BaseVisualizer(ABC):
 
         # Other visualization options
         self.add_title = config.get("add_title", True)
-        self.update_limits = config.get("update_limits", True)
+        self.title_fontsize: int = config.get("title_fontsize", 12)
+        self.update_limits = config.get("update_limits", False)
         self.buffer_distance = config.get("distance_to_ego_zoom_in", 5.0)  # in meters
         self.distance_to_ego_zoom_in = config.get("distance_to_ego_zoom_in", 100.0)  # in meters
         self.plot_categorical = config.get("plot_categorical", False)
@@ -218,7 +219,7 @@ class BaseVisualizer(ABC):
             self.plot_agent(ax, pos[-1, 0], pos[-1, 1], heading, length, width, 1.0, color, plot_rectangle=True)
 
         if self.add_title:
-            ax.set_title(title)
+            ax.set_title(title, fontsize=self.title_fontsize)
 
     def plot_sequences(  # noqa: PLR0913
         self,
@@ -303,7 +304,7 @@ class BaseVisualizer(ABC):
             self.plot_agent(ax, pos[-1, 0], pos[-1, 1], heading, length, width, alpha, color, plot_rectangle=True)
 
         if self.add_title:
-            ax.set_title(title)
+            ax.set_title(title, fontsize=self.title_fontsize)
 
     def plot_agent(  # noqa: PLR0913
         self,

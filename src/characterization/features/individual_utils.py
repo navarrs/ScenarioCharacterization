@@ -1,5 +1,3 @@
-from typing import Any
-
 import numpy as np
 from numpy.typing import NDArray
 
@@ -53,7 +51,13 @@ def compute_speed_meta(
     return speeds, speeds_limit_diff
 
 
-def compute_acceleration_profile(speed: NDArray[np.float32], timestamps: NDArray[np.float32]) -> tuple[Any, ...]:
+def compute_acceleration_profile(
+    speed: NDArray[np.float32], timestamps: NDArray[np.float32]
+) -> tuple[
+    NDArray[np.float32] | None,
+    NDArray[np.float32] | None,
+    NDArray[np.float32] | None,
+]:
     """Computes the acceleration profile from the speed (m/s) and time delta.
 
     Args:
@@ -64,12 +68,10 @@ def compute_acceleration_profile(speed: NDArray[np.float32], timestamps: NDArray
         tuple:
             acceleration_raw (NDArray[np.float32] or None): The raw acceleration time series (shape: [T,]), or None
                 if NaN values are present.
-            acceleration (NDArray[np.float32] or None): The sum of positive acceleration intervals, or None if NaN
+            acceleration (NDArray[np.float32] or None): The positive acceleration values, or None if NaN
                 values are present.
-            acceleration_se (list[tuple[int, int]] or None): The start and end indices of each acceleration interval.
-            deceleration (NDArray[np.float32] or None): The sum of negative acceleration intervals (absolute value),
+            deceleration (NDArray[np.float32] or None): The negative acceleration values (absolute value),
                 or None if NaN values are present.
-            deceleration_se (list[tuple[int, int]] or None): The start and end indices of each deceleration interval.
 
     Raises:
         ValueError: If speed and timestamps do not have the same shape.
@@ -82,7 +84,7 @@ def compute_acceleration_profile(speed: NDArray[np.float32], timestamps: NDArray
 
     if np.isnan(acceleration_raw).any():
         logger.warning("Nan value in agent acceleration: %s", acceleration_raw)
-        return None, None, None, None, None
+        return None, None, None
 
     dr_idx = np.where(acceleration_raw < 0.0)[0]
 
