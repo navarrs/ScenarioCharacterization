@@ -57,6 +57,15 @@ def run(cfg: DictConfig) -> None:
         raise ValueError(msg)
 
     # Generate score histogram and density plot
+    logger.info("Loading agent types")
+    features_path = Path(cfg.features_path)
+    _, _, agent_types = analysis_utils.load_scenario_features(
+        scenario_ids,
+        cfg.scenario_types,
+        cfg.criteria,
+        features_path,
+    )
+
     logger.info("Loading the scores")
     scenario_scores = analysis_utils.load_scenario_scores(scenario_ids, cfg.scenario_types, cfg.criteria, scores_path)
     scene_scores, agent_scores, agent_scores_valid = analysis_utils.regroup_scenario_scores(
@@ -88,7 +97,21 @@ def run(cfg: DictConfig) -> None:
             agent_scores, agent_scores_valid, scenario_type, criterion, output_dir, cfg.dpi
         )
         analysis_utils.plot_agent_scores_voxel(
-            agent_scores, agent_scores_valid, scenario_type, criterion, output_dir, cfg.dpi
+            agent_scores,
+            agent_scores_valid,
+            scenario_type,
+            criterion,
+            output_dir,
+            cfg.dpi,
+        )
+        analysis_utils.plot_agent_scores_voxel_by_agent_type(
+            agent_scores,
+            agent_scores_valid,
+            scenario_type,
+            criterion,
+            agent_types,
+            output_dir,
+            cfg.dpi,
         )
     logger.info("Visualized agent score heatmaps to %s", output_dir)
 

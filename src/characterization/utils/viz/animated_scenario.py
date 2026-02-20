@@ -48,7 +48,7 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
         if self.plot_categorical:
             self.plot_sequences_categorical(ax, scenario, scores, end_timestep=timestep_idx)
         else:
-            self.plot_sequences(ax, scenario, scores, show_relevant=True, end_timestep=timestep_idx)
+            self.plot_sequences(ax, scenario, scores, show_relevant=self.show_relevant, end_timestep=timestep_idx)
 
         # Add timestamp annotation in the upper right corner
         if self.display_time:

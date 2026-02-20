@@ -70,7 +70,7 @@ def run(cfg: DictConfig) -> None:
         output_dir,
         cfg.dpi,
         tag="individual",
-        percentile_values=[10, 75, 90, 95, 99],
+        percentile_values=[10, 25, 50, 75, 90, 95, 99],
         show_kde=cfg.show_kde,
         show_percentiles=cfg.show_percentiles,
     )
@@ -84,7 +84,7 @@ def run(cfg: DictConfig) -> None:
         output_dir,
         cfg.dpi,
         tag="interaction",
-        percentile_values=[10, 75, 80, 90, 95, 99],
+        percentile_values=[10, 75, 90, 95, 99],
         show_kde=cfg.show_kde,
         show_percentiles=cfg.show_percentiles,
     )

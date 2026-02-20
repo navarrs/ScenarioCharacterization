@@ -28,6 +28,18 @@ class SupportedPanes(Enum):
     ALL_AGENTS = 0
     HIGHLIGHT_RELEVANT_AGENTS = 1
 
+class RiskLevel(Enum):
+    INVALID = 0
+    LOW1 = 1
+    LOW2 = 2
+    MID_LOW1 = 3
+    MID_LOW2 = 4
+    MID_HIGH1 = 5
+    MID_HIGH2 = 6
+    HIGH1 = 7
+    HIGH2 = 8
+
+
 class BaseVisualizer(ABC):
     def __init__(self, config: DictConfig) -> None:
         """Initializes the BaseVisualizer with visualization configuration and validates required keys.
@@ -80,8 +92,23 @@ class BaseVisualizer(ABC):
         }
 
         # Initialize the color map for categorical visualization
-        colormap = config.get("colormap", "autumn_r")
-        self.color_map = cm.get_cmap(colormap)
+
+        color_map = cm.get_cmap("Spectral_r")
+        vals = np.linspace(0, 1, len(RiskLevel))
+        colors = [color_map(v) for v in vals]     # RGBA
+        hex_colors = ["#{:02x}{:02x}{:02x}".format(int(r*255), int(g*255), int(b*255)) for r,g,b,_ in colors]
+        self.categorical_color_map = {risk_level.value: hex_colors[i] for i, risk_level in enumerate(RiskLevel)}
+        # self.categorical_color_map = {
+        #     RiskLevel.INVALID.value: "lightgray",
+        #     RiskLevel.LOW1.value: "forestgreen",
+        #     RiskLevel.LOW2.value: "yellowgreen",
+        #     RiskLevel.MID_LOW1.value: "yellow",
+        #     RiskLevel.MID_LOW2.value: "gold",
+        #     RiskLevel.MID_HIGH1.value: "orange",
+        #     RiskLevel.MID_HIGH2.value: "orange",
+        #     RiskLevel.HIGH1.value: "orangered",
+        #     RiskLevel.HIGH2.value: "red"
+        # }
 
         # Set up panes to plot. It will fail if an invalid pane is provided.
         panes = config.get("panes_to_plot", ["ALL_AGENTS"])
@@ -96,10 +123,11 @@ class BaseVisualizer(ABC):
 
         # Other visualization options
         self.add_title = config.get("add_title", True)
-        self.update_limits = config.get("update_limits", False)
+        self.update_limits = config.get("update_limits", True)
         self.buffer_distance = config.get("distance_to_ego_zoom_in", 5.0)  # in meters
         self.distance_to_ego_zoom_in = config.get("distance_to_ego_zoom_in", 100.0)  # in meters
         self.plot_categorical = config.get("plot_categorical", False)
+        self.show_relevant = config.get("show_relevant", False)
 
     def plot_map_data(self, ax: Axes, scenario: Scenario, num_windows: int = 1) -> None:
         """Plots the map data.
@@ -142,7 +170,7 @@ class BaseVisualizer(ABC):
             title (str, optional): Title for the plot. Defaults to "".
         """
         agent_data = scenario.agent_data
-        ego_index = scenario.metadata.ego_vehicle_index
+        # ego_index = scenario.metadata.ego_vehicle_index
         agent_types = np.asarray([atype for atype in agent_data.agent_types])
 
         # Get the agent normalized scores
@@ -150,8 +178,8 @@ class BaseVisualizer(ABC):
             error_message = "Scores with agent_scores are required for categorical visualization."
             raise ValueError(error_message)
 
-        agent_scores = scores.agent_scores
-        agent_scores = BaseVisualizer.get_normalized_agent_scores(agent_scores, ego_index)
+        agent_scores = scores.agent_scores.astype(int)
+        agent_scores = BaseVisualizer.convert_to_risk_levels(agent_scores)
 
         # Zip information to plot
         agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
@@ -166,9 +194,12 @@ class BaseVisualizer(ABC):
             strict=False,
         )
 
+        timestamps = np.asarray(scenario.metadata.timestamps_seconds)
+        norm_timestamps = (timestamps - timestamps[0]) / (timestamps[-1] - timestamps[0])
         for apos, alen, awid, ahead, amask, score, atype in zipped:
             # Skip if there are less than 2 valid points
             mask = amask[start_timestep:end_timestep]
+            alpha_t = norm_timestamps[start_timestep:end_timestep][mask]
             if not mask.any() or mask.sum() < MIN_VALID_POINTS:
                 continue
 
@@ -178,13 +209,13 @@ class BaseVisualizer(ABC):
             width = awid[end_timestep]
 
             # Determine color based on score
-            color = self.agent_colors[atype] if atype == AgentType.TYPE_EGO_AGENT else self.color_map(score)
+            color = self.agent_colors[atype] if atype == AgentType.TYPE_EGO_AGENT else self.categorical_color_map[score]
 
             # Plot the trajectory
-            ax.plot(pos[:, 0], pos[:, 1], color=color, linewidth=2, alpha=score)
+            ax.scatter(pos[:, 0], pos[:, 1], color=color, s=0.5, alpha=alpha_t)
 
             # Plot the agent
-            self.plot_agent(ax, pos[-1, 0], pos[-1, 1], heading, length, width, score, color, plot_rectangle=True)
+            self.plot_agent(ax, pos[-1, 0], pos[-1, 1], heading, length, width, 1.0, color, plot_rectangle=True)
 
         if self.add_title:
             ax.set_title(title)
@@ -233,6 +264,7 @@ class BaseVisualizer(ABC):
         agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
         zipped = zip(
             agent_trajectories.agent_xy_pos,
+            agent_trajectories.agent_xy_vel,
             agent_trajectories.agent_lengths,
             agent_trajectories.agent_widths,
             agent_trajectories.agent_headings,
@@ -242,23 +274,33 @@ class BaseVisualizer(ABC):
             strict=False,
         )
 
-        for apos, alen, awid, ahead, amask, atype, score in zipped:
+        timestamps = np.asarray(scenario.metadata.timestamps_seconds)
+        norm_timestamps = (timestamps - timestamps[0]) / (timestamps[-1] - timestamps[0])
+
+        for apos, avel, alen, awid, ahead, amask, atype, score in zipped:
             # Skip if there are less than 2 valid points
             mask = amask[start_timestep:end_timestep]
+            alpha_t = norm_timestamps[start_timestep:end_timestep][mask]
             if not mask.any() or mask.sum() < MIN_VALID_POINTS:
                 continue
 
             pos = apos[start_timestep:end_timestep][mask]
+            vel = avel[start_timestep:end_timestep][mask]
             heading = ahead[end_timestep]
             length = alen[end_timestep]
             width = awid[end_timestep]
             color = self.agent_colors.get(atype, self.agent_colors[AgentType.TYPE_UNSET])
 
-            # Plot the trajectory
-            ax.plot(pos[:, 0], pos[:, 1], color=color, linewidth=2, alpha=score)
+            # Compute the mean speed for the agent across the valid timesteps
+            mean_speed = np.linalg.norm(vel, axis=1).mean()
+            if mean_speed > 0.5:
+                # Plot the trajectory
+                # ax.plot(pos[:, 0], pos[:, 1], color=color, linewidth=2, alpha=score)
+                ax.scatter(pos[:, 0], pos[:, 1], color=color, s=2, alpha=alpha_t * score)
 
             # Plot the agent
-            self.plot_agent(ax, pos[-1, 0], pos[-1, 1], heading, length, width, score, color, plot_rectangle=True)
+            alpha = alpha_t[-1] * score if alpha_t.size > 0 else score
+            self.plot_agent(ax, pos[-1, 0], pos[-1, 1], heading, length, width, alpha, color, plot_rectangle=True)
 
         if self.add_title:
             ax.set_title(title)
@@ -499,33 +541,58 @@ class BaseVisualizer(ABC):
 
     @staticmethod
     def get_normalized_agent_scores(
-        agent_scores: NDArray[np.floating], ego_index: int, amin: float = 0.05, amax: float = 1.0
-    ) -> NDArray[np.float64]:
+        agent_scores: NDArray[np.float32], ego_index: int, amin: float = 0.05, amax: float = 1.0,
+        global_min_score: float | None = None, global_max_score: float | None = None
+    ) -> NDArray[np.float32]:
         """Gets the agent scores and returns a normalized score array.
 
         Args:
-            agent_scores (NDArray[np.float64]): array containing the agent scores.
+            agent_scores (NDArray[np.float32]): array containing the agent scores.
             ego_index (int): index of the ego vehicle.
             amin (float): minimum value to clip the array.
             amax (float): maximum value to clip the array.
+            global_min_score (float | None): min score for normalization. If None, will be computed from agent_scores.
+            global_max_score (float | None): max score for normalization. If None, will be computed from agent_scores.
 
         Returns:
             NDArray[np.float32]: normalized agent scores.
         """
-        min_score = np.nanmin(agent_scores)
-        max_score = np.nanmax(agent_scores)
+        min_score = np.nanmin(agent_scores) if global_min_score is None else global_min_score
+        max_score = np.nanmax(agent_scores) if global_max_score is None else global_max_score
         if max_score > min_score:
             agent_scores = (agent_scores - min_score) / (max_score - min_score)
         else:
             # If all scores are identical, assign equal scores to all agents
-            agent_scores = np.ones_like(agent_scores) / len(agent_scores)
+            agent_scores = np.ones_like(agent_scores, dtype=np.float32) / len(agent_scores) # pyright: ignore[reportAssignmentType]
 
         # Clip scores to avoid zero alpha values
-        agent_scores = np.clip(agent_scores, a_min=amin, a_max=amax)
+        agent_scores = np.clip(agent_scores, a_min=amin, a_max=amax).astype(np.float32)
 
         # Set ego-agent to maximum alpha
         agent_scores[ego_index] = amax
         return agent_scores
+
+    @staticmethod
+    def convert_to_risk_levels(agent_scores: NDArray[np.float32]) -> NDArray[np.int32]:
+        """Converts continuous agent scores to discrete risk levels.
+
+        Args:
+            agent_scores (NDArray[np.float32]): array containing the agent scores.
+
+        Returns:
+            NDArray[np.int32]: array of the same shape as agent_scores with integer risk levels.
+        """
+        risk_levels = np.full_like(agent_scores, RiskLevel.INVALID.value, dtype=np.int32)
+        risk_levels[agent_scores <= 0] = RiskLevel.INVALID.value
+        risk_levels[(agent_scores > 0) & (agent_scores <= 2)] = RiskLevel.LOW1.value
+        risk_levels[(agent_scores > 2) & (agent_scores <= 4)] = RiskLevel.LOW2.value
+        risk_levels[(agent_scores > 4) & (agent_scores <= 6)] = RiskLevel.MID_LOW1.value
+        risk_levels[(agent_scores > 6) & (agent_scores <= 8)] = RiskLevel.MID_LOW2.value
+        risk_levels[(agent_scores > 8) & (agent_scores <= 10)] = RiskLevel.MID_HIGH1.value
+        risk_levels[(agent_scores > 10) & (agent_scores <= 12)] = RiskLevel.MID_HIGH2.value
+        risk_levels[(agent_scores > 12) & (agent_scores <= 14)] = RiskLevel.HIGH1.value
+        risk_levels[agent_scores >= 15] = RiskLevel.HIGH2.value
+        return risk_levels
 
     @staticmethod
     def get_first_and_last_ego_position(scenario: Scenario) -> tuple[NDArray[np.float64], NDArray[np.float64]] | tuple[None, None]:
@@ -574,8 +641,8 @@ class BaseVisualizer(ABC):
             ax.set_yticks([])
 
             if self.update_limits:
-                ax.set_xlim(first_ego_position[0] - distance, first_ego_position[0] + distance)
-                ax.set_ylim(first_ego_position[1] - distance, first_ego_position[1] + distance)
+                ax.set_xlim(last_ego_position[0] - distance, last_ego_position[0] + distance)
+                ax.set_ylim(last_ego_position[1] - distance, last_ego_position[1] + distance)
 
         else:
             for n, a in enumerate(ax.reshape(-1)): # pyright: ignore[reportAttributeAccessIssue]

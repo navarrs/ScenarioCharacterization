@@ -3,7 +3,7 @@ config:
   scenario_type: ${scenario_type}
   add_title: false
   update_limits: true
-  plot_categorical: false
+  plot_categorical: true
 
   panes_to_plot:
     # - ALL_AGENTS
