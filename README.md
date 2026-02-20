@@ -49,6 +49,7 @@ uv run pre-commit install
 - [Organization](./docs/ORGANIZATION.md): Overview of the Hydra configuration structure.
 - [Schemas](./docs/SCHEMAS.md): Guidelines for creating dataset adapters and processors that comply with the required input/output schemas.
 - [Characterization](./docs/CHARACTERIZATION.md): Details on supported scenario characterization and visualization tools, and how to use them.
+- [Analysis](./docs/ANALYSIS.md): Shows how to run feature and score analyses.
 - [Example](./docs/EXAMPLE.md): Step-by-step usage example using the [Waymo Open Motion Dataset](https://waymo.com/open).
 
 ## Citing
