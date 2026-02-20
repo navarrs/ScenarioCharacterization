@@ -25,8 +25,10 @@ def run(cfg: DictConfig) -> None:
     Raises:
         ValueError: If unsupported scorers are specified in the configuration.
     """
-    subdir = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
-    subdir = f"{subdir}_{cfg.exp_tag}" if cfg.exp_tag else subdir
+    subdir = ""
+    if cfg.add_timestamp:
+        subdir = f"{datetime.now(tz=UTC).strftime('%Y%m%d_%H%M%S')}_"
+    subdir = f"{subdir}{cfg.exp_tag}" if cfg.exp_tag else subdir
     output_dir = Path(cfg.output_dir) / subdir
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -70,7 +72,7 @@ def run(cfg: DictConfig) -> None:
         output_dir,
         cfg.dpi,
         tag="individual",
-        percentile_values=[10, 75, 90, 95, 99],
+        percentile_values=cfg.individual_percentile_values,
         show_kde=cfg.show_kde,
         show_percentiles=cfg.show_percentiles,
     )
@@ -84,7 +86,7 @@ def run(cfg: DictConfig) -> None:
         output_dir,
         cfg.dpi,
         tag="interaction",
-        percentile_values=[10, 75, 80, 90, 95, 99],
+        percentile_values=cfg.interaction_percentile_values,
         show_kde=cfg.show_kde,
         show_percentiles=cfg.show_percentiles,
     )

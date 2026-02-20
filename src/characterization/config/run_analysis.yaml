@@ -6,40 +6,38 @@ defaults:
 scores_path: ${paths.cache_path}/scores
 features_path: ${paths.cache_path}/features
 
+# General parameters
 scenario_types:
   - gt
-  # - ho
-
+  # - ho # NOTE: currently not supported.
 criteria:
   - critical_categorical
   # - critical_continuous
-  # - average
-
 scores:
   - individual
   - interaction
   - safeshift
-
 dpi: 300
 output_dir: ${paths.cache_path}/analysis
+add_timestamp: true
 exp_tag: ""
-
-percentiles:
-  - 10
-  - 50
-  - 80
-
-# OOD test set percentile to split by
-test_percentile: 80
-
-tag: 'full'
+total_scenarios: null
 
 # Feature Analysis Parameters
 show_kde: true
 show_percentiles: true
+individual_percentile_values: [10, 75, 90, 95, 99]
+interaction_percentile_values: [10, 75, 80, 90, 95, 99]
+
+# Score Analysis Parameters
+tag: 'full'
+test_percentile: 80 # Percentile to use to determine if holding out scenario for testing
 
 # Scenario Visualization Parameters
-total_scenarios: null
+percentiles:
+  - 10
+  - 50
+  - 80
 scenario_viz_dir: ${output_dir}/scenario_viz
 viz_scored_scenarios: true
 scores_tag: 'gt_critical_continuous'

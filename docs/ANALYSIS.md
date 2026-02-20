@@ -25,7 +25,7 @@ uv run -m characterization.run_feature_analysis
 
 Run GT categorical feature analysis only:
 ```bash
-uv run -m characterization.run_feature_analysis scenario_types=[gt] criteria=[critical_categorical]
+uv run -m characterization.run_feature_analysis scenario_types="['gt']" criteria="['critical_categorical']"
 ```
 
 Run a smaller subset of scenarios for quick iteration:
