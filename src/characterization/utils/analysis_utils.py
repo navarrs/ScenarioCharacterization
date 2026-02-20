@@ -34,6 +34,22 @@ FEATURE_COLOR_MAP = {
     "drac": "coral",
 }
 
+AGENT_COLORS = {
+    AgentType.TYPE_UNSET: "gray",
+    AgentType.TYPE_VEHICLE: "slategray",
+    AgentType.TYPE_PEDESTRIAN: "plum",
+    AgentType.TYPE_CYCLIST: "forestgreen",
+    AgentType.TYPE_OTHER: "gray",
+    AgentType.TYPE_EGO_AGENT: "dodgerblue",
+    AgentType.TYPE_RELEVANT: "coral",
+    AgentPairType.TYPE_VEHICLE_VEHICLE: "slategray",
+    AgentPairType.TYPE_VEHICLE_PEDESTRIAN: "plum",
+    AgentPairType.TYPE_VEHICLE_CYCLIST: "forestgreen",
+    AgentPairType.TYPE_PEDESTRIAN_PEDESTRIAN: "lightpink",
+    AgentPairType.TYPE_PEDESTRIAN_CYCLIST: "mediumseagreen",
+    AgentPairType.TYPE_CYCLIST_CYCLIST: "darkgreen",
+    AgentPairType.TYPE_OTHER: "gray",
+}
 
 def get_sample_to_plot(
     df: pd.DataFrame,
@@ -225,6 +241,7 @@ def regroup_scenario_scores(
                     scene_scores[key].append(scene_score)
                     agent_scores[key].append(scores[scores_key].agent_scores)
                     agent_scores_valid[key].append(scores[scores_key].agent_scores_valid)
+
     return scene_scores, agent_scores, agent_scores_valid
 
 
@@ -271,6 +288,7 @@ def load_scenario_features(
     """
     individual_features = {"scenario_ids": [], "features": []}
     interaction_features = {"scenario_ids": [], "features": []}
+    agent_types = {"scenario_ids": [], "agent_types": []}
     for scenario_type, criterion in product(scenario_types, criteria):
         key = f"{scenario_type}_{criterion}"
         scenario_features_path = features_path / key
@@ -279,10 +297,12 @@ def load_scenario_features(
             if feat.individual_features is not None:
                 individual_features["scenario_ids"].append(scenario_id)
                 individual_features["features"].append(feat.individual_features)  # pyright: ignore[reportArgumentType]
+                agent_types["scenario_ids"].append(scenario_id)
+                agent_types["agent_types"].append(feat.individual_features.agent_types)  # pyright: ignore[reportArgumentType]
             if feat.interaction_features is not None:
                 interaction_features["scenario_ids"].append(scenario_id)
                 interaction_features["features"].append(feat.interaction_features)  # pyright: ignore[reportArgumentType]
-    return individual_features, interaction_features
+    return individual_features, interaction_features, agent_types
 
 
 def regroup_individual_features(individual_features: dict[str, Any]) -> dict[AgentType, Any]:
@@ -533,30 +553,53 @@ def plot_feature_distributions(
         show_kde (bool): Whether to show the kernel density estimate on the plot.
         show_percentiles (bool): Whether to display percentile lines on the plot.
     """
+    sns.set_theme(
+        style="whitegrid",
+        font_scale=0.9,
+        rc={
+            "grid.linestyle": "--",
+            "grid.alpha": 0.3,
+            "font.family": "sans-serif",
+            "font.sans-serif": ["DejaVu Sans"],
+        },
+    )
     prefix = f"{tag}_" if tag else ""
     feature_percentiles = {}
     for agent_type, features in feature_data.items():
         if agent_type == AgentPairType.TYPE_OTHER:
             continue
 
+        if agent_type in [
+            AgentPairType.TYPE_CYCLIST_CYCLIST,
+            AgentPairType.TYPE_PEDESTRIAN_PEDESTRIAN,
+            AgentPairType.TYPE_PEDESTRIAN_CYCLIST,
+        ]:
+            continue
+
         for feature_name, feature_values in features.items():
             logger.info("Plotting %s for %s with %d samples", feature_name, agent_type.name, feature_values.shape[0])
 
+            color = AGENT_COLORS.get(agent_type, "gray")
+            # color=FEATURE_COLOR_MAP.get(feature_name, "gray")
             _, ax = plt.subplots(1, 1, figsize=(10, 6))
             sns.histplot(
                 feature_values,
-                color=FEATURE_COLOR_MAP.get(feature_name, "gray"),
+                color=color,
+                bins=20,
                 kde=show_kde,
                 stat="density",
-                alpha=0.6,
-                edgecolor="white",
+                alpha=0.7,
+                # edgecolor="white",
+                edgecolor=None,
                 ax=ax,
             )
-
+            ax.set_yscale('log')
             sns.despine(top=True, right=True)
-            ax.set_xlabel(f"{feature_name} values")
+            feature_title = feature_name.replace("_", " ").title()
+            # feature_title = feature_name.replace("_", " ").upper()
+            ax.set_xlabel(f"{feature_title} values")
             ax.set_ylabel("Density")
-            ax.set_title(f"{feature_name} Distribution ({feature_values.shape[0]} samples)")
+            ax.set_title(f"{feature_title} Distribution ({feature_values.shape[0]} samples)")
             ax.grid(visible=True, linestyle="--", alpha=0.4)
 
             percentiles = np.round(np.percentile(feature_values, percentile_values), decimals=2).tolist()
@@ -568,9 +611,15 @@ def plot_feature_distributions(
             )
             if show_percentiles:
                 for p, v in zip(filtered_percentile_values, filtered_percentiles, strict=False):
-                    ax.axvline(v, color="black", linestyle="--", alpha=0.6)
+                    ax.axvline(v, color="black", linestyle="--", alpha=0.9)
                     y = ax.get_ylim()[1] * 0.9
-                    ax.text(v, y, f"{p}th: {v:.2f}", rotation=90, verticalalignment="center", fontsize=8)
+                    x = v + 0.08
+                    ax.text(x, y, f"{p}th: {v:.2f}", rotation=90, verticalalignment="center", fontsize=8, color="dimgray")
+
+            # Only for speed_lim_diff aesthetics
+            # ax.set_xlim(left=0, right=30)
+            # Only for drac aesthetics
+            # ax.set_xlim(left=0, right=14)
 
             plt.tight_layout()
             output_filepath = output_dir / f"{prefix}{feature_name}_{agent_type.name.lower()}_distributions.png"
@@ -814,3 +863,137 @@ def plot_agent_scores_voxel(
     output_filepath = output_dir / f"agent_score_voxel_{criterion}.png"
     plt.savefig(output_filepath, dpi=dpi)
     plt.close()
+
+def plot_agent_scores_voxel_by_agent_type(
+    agent_scores: dict[str, Any],
+    agent_scores_valid: dict[str, Any],
+    scenario_type: str,
+    criterion: str,
+    agent_types: dict[str, Any],
+    output_dir: Path,
+    dpi: int = 100,
+) -> None:
+    """Plots a 3D voxel plot of agent scores.
+
+    Args:
+        agent_scores (dict[str, Any]): Dictionary containing agent scores with scenario IDs.
+        agent_scores_valid (dict[str, Any]): Dictionary containing validity masks for agent scores.
+        scenario_type (str): Type of scenario being analyzed.
+        criterion (str): Criterion used for filtering or labeling the plot.
+        agent_types (dict[str, Any]): Dictionary containing agent types with scenario IDs.
+        output_dir (Path): Directory to save the output plots.
+        dpi (int): Dots per inch for the saved figure.
+    """
+    sns.set_theme(
+        style="whitegrid",
+        font_scale=0.9,
+        rc={
+            "grid.linestyle": "--",
+            "grid.alpha": 0.3,
+            "font.family": "sans-serif",
+            "font.sans-serif": ["DejaVu Sans"],
+        },
+    )
+    scenario_agent_types = agent_types['agent_types']
+
+    individual_agent_scores = agent_scores.get(f"{scenario_type}_{criterion}_individual", None)
+    interaction_agent_scores = agent_scores.get(f"{scenario_type}_{criterion}_interaction", None)
+    safeshift_agent_scores = agent_scores.get(f"{scenario_type}_{criterion}_safeshift", None)
+    if individual_agent_scores is None or interaction_agent_scores is None or safeshift_agent_scores is None:
+        logger.error("Individual or interaction or safeshift agent scores not found for criterion %s", criterion)
+        return
+
+    for types, scores in zip(scenario_agent_types, individual_agent_scores, strict=True):
+        if len(types) != len(scores):
+            logger.error("Length of agent type list does not match length of individual agent scores for criterion %s", criterion)
+            return
+
+    scenario_agent_types = np.concatenate(scenario_agent_types)
+    individual_agent_scores = np.concatenate(individual_agent_scores).astype(int)
+    interaction_agent_scores = np.concatenate(interaction_agent_scores).astype(int)
+    safeshift_agent_scores = np.concatenate(safeshift_agent_scores).astype(int)
+
+    individual_agent_scores_valid = agent_scores_valid.get(f"{scenario_type}_{criterion}_individual", None)
+    interaction_agent_scores_valid = agent_scores_valid.get(f"{scenario_type}_{criterion}_interaction", None)
+    if individual_agent_scores_valid is not None and interaction_agent_scores_valid is not None:
+        individual_agent_scores_valid = np.concatenate(individual_agent_scores_valid)
+        interaction_agent_scores_valid = np.concatenate(interaction_agent_scores_valid)
+        mask = individual_agent_scores_valid & interaction_agent_scores_valid
+        individual_agent_scores = individual_agent_scores[mask]
+        interaction_agent_scores = interaction_agent_scores[mask]
+        safeshift_agent_scores = safeshift_agent_scores[mask]
+        scenario_agent_types = scenario_agent_types[mask]
+
+    assert individual_agent_scores.shape == interaction_agent_scores.shape == safeshift_agent_scores.shape, (
+        f"Agent scores shapes do not match. "
+        f"{individual_agent_scores.shape}, {interaction_agent_scores.shape}, {safeshift_agent_scores.shape}"
+    )
+
+    colormap = {
+        AgentType.TYPE_VEHICLE: "bone_r",
+        AgentType.TYPE_CYCLIST: "Greens",
+        AgentType.TYPE_PEDESTRIAN: "RdPu",
+    }
+    for agent_type in [AgentType.TYPE_VEHICLE, AgentType.TYPE_CYCLIST, AgentType.TYPE_PEDESTRIAN]:
+        agent_type_mask = scenario_agent_types == agent_type
+        if not np.any(agent_type_mask):
+            logger.warning("No agents of type %s found for criterion %s", agent_type.name, criterion)
+            continue
+        individual_agent_scores_agent_type = individual_agent_scores[agent_type_mask]
+        interaction_agent_scores_agent_type = interaction_agent_scores[agent_type_mask]
+        safeshift_agent_scores_agent_type = safeshift_agent_scores[agent_type_mask]
+
+        # Create voxel grid
+        voxels = np.zeros(
+            shape=(individual_agent_scores_agent_type.max() + 1, interaction_agent_scores_agent_type.max() + 1, safeshift_agent_scores_agent_type.max() + 1),
+            dtype=int,
+        )
+        for individual, interaction, safeshift in tqdm(
+            zip(individual_agent_scores_agent_type, interaction_agent_scores_agent_type, safeshift_agent_scores_agent_type, strict=True),
+            desc=f"Plotting agent scores voxel for {criterion}",
+            total=len(individual_agent_scores_agent_type),
+        ):
+            if individual < 0 or interaction < 0 or safeshift < 0:
+                logger.warning("Skipping invalid scores: %d, %d, %d", individual, interaction, safeshift)
+                continue
+            voxels[individual, interaction, safeshift] += 1
+
+        # Create 3D voxel plot
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection="3d")
+        cmap = plt.get_cmap(colormap.get(agent_type, "magma_r"))
+        norm = Normalize(vmin=0, vmax=voxels.max(initial=1))
+        filled = voxels > 0
+        ax.voxels(filled, facecolors=cmap(norm(voxels)), edgecolor="k", alpha=0.85, shade=False)  # pyright: ignore[reportAttributeAccessIssue]
+
+        ax.set_xlabel("Individual Agent Score", labelpad=10)
+        ax.set_ylabel("Interaction Agent Score", labelpad=10)
+        ax.set_zlabel("Safeshift Agent Score", labelpad=10)  # pyright: ignore[reportAttributeAccessIssue]
+        agent_type_name = agent_type.name.split("_")[1].title()
+        ax.set_title(f"{agent_type_name} Agent Scores", pad=12, fontsize=14)
+
+        ax.view_init(elev=25, azim=250)  # pyright: ignore[reportAttributeAccessIssue]
+        ax.set_box_aspect((1, 1.3, 1.1))  # pyright: ignore[reportArgumentType]
+        ax.set_proj_type("ortho") # pyright: ignore[reportAttributeAccessIssue]
+
+        # Make panes and grid subtle
+        ax.grid(visible=True)
+        for axis in (ax.xaxis, ax.yaxis, ax.zaxis):  # pyright: ignore[reportAttributeAccessIssue]
+            axis.pane.set_facecolor("white")  # pyright: ignore[reportAttributeAccessIssue]
+            axis.pane.set_edgecolor("white")  # pyright: ignore[reportAttributeAccessIssue]
+            axis._axinfo["grid"].update({"color": (0.5, 0.5, 0.5, 0.10), "linewidth": 0.8})  # noqa: SLF001 # pyright: ignore[reportAttributeAccessIssue]
+
+        ax.set_xticks(np.arange(0, voxels.shape[0] + 1, 1))
+        ax.set_yticks(np.arange(0, voxels.shape[1] + 1, 1))
+        ax.set_zticks(np.arange(0, voxels.shape[2] + 1, 1))  # pyright: ignore[reportAttributeAccessIssue]
+
+        # Add a colorbar mapping voxel to agent counts
+        mappable = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+        mappable.set_array([])
+        cbar = fig.colorbar(mappable, ax=ax, shrink=0.8, pad=0.00)
+        cbar.set_label("Agent Count", fontsize=11)
+
+        plt.tight_layout()
+        output_filepath = output_dir / f"agent_score_voxel_{criterion}_{agent_type_name}.png"
+        plt.savefig(output_filepath, dpi=dpi)
+        plt.close()
