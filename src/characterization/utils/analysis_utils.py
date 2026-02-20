@@ -541,6 +541,7 @@ def plot_feature_distributions(
     *,
     show_kde: bool = True,
     show_percentiles: bool = True,
+    show_colored_by_agent_type: bool = True,
 ) -> None:
     """Plots the distribution of a feature using a histogram and density curve.
 
@@ -552,6 +553,7 @@ def plot_feature_distributions(
         percentile_values (list[int]): List of percentiles to compute and display on the plot.
         show_kde (bool): Whether to show the kernel density estimate on the plot.
         show_percentiles (bool): Whether to display percentile lines on the plot.
+        show_colored_by_agent_type (bool): Whether to color the histograms by agent type.
     """
     sns.set_theme(
         style="whitegrid",
@@ -579,8 +581,7 @@ def plot_feature_distributions(
         for feature_name, feature_values in features.items():
             logger.info("Plotting %s for %s with %d samples", feature_name, agent_type.name, feature_values.shape[0])
 
-            color = AGENT_COLORS.get(agent_type, "gray")
-            # color=FEATURE_COLOR_MAP.get(feature_name, "gray")
+            color = AGENT_COLORS.get(agent_type, "gray") if show_colored_by_agent_type else FEATURE_COLOR_MAP.get(feature_name, "gray")
             _, ax = plt.subplots(1, 1, figsize=(10, 6))
             sns.histplot(
                 feature_values,
@@ -603,9 +604,9 @@ def plot_feature_distributions(
             ax.grid(visible=True, linestyle="--", alpha=0.4)
 
             percentiles = np.round(np.percentile(feature_values, percentile_values), decimals=2).tolist()
+
             # Only keep percentiles where the value changes from the previous one
             filtered_percentile_values, filtered_percentiles = _filter_percentiles(percentile_values, percentiles)
-
             feature_percentiles[feature_name] = dict(
                 zip(filtered_percentile_values, filtered_percentiles, strict=False)
             )
@@ -618,6 +619,7 @@ def plot_feature_distributions(
 
             # Only for speed_lim_diff aesthetics
             # ax.set_xlim(left=0, right=30)
+
             # Only for drac aesthetics
             # ax.set_xlim(left=0, right=14)
 
