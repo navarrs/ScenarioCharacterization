@@ -75,6 +75,7 @@ def run(cfg: DictConfig) -> None:
         percentile_values=cfg.individual_percentile_values,
         show_kde=cfg.show_kde,
         show_percentiles=cfg.show_percentiles,
+        show_colored_by_agent_type=cfg.show_colored_by_agent_type,
     )
 
     logger.info("Re-grouping interaction features by agent-pair type")
@@ -89,6 +90,7 @@ def run(cfg: DictConfig) -> None:
         percentile_values=cfg.interaction_percentile_values,
         show_kde=cfg.show_kde,
         show_percentiles=cfg.show_percentiles,
+        show_colored_by_agent_type=cfg.show_colored_by_agent_type,
     )
 
 

@@ -26,6 +26,7 @@ total_scenarios: null
 # Feature Analysis Parameters
 show_kde: true
 show_percentiles: true
+show_colored_by_agent_type: true # If false, it will color by feature type
 individual_percentile_values: [10, 75, 90, 95, 99]
 interaction_percentile_values: [10, 75, 80, 90, 95, 99]
 
