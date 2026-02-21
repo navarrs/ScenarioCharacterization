@@ -294,7 +294,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         """
 
     @abstractmethod
-    def collate_batch(self, batch_data: dict[str, Any]) -> dict[str, dict[str, Any]]:  # pyright: ignore[reportMissingParameterType]
+    def collate_batch(self, batch_data: dict[str, Any]) -> dict[str, dict[str, Any]]:
         """Collates a batch of data into a single dictionary.
 
         Args:

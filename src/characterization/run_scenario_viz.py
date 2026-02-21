@@ -125,11 +125,11 @@ def run(cfg: DictConfig) -> None:
                 case _:
                     scores = None
 
-        _ = visualizer.visualize_scenario(scenario, scores=scores, output_dir=output_dir)
+        _ = visualizer.visualize_scenario(scenario, scores=scores, output_dir=output_dir)  # pyright: ignore[reportAttributeAccessIssue]
 
     # agent_scores_df = pd.DataFrame(agent_scores)
     logger.info("Visualizing scenarios based on scores")
 
 
 if __name__ == "__main__":
-    run()  # pyright: ignore[reportCallIssue]
+    run()

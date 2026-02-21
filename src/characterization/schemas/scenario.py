@@ -16,7 +16,7 @@ from characterization.utils.scenario_types import AgentType
 DType = TypeVar("DType", bound=np.generic)
 
 
-class AgentData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+class AgentData(BaseModel):
     """Encapsulates the data for agents in a scenario, including their identifiers, types, and trajectories.
 
     Attributes:
@@ -50,7 +50,7 @@ class AgentData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         return len(self.agent_ids)
 
 
-class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+class ScenarioMetadata(BaseModel):
     """Encapsulates metadata for a scenario, including its ID, type, and timing information.
 
     Attributes:
@@ -119,7 +119,7 @@ class ScenarioMetadata(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         raise ValueError(err_msg)
 
 
-class TracksToPredict(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+class TracksToPredict(BaseModel):
     """Encapsulates the tracks to predict in a scenario, including the ego vehicle and other agents.
 
     Attributes:
@@ -136,7 +136,7 @@ class TracksToPredict(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
 
-class StaticMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+class StaticMapData(BaseModel):
     """Encapsulates static map data for a scenario, including polylines and conflict points.
 
     Attributes:
@@ -213,7 +213,7 @@ class StaticMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         return 0 if self.map_conflict_points is None else len(self.map_conflict_points)
 
 
-class DynamicMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+class DynamicMapData(BaseModel):
     """Encapsulates dynamic map data for a scenario, including dynamic stop points.
 
     TODO: combine dynamic and static map data into a single map data class.
@@ -238,7 +238,7 @@ class DynamicMapData(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         return 0 if self.stop_points is None else len(self.stop_points)
 
 
-class Scenario(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+class Scenario(BaseModel):
     """Represents a scenario containing information about agents, their trajectories, and the environment.
 
     This class is used to encapsulate all relevant data for a scenario, including agent states, map information,

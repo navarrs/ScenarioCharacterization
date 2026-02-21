@@ -1,32 +1,37 @@
 # pyright: reportUnknownMemberType=false
 """Base class for scenario visualizers."""
 
-from abc import ABC, abstractmethod
-from glob import glob
-from enum import Enum
-from pathlib import Path
 import time
-import numpy as np
+from abc import ABC, abstractmethod
+from enum import Enum
+from glob import glob
+from pathlib import Path
 from typing import cast
-from numpy.typing import NDArray
+from warnings import warn
 
-from characterization.schemas import DynamicMapData, Scenario, Score, StaticMapData
-from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, AgentTrajectoryMasker, MIN_VALID_POINTS
-from characterization.utils.io_utils import get_logger
+import numpy as np
+from matplotlib import cm
 from matplotlib.axes import Axes
 from matplotlib.patches import Rectangle
 from natsort import natsorted
+from numpy.typing import NDArray
 from omegaconf import DictConfig
 from PIL import Image
+
+from characterization.schemas import DynamicMapData, Scenario, Score, StaticMapData
+from characterization.utils.common import MIN_VALID_POINTS, SUPPORTED_SCENARIO_TYPES, AgentTrajectoryMasker
+from characterization.utils.io_utils import get_logger
 from characterization.utils.scenario_types import AgentType
-import matplotlib.cm as cm
-from warnings import warn
 
 logger = get_logger(__name__)
 
+
 class SupportedPanes(Enum):
+    """Enum for supported panes to plot in the visualizer."""
+
     ALL_AGENTS = 0
     HIGHLIGHT_RELEVANT_AGENTS = 1
+
 
 class RiskLevel(Enum):
     INVALID = 0
@@ -41,6 +46,20 @@ class RiskLevel(Enum):
 
 
 class BaseVisualizer(ABC):
+    """Base class for visualizing scenarios with map features and agent trajectories.
+
+    This class provides common functionality for plotting static and dynamic map features, agent trajectories, and
+    handling visualization configuration. It is designed to be extended by scenario-specific visualizers that implement
+    the `visualize_scenario` method to create tailored visualizations for different scenario types.
+
+    Examples:
+     - `viz/scenario.py` implements a `ScenarioVisualizer` that extends this base class to visualize static scenarios.
+        This class also provide categorical visualization of agent scores, where agents are colored based on their score
+        values using a colormap.
+     - `viz/animated_scenario.py` implements an `AnimationVisualizer` that extends this base class to create animated
+        visualizations of scenarios over time.
+    """
+
     def __init__(self, config: DictConfig) -> None:
         """Initializes the BaseVisualizer with visualization configuration and validates required keys.
 
@@ -68,7 +87,7 @@ class BaseVisualizer(ABC):
             "road_edge": "black",
             "road_line": "black",
             "stop_sign": "red",
-            "stop_point": "purple"
+            "stop_point": "purple",
         }
 
         self.map_alphas = {
@@ -78,7 +97,7 @@ class BaseVisualizer(ABC):
             "road_edge": 0.1,
             "road_line": 0.1,
             "stop_sign": 0.8,
-            "stop_point": 0.8
+            "stop_point": 0.8,
         }
 
         self.agent_colors = {
@@ -88,15 +107,15 @@ class BaseVisualizer(ABC):
             AgentType.TYPE_CYCLIST: "forestgreen",
             AgentType.TYPE_OTHER: "gray",
             AgentType.TYPE_EGO_AGENT: "dodgerblue",
-            AgentType.TYPE_RELEVANT: "coral"
+            AgentType.TYPE_RELEVANT: "coral",
         }
 
         # Initialize the color map for categorical visualization
 
         color_map = cm.get_cmap("Spectral_r")
         vals = np.linspace(0, 1, len(RiskLevel))
-        colors = [color_map(v) for v in vals]     # RGBA
-        hex_colors = ["#{:02x}{:02x}{:02x}".format(int(r*255), int(g*255), int(b*255)) for r,g,b,_ in colors]
+        colors = [color_map(v) for v in vals]  # RGBA
+        hex_colors = [f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}" for r, g, b, _ in colors]
         self.categorical_color_map = {risk_level.value: hex_colors[i] for i, risk_level in enumerate(RiskLevel)}
         # self.categorical_color_map = {
         #     RiskLevel.INVALID.value: "lightgray",
@@ -140,17 +159,19 @@ class BaseVisualizer(ABC):
         """
         # Plot static map information
         if scenario.static_map_data is None:
-            warn("Scenario does not contain map_polylines, skipping static map visualization.", UserWarning)
+            warning_message = "Scenario does not contain static_map_data, skipping static map visualization."
+            warn(warning_message, UserWarning, stacklevel=2)
         else:
             self.plot_static_map_data(ax, static_map_data=scenario.static_map_data, num_windows=num_windows)
 
         # Plot dynamic map information
         if scenario.dynamic_map_data is None:
-            warn("Scenario does not contain dynamic_map_info, skipping dynamic map visualization.", UserWarning)
+            warning_message = "Scenario does not contain dynamic_map_data, skipping dynamic map visualization."
+            warn(warning_message, UserWarning, stacklevel=2)
         else:
             self.plot_dynamic_map_data(ax, dynamic_map_data=scenario.dynamic_map_data, num_windows=num_windows)
 
-    def plot_sequences_categorical(  # noqa: PLR0913
+    def plot_sequences_categorical(
         self,
         ax: Axes,
         scenario: Scenario,
@@ -172,7 +193,7 @@ class BaseVisualizer(ABC):
         """
         agent_data = scenario.agent_data
         # ego_index = scenario.metadata.ego_vehicle_index
-        agent_types = np.asarray([atype for atype in agent_data.agent_types])
+        agent_types = np.asarray(agent_data.agent_types)
 
         # Get the agent normalized scores
         if scores is None or scores.agent_scores is None:
@@ -221,7 +242,7 @@ class BaseVisualizer(ABC):
         if self.add_title:
             ax.set_title(title, fontsize=self.title_fontsize)
 
-    def plot_sequences(  # noqa: PLR0913
+    def plot_sequences(
         self,
         ax: Axes,
         scenario: Scenario,
@@ -245,7 +266,7 @@ class BaseVisualizer(ABC):
         """
         agent_data = scenario.agent_data
         agent_relevance = agent_data.agent_relevance
-        agent_types = np.asarray([atype for atype in agent_data.agent_types])
+        agent_types = np.asarray(agent_data.agent_types)
         ego_index = scenario.metadata.ego_vehicle_index
 
         # Get the agent normalized scores
@@ -306,7 +327,7 @@ class BaseVisualizer(ABC):
         if self.add_title:
             ax.set_title(title, fontsize=self.title_fontsize)
 
-    def plot_agent(  # noqa: PLR0913
+    def plot_agent(
         self,
         ax: Axes,
         x: float,
@@ -343,7 +364,7 @@ class BaseVisualizer(ABC):
             marker_size (int): size of the marker if to plot the agent.
         """
         if plot_rectangle:
-            # Compute the agent’s orientation
+            # Compute the agent's orientation
             angle_deg = np.rad2deg(heading)
             cx, cy = -width / 2.0, -height / 2.0
             x_offset = cx * np.cos(heading) - cy * np.sin(heading)
@@ -438,7 +459,7 @@ class BaseVisualizer(ABC):
                 a.scatter(x_pos, y_pos, s=6, c=color, marker="s", alpha=alpha)
 
     @staticmethod
-    def plot_stop_signs(  # noqa: PLR0913
+    def plot_stop_signs(
         ax: Axes,
         road_graph: NDArray[np.float32],
         polyline_idxs: NDArray[np.int32],
@@ -457,7 +478,7 @@ class BaseVisualizer(ABC):
             dim (int, optional): Number of dimensions to plot. Defaults to 2.
         """
         for polyline in polyline_idxs:
-            start_idx, end_idx = cast(NDArray[np.int32], polyline)
+            start_idx, end_idx = cast("NDArray[np.int32]", polyline)
             pos = road_graph[start_idx:end_idx, :dim]
             if num_windows == 1:
                 ax.scatter(pos[:, 0], pos[:, 1], s=16, c=color, marker="H", alpha=1.0)
@@ -488,7 +509,7 @@ class BaseVisualizer(ABC):
             linewidth (float, optional): Line width. Defaults to 0.5.
         """
         for polyline in polyline_idxs:
-            start_idx, end_idx = cast(NDArray[np.int32], polyline)
+            start_idx, end_idx = cast("NDArray[np.int32]", polyline)
             pos = road_graph[start_idx:end_idx]
             if num_windows == 1:
                 ax.plot(pos[:, 0], pos[:, 1], color, alpha=alpha, linewidth=linewidth)
@@ -518,7 +539,7 @@ class BaseVisualizer(ABC):
         """
         t_i = time.time()
         # Load all the temporary files
-        files = natsorted(glob(f"{tmp_dir_frames}/temp_*.png"))  # noqa: PTH207
+        files = natsorted(glob(f"{tmp_dir_frames}/temp_*.png"))
         if not files:
             err_msg = f"No frames found in {tmp_dir_frames}, cannot create GIF."
             raise RuntimeError(err_msg)
@@ -542,8 +563,12 @@ class BaseVisualizer(ABC):
 
     @staticmethod
     def get_normalized_agent_scores(
-        agent_scores: NDArray[np.float32], ego_index: int, amin: float = 0.05, amax: float = 1.0,
-        global_min_score: float | None = None, global_max_score: float | None = None
+        agent_scores: NDArray[np.float32],
+        ego_index: int,
+        amin: float = 0.05,
+        amax: float = 1.0,
+        global_min_score: float | None = None,
+        global_max_score: float | None = None,
     ) -> NDArray[np.float32]:
         """Gets the agent scores and returns a normalized score array.
 
@@ -564,7 +589,7 @@ class BaseVisualizer(ABC):
             agent_scores = (agent_scores - min_score) / (max_score - min_score)
         else:
             # If all scores are identical, assign equal scores to all agents
-            agent_scores = np.ones_like(agent_scores, dtype=np.float32) / len(agent_scores) # pyright: ignore[reportAssignmentType]
+            agent_scores = np.ones_like(agent_scores, dtype=np.float32) / len(agent_scores)  # pyright: ignore[reportAssignmentType]
 
         # Clip scores to avoid zero alpha values
         agent_scores = np.clip(agent_scores, a_min=amin, a_max=amax).astype(np.float32)
@@ -596,13 +621,16 @@ class BaseVisualizer(ABC):
         return risk_levels
 
     @staticmethod
-    def get_first_and_last_ego_position(scenario: Scenario) -> tuple[NDArray[np.float64], NDArray[np.float64]] | tuple[None, None]:
+    def get_first_and_last_ego_position(
+        scenario: Scenario,
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]] | tuple[None, None]:
         """Gets the first and last valid positions of the ego vehicle.
 
         Args:
             scenario (Scenario): encapsulates the scenario to visualize.
             distance_to_zoom_in (float): minimum distance to zoom in around the ego vehicle.
             buffer_distance (float): additional buffer distance to add to the zoom-in distance.
+
         Returns:
             tuple[NDArray[np.float64], float]: ego vehicle position and distance to set the plot limits.
         """
@@ -616,11 +644,11 @@ class BaseVisualizer(ABC):
 
         valid_mask = agent_valid[ego_index] & np.all(np.isfinite(ego_traj), axis=-1)
         valid_ego_traj = ego_traj[valid_mask]
-        if valid_ego_traj.shape[0] < 2:
+        if valid_ego_traj.shape[0] < MIN_VALID_POINTS:
             return None, None
 
         # Return first and last valid positions
-        return valid_ego_traj[0],  valid_ego_traj[-1]
+        return valid_ego_traj[0], valid_ego_traj[-1]
 
     def set_axes(self, ax: Axes, scenario: Scenario, num_windows: int = 1) -> None:
         """Plots dynamic map features (e.g., stop points) for a scenario.
@@ -646,7 +674,7 @@ class BaseVisualizer(ABC):
                 ax.set_ylim(last_ego_position[1] - distance, last_ego_position[1] + distance)
 
         else:
-            for n, a in enumerate(ax.reshape(-1)): # pyright: ignore[reportAttributeAccessIssue]
+            for n, a in enumerate(ax.reshape(-1)):  # pyright: ignore[reportAttributeAccessIssue]
                 a.set_xticks([])
                 a.set_yticks([])
                 if n == 0:

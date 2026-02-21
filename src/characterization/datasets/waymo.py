@@ -291,7 +291,7 @@ class WaymoData(BaseDataset):
                 return None
             return scenario
 
-    def collate_batch(self, batch_data: dict[str, Any]) -> dict[str, Any]:  # pyright: ignore[reportMissingParameterType]
+    def collate_batch(self, batch_data: dict[str, Any]) -> dict[str, Any]:
         """Collates a batch of scenario data for processing.
 
         Args:

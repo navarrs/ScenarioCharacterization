@@ -46,12 +46,7 @@ class FeatureProcessor(BaseProcessor):
         Returns:
             None
         """
-        logger.info(
-            "Processing %s %s for %s",
-            self.dataset.name,  # pyright: ignore[reportAttributeAccessIssue]
-            self.characterizer.name,
-            self.scenario_type,
-        )
+        logger.info("Processing %s %s for %s", self.dataset.name, self.characterizer.name, self.scenario_type)
 
         # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop.
         # for scenario_batch in track(self.dataloader, total=len(self.dataloader), description="Processing features"):
@@ -69,4 +64,4 @@ class FeatureProcessor(BaseProcessor):
                         update=self.update,
                     )
 
-        logger.info("Finished processing %s features for %s.", self.characterizer.name, self.dataset.name)  # pyright: ignore[reportAttributeAccessIssue]
+        logger.info("Finished processing %s features for %s.", self.characterizer.name, self.dataset.name)

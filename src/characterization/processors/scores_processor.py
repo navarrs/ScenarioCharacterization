@@ -65,7 +65,7 @@ class ScoresProcessor(BaseProcessor):
         Returns:
             None
         """
-        logger.info("Processing %s %s for %s.", self.features, self.characterizer.name, self.dataset.name)  # pyright: ignore[reportAttributeAccessIssue]
+        logger.info("Processing %s %s for %s.", self.features, self.characterizer.name, self.dataset.name)
 
         # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop.
         # for scenario_batch in track(self.dataloader, total=len(self.dataloader), description="Processing scores..."):
