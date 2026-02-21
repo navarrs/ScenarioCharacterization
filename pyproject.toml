@@ -120,7 +120,6 @@ lint.unfixable = [
 fix = true
 exclude = [
     # TODO: re-nable checks for files below:
-    "src/characterization/utils/viz/utils.py",
     "src/characterization/utils/viz/visualizer.py",
     "src/characterization/utils/viz/waymo.py",
     "src/characterization/examples",

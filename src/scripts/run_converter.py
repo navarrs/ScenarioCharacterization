@@ -24,7 +24,7 @@ def reset_infos(cfg: DictConfig) -> dict[str, list[Any]]:
     Returns:
         dict: A dictionary with empty lists for each feature and score.
     """
-    infos: dict = {"scenario_id": []}
+    infos = {"scenario_id": []}
     for feature in cfg.features:
         infos[feature] = []
 

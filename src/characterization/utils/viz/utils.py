@@ -37,12 +37,23 @@ def get_sample_to_plot(
     """
     df_subset = df[(df[key] >= min_value) & (df[key] < max_value)]
     subset_size = len(df_subset)
-    logger.info(f"Found {subset_size} rows between [{round(min_value, 2)} to {round(max_value, 2)}] for {key}")
+    logger.info("Found %s rows between [%s to %s] for %s", subset_size, round(min_value, 2), round(max_value, 2), key)
     sample_size = min(sample_size, subset_size)
-    return df_subset.sample(n=sample_size, random_state=seed) # pyright: ignore[reportReturnType]
+    return df_subset.sample(n=sample_size, random_state=seed)  # pyright: ignore[reportReturnType]
 
 
 def get_scored_scenario_ids(scenario_types: str, criteria: str, base_path: Path) -> dict[str, list[str]]:
+    """Retrieves the list of scored scenario IDs for each combination of scenario type and criterion.
+
+    Args:
+        scenario_types (str): List of scenario types to consider.
+        criteria (str): List of criteria to consider.
+        base_path (Path): Base path where the scored scenario files are located.
+
+    Returns:
+        dict[str, list[str]]: A dictionary mapping each scenario type and criterion combination to a list of scored
+            scenario IDs (file names).
+    """
     scenario_lists = {}
     for scenario_type, criterion in product(scenario_types, criteria):
         key = f"{scenario_type}_{criterion}"
@@ -71,18 +82,19 @@ def plot_histograms_from_dataframe(
     """
     # Select numeric columns, excluding the specified one
     columns_to_plot = df.select_dtypes(include="number").columns
-    N = len(columns_to_plot)
+    num_columns_to_plot = len(columns_to_plot)
 
-    if N == 0:
-        raise ValueError("No numeric columns to plot.")
+    if num_columns_to_plot == 0:
+        error_message = "No numeric columns found in the DataFrame to plot."
+        raise ValueError(error_message)
 
-    palette = sns.color_palette("husl", N)
+    palette = sns.color_palette("husl", num_columns_to_plot)
 
     plt.figure(figsize=(10, 6))
 
     for i, col in enumerate(columns_to_plot):
         sns.histplot(
-            df[col], # pyright: ignore[reportArgumentType]
+            df[col],  # pyright: ignore[reportArgumentType]
             color=palette[i],
             label=col,
             kde=True,
@@ -97,7 +109,7 @@ def plot_histograms_from_dataframe(
     plt.xlabel("Scores")
     plt.ylabel("Density")
     plt.title("Score Density Function over Scenarios")
-    plt.grid(True, linestyle="--", alpha=0.4)
+    plt.grid(visible=True, linestyle="--", alpha=0.4)
     plt.tight_layout()
     plt.savefig(output_filepath, dpi=dpi)
     plt.close()
