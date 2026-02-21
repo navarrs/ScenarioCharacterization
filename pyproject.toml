@@ -177,7 +177,7 @@ reportUnknownArgumentType = false          # Argument type could not be inferred
 reportUnknownMemberType = false            # Attribute exists but type is unknown (~50 errors)
 reportUnknownParameterType = false         # Parameter type could not be inferred (<10 errors)
 reportUnknownVariableType = false          # Variable type could not be inferred (>50 errors)
-reportUnusedCallResult = false             # Disable check for call statements whose return value is not None and is not used. (~50 errors)
+reportUnusedCallResult = true             # Disable check for call statements whose return value is not None and is not used. (~50 errors)
 # keep-sorted end
 
 # Set to "error"
