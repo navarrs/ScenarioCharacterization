@@ -1,6 +1,7 @@
 import logging
 import os
 import pickle  # nosec B403
+from typing import Any
 from warnings import warn
 
 import colorlog
@@ -55,7 +56,7 @@ def get_logger(name: str = __name__) -> logging.Logger:
     return logger
 
 
-def from_pickle(data_file: str) -> dict | None:  # pyright: ignore[reportMissingTypeArgument]
+def from_pickle(data_file: str) -> dict[str, Any] | None:
     """Loads data from a pickle file.
 
     Args:
@@ -76,12 +77,14 @@ def from_pickle(data_file: str) -> dict | None:  # pyright: ignore[reportMissing
         return pickle.load(f)  # nosec B301
 
 
-def to_pickle(output_path: str, input_data: dict, tag: str, *, overwrite: bool = False, update: bool = False) -> None:  # pyright: ignore[reportMissingTypeArgument]
+def to_pickle(
+    output_path: str, input_data: dict[str, Any], tag: str, *, overwrite: bool = False, update: bool = False
+) -> None:
     """Saves data to a pickle file, merging with existing data if present.
 
     Args:
         output_path (str): Directory where the pickle file will be saved.
-        input_data (dict): The data to save.
+        input_data (dict[str, Any]): The data to save.
         tag (str): The tag to use for the output file name.
         overwrite (bool, optional): Whether to overwrite existing data. Defaults to False.
         update (bool, optional): Whether to update existing data. Defaults to False.
@@ -101,7 +104,7 @@ def to_pickle(output_path: str, input_data: dict, tag: str, *, overwrite: bool =
         with open(data_file, "rb") as f:
             data = pickle.load(f)  # nosec B301
 
-    scenario_id_data = data.get("scenario_id", None)  # pyright: ignore[reportUnknownMemberType]
+    scenario_id_data = data.get("scenario_id", None)
     if scenario_id_data is not None and scenario_id_data != input_data["scenario_id"]:
         error_message = "Mismatched scenario IDs when merging pickle data."
         raise AttributeError(error_message)
@@ -115,7 +118,7 @@ def to_pickle(output_path: str, input_data: dict, tag: str, *, overwrite: bool =
         if key not in data or update:
             if isinstance(value, dict) and key in data:
                 # Merge dictionaries
-                data[key].update(value)  # pyright: ignore[reportUnknownMemberType]
+                data[key].update(value)
             else:
                 data[key] = value
 

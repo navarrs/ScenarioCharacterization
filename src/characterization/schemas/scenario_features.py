@@ -12,7 +12,7 @@ from characterization.utils.scenario_types import AgentType
 from .scenario import ScenarioMetadata
 
 
-class Individual(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+class Individual(BaseModel):
     """Represents the individual features extracted from a scenario for each agent.
 
     This class is used to encapsulate all relevant individual features for agents in a scenario, including their states
@@ -45,7 +45,7 @@ class Individual(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
 
-class Interaction(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+class Interaction(BaseModel):
     """Represents the features extracted from a scenario, including individual agent features and interaction features.
 
     This class is used to encapsulate all relevant features for a scenario, including agent states, interaction metrics,
@@ -96,7 +96,7 @@ class Interaction(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
 
-class ScenarioFeatures(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+class ScenarioFeatures(BaseModel):
     """Represents the features extracted from a scenario, including individual agent features and interaction features.
 
     This class is used to encapsulate all relevant features for a scenario, including agent states, interaction metrics,
