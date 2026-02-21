@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 
-class FeatureDetections(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+class FeatureDetections(BaseModel):
     """Encapsulates the parameters for feature detections.
 
     Attributes:
@@ -76,7 +76,7 @@ class FeatureDetections(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
         return cls(**filtered_data)
 
 
-class FeatureWeights(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+class FeatureWeights(BaseModel):
     """Encapsulates the weights for features.
 
     Attributes:

@@ -7,7 +7,7 @@ from characterization.utils.common import BooleanNDArray1D, Float32NDArray1D
 from .scenario import ScenarioMetadata
 
 
-class Score(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+class Score(BaseModel):
     """Represents a score for a scenario or agent, including individual and scene scores.
 
     Attributes:
@@ -23,7 +23,7 @@ class Score(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
 
 
-class ScenarioScores(BaseModel):  # pyright: ignore[reportUntypedBaseClass]
+class ScenarioScores(BaseModel):
     """Represents the scores for a scenario, including individual agent scores, interaction scores, and combined.
 
     This class is used to encapsulate the results of scoring a scenario based on various criteria, such as safety and

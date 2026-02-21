@@ -95,4 +95,4 @@ def run(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    run()  # pyright: ignore[reportCallIssue]
+    run()

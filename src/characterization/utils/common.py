@@ -64,12 +64,12 @@ def mph_to_ms(mph: float) -> float:
 def validate_array(
     expected_dtype: Any,  # noqa: ANN401
     expected_ndim: int,
-) -> Callable[[Any], NDArray]:  # pyright: ignore[reportMissingTypeArgument]
+) -> Callable[[Any], NDArray[Any]]:
     """Factory function to create a validator for numpy arrays with specific dtype and ndim."""
 
     def _validator(
         v: Any,  # noqa: ANN401
-    ) -> NDArray:  # pyright: ignore[reportMissingTypeArgument]
+    ) -> NDArray[Any]:
         if not isinstance(v, np.ndarray):
             error_message = f"Expected a numpy.ndarray, got {type(v)}"
             raise TypeError(error_message)

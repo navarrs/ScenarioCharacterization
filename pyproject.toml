@@ -119,13 +119,10 @@ lint.unfixable = [
 ]
 fix = true
 exclude = [
-    "src/scripts",
-    "src/characterization/datasets/waymo_preprocess.py",
-    "src/characterization/examples",
     # TODO: re-nable checks for files below:
-    "src/characterization/utils/viz/utils.py",
-    "src/characterization/utils/viz/visualizer.py",
-    "src/characterization/utils/viz/waymo.py",
+    "src/characterization/examples",
+    # File borrowed from original MTR (https://arxiv.org/abs/2209.13508), will keep unmodified.
+    "src/characterization/datasets/waymo_preprocess.py",
 ]
 line-length = 120
 target-version = "py312"
@@ -159,11 +156,15 @@ venv = ".venv"
 venvPath = "./"
 include = ["src"]
 exclude = [
+    "node_modules",
+    "**/.*",
+    ".venv",
+    "dist",
     "tmp/**",
     "src/scripts",
-    "src/characterization/datasets/waymo_preprocess.py",
-    "src/characterization/viz_scores_pdf.py",
     "**/__pycache__",
+    # File borrowed from original MTR (https://arxiv.org/abs/2209.13508), will keep unmodified.
+    "src/characterization/datasets/waymo_preprocess.py",
 ]
 ignore = ["tmp/**"]
 typeCheckingMode = "strict"
