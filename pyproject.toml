@@ -120,7 +120,6 @@ lint.unfixable = [
 fix = true
 exclude = [
     # TODO: re-nable checks for files below:
-    "src/characterization/utils/viz/visualizer.py",
     "src/characterization/examples",
     # File borrowed from original MTR (https://arxiv.org/abs/2209.13508), will keep unmodified.
     "src/characterization/datasets/waymo_preprocess.py",
