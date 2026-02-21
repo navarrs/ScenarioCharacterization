@@ -1,6 +1,7 @@
 import math
 import os
 import pickle  # nosec B403
+from typing import Any
 
 import hydra
 import pandas as pd
@@ -8,12 +9,21 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from natsort import natsorted
 from omegaconf import DictConfig
+
 from characterization.utils.io_utils import get_logger, make_output_paths
 
 logger = get_logger(__name__)
 
 
-def reset_infos(cfg: DictConfig) -> dict:
+def reset_infos(cfg: DictConfig) -> dict[str, list[Any]]:
+    """Reset the information dictionary for a new shard.
+
+    Args:
+        cfg (DictConfig): Configuration dictionary.
+
+    Returns:
+        dict: A dictionary with empty lists for each feature and score.
+    """
     infos: dict = {"scenario_id": []}
     for feature in cfg.features:
         infos[feature] = []
@@ -45,15 +55,17 @@ def run(cfg: DictConfig) -> None:
     scores_files = natsorted(os.listdir(scores_path))
 
     if set(features_files) != set(scores_files):
-        raise AssertionError(
-            "Feature files and score files must match. "
-            f"Found {len(features_files)} feature files and {len(scores_files)} score files.",
+        error_message = (
+            "Feature files and score files do not match. "
+            f"Found {len(features_files)} feature files and {len(scores_files)} score files. "
+            "Please ensure that each feature file has a corresponding score file with the same name."
         )
+        raise AssertionError(error_message)
 
-    logger.info(f"Loading input features from: {features_path}")
+    logger.info("Loading input features from: %s", features_path)
     features_files = [os.path.join(features_path, f) for f in features_files]
 
-    logger.info(f"Loading input scores from: {scores_path}")
+    logger.info("Loading input scores from: %s", scores_path)
     scores_files = [os.path.join(scores_path, f) for f in scores_files]
 
     # TODO: Shard scenarios into parquet files
@@ -62,7 +74,7 @@ def run(cfg: DictConfig) -> None:
     infos = reset_infos(cfg)
     n_per_shard = math.ceil(len(features_files) / cfg.num_shards)
 
-    logger.info(f"Creating {cfg.num_shards} shards with {n_per_shard} scenarios each.")
+    logger.info("Creating %d shards with %d scenarios each.", cfg.num_shards, n_per_shard)
     for n, (feature_file, score_file) in enumerate(zip(features_files, scores_files, strict=False)):
         # logger.info(f"Processing {feature_file} and {score_file}")
 
@@ -71,7 +83,7 @@ def run(cfg: DictConfig) -> None:
             features = pickle.load(f)  # nosec B301
         for feature in cfg.features:
             if feature not in features:
-                logger.warning(f"Feature {feature} not found in dictionary.")
+                logger.warning("Feature %s not found in dictionary.", feature)
                 continue
             infos[feature].append(features[feature])
 
@@ -79,7 +91,7 @@ def run(cfg: DictConfig) -> None:
             scores = pickle.load(f)  # nosec B301
         for score in cfg.scores:
             if score not in scores:
-                logger.warning(f"Score {score} not found in dictionary.")
+                logger.warning("Score %s not found in dictionary.", score)
                 continue
             agent_scores = f"{score}_agents"
             scene_scores = f"{score}_scenes"
@@ -101,10 +113,10 @@ def run(cfg: DictConfig) -> None:
             pq.write_table(table, output_path)
 
             # Reset infos for next shard
-            N = len(infos["scenario_id"])
+            num_scenarios = len(infos["scenario_id"])
             infos = reset_infos(cfg)
 
-            logger.info(f"Wrote shard {n // n_per_shard} with {N} scenarios to: {output_path}")
+            logger.info("Wrote shard %d with %d scenarios to: %s", n // n_per_shard, num_scenarios, output_path)
 
 
 if __name__ == "__main__":

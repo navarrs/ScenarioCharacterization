@@ -14,4 +14,4 @@ result = duckdb.query(
     """,
 ).to_df()
 
-print(result)
+print(result)  # noqa: T201
