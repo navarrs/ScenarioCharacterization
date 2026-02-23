@@ -1,0 +1,6 @@
+defaults:
+ - scenario.yaml
+
+_target_: characterization.utils.viz.scenario.ScenarioVisualizer
+config:
+  plot_categorical: true

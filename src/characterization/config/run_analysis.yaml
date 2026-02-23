@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - run_processor.yaml
-  - viz: scenario
+  - viz: categorical_scenario
 
 scores_path: ${paths.cache_path}/scores
 features_path: ${paths.cache_path}/features
@@ -41,7 +41,7 @@ percentiles:
   - 80
 scenario_viz_dir: ${output_dir}/scenario_viz
 viz_scored_scenarios: true
-scores_tag: 'gt_critical_continuous'
+scores_tag: 'gt_critical_categorical' # Either 'gt_critical_continuous' or 'ho_critical_categorical'
 score_to_visualize: 'safeshift'
-organize_by_percentile: true
+organize_by_percentile: false
 scenario_to_score_mapping_filepath: ./meta/scene_to_scores_mapping.csv
