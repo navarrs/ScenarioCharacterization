@@ -154,3 +154,86 @@ Shows the score density over a set of scenarios across either in 2D (individual,
 | **2D Categorical Heatmap** | **3D Categorical Voxel Grid** |
 | ![Alt text](https://private-user-images.githubusercontent.com/24197463/552908858-a6298513-da5e-42d8-97b6-8db2cdac5741.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NzE2MjI0NDMsIm5iZiI6MTc3MTYyMjE0MywicGF0aCI6Ii8yNDE5NzQ2My81NTI5MDg4NTgtYTYyOTg1MTMtZGE1ZS00MmQ4LTk3YjYtOGRiMmNkYWM1NzQxLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjAyMjAlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwMjIwVDIxMTU0M1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWVlMTEwZGMxYjFmM2ZhNGE3OTFjY2JlZTNlYTk3MDAzMDM5YTQ1NTI5Yjk4NDBhZjQxNzAxNTA5NjQzMmI5ZTEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.fbBetv6uJla2KLQxVpara-C67EN7HOeQJAuxcb-XdDY) <!-- pragma: allowlist secret --> | ![Alt text](https://private-user-images.githubusercontent.com/24197463/552908837-6a5bf40e-d261-4312-97af-2b3bdff18751.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NzE2MjI0NDMsIm5iZiI6MTc3MTYyMjE0MywicGF0aCI6Ii8yNDE5NzQ2My81NTI5MDg4MzctNmE1YmY0MGUtZDI2MS00MzEyLTk3YWYtMmIzYmRmZjE4NzUxLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjAyMjAlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwMjIwVDIxMTU0M1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPThkOTMwMmZjYzViODRmOTU3OThiOGM4YzhjZTc1OTk2ZGVmOWZkZDg1ZmMwOTU3YTQxOGIxOWY0YjdjOTRkZjImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.QD5FdoAD0b2AvaPJC9sWCnLMf_xFhX0DST9wpJy_UBM) <!-- pragma: allowlist secret --> |
 | | |
+
+## Scenario Visualizer
+
+The scenario visualizer renders per-scenario visual outputs and can optionally bucket scenarios by score percentile.
+
+### Prerequisites
+
+- Scenario `.pkl` files available under `paths.scenario_base_path`.
+- Score artifacts available under `${scores_path}/${scores_tag}` (when `viz_scored_scenarios=true`).
+- A score-mapping CSV at `scenario_to_score_mapping_filepath` (required when `organize_by_percentile=true`).
+
+The easiest way to generate compatible score artifacts and mapping CSV is to run score analysis first.
+
+### What this produces
+
+Each run writes to a timestamped folder under `scenario_viz_dir` (default: `${output_dir}/scenario_viz`), for example:
+- `<timestamp>_<scores_tag>_<score_to_visualize>/`
+- If `organize_by_percentile=true`, additional subfolders such as:
+	- `percentile_0-10/`
+	- `percentile_10-50/`
+	- `percentile_50-80/`
+	- `percentile_80-100/`
+	- `unknown/` (scenario IDs missing from the mapping CSV)
+
+### Example usage
+
+Run scenario visualization with default config values from `src/characterization/config/run_analysis.yaml`:
+```bash
+uv run -m characterization.run_scenario_viz
+```
+
+Visualize only scenarios with score files, limited to 200 scenarios:
+```bash
+uv run -m characterization.run_scenario_viz viz_scored_scenarios=true total_scenarios=200
+```
+
+Group outputs by custom percentile bins:
+```bash
+uv run -m characterization.run_scenario_viz organize_by_percentile=true percentiles=[10,50,80]
+```
+
+Visualize a different score head using a specific score tag:
+```bash
+uv run -m characterization.run_scenario_viz scores_tag=gt_critical_categorical score_to_visualize=interaction
+```
+
+Write visualizations to a custom location:
+```bash
+uv run -m characterization.run_scenario_viz scenario_viz_dir=./outputs/scenario_viz_test
+```
+
+### Useful config overrides
+
+Commonly overridden keys:
+- `scenario_viz_dir` (default: `${output_dir}/scenario_viz`)
+- `scores_path`, `scores_tag`
+- `score_to_visualize` (one of `individual`, `interaction`, `safeshift`)
+- `viz_scored_scenarios`
+- `organize_by_percentile`, `percentiles`
+- `scenario_to_score_mapping_filepath`
+- `total_scenarios`
+
+### Notes
+
+- Percentile grouping uses the score column `<scores_tag>_<score_to_visualize>` in `scenario_to_score_mapping_filepath`.
+- If `viz_scored_scenarios=false`, all scenarios under `paths.scenario_base_path` are eligible for visualization.
+
+### Example Outputs
+
+#### Scenarios Organized by Score Percentile
+
+| | | | |
+|---|---|---|---|
+| **[0, 10)** | **[10, 50)** | **[50, 80)** | **[80, 100]** |
+| ![Alt text]() | ![Alt text]() | ![Alt text]() | ![Alt text]() |
+| | | | |
+
+#### Categorical Scenarios
+
+| | | |
+|---|---|---|
+| ![Alt text]() | ![Alt text]() | ![Alt text]() | ![Alt text]() |
+| | | |
