@@ -7,3 +7,4 @@ config:
   num_workers: ${num_workers}
   add_title: true
   update_limits: true
+  show_relevant: false

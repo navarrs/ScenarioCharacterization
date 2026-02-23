@@ -1,3 +1,4 @@
+import copy
 import random
 from datetime import UTC, datetime
 from pathlib import Path
@@ -84,7 +85,17 @@ def run(cfg: DictConfig) -> None:
     dataset = hydra.utils.instantiate(cfg.dataset)
 
     logger.info("Instatiating visualizer: %s", cfg.viz._target_)
-    visualizer: BaseVisualizer = hydra.utils.instantiate(cfg.viz)
+    viz_config = copy.deepcopy(cfg.viz)
+    match cfg.score_to_visualize:
+        case "individual":
+            viz_config.config.categories_file = "./meta/gt_critical_categorical_individual.json"
+        case "interaction":
+            viz_config.config.categories_file = "./meta/gt_critical_categorical_interaction.json"
+        case "safeshift":
+            viz_config.config.categories_file = "./meta/gt_critical_categorical_safeshift_2.json"
+        case _:
+            pass
+    visualizer: BaseVisualizer = hydra.utils.instantiate(viz_config)
 
     scenario_base_path = Path(cfg.paths.scenario_base_path)
     scenario_filepaths = list(scenario_base_path.rglob("*.pkl"))

@@ -3,7 +3,11 @@ config:
   scenario_type: ${scenario_type}
   add_title: false
   update_limits: true
+
+  # Parameters for categorical visualization
   plot_categorical: false
+  categorical_color_map: Spectral_r
+  categories_file: ./meta/gt_critical_categorical_safeshift.json
 
   panes_to_plot:
     # - ALL_AGENTS
