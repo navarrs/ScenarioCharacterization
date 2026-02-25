@@ -2,7 +2,7 @@
 
 >    **Note:** This project is a work in progress.
 
-A generalizable, automated scenario characterization framework for trajectory datasets. This project is primarily a re-implementation of the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift), as part of an internship project at **StackAV**d.
+A generalizable, automated scenario characterization framework for trajectory datasets. This project is primarily a re-implementation of the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift), as part of an internship project at **StackAV**.
 
 
 | | | |

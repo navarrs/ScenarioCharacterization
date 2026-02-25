@@ -191,3 +191,4 @@ src/scripts/*.png
 src/scripts/*.gif
 meta/meta/scene_to_scores_mapping.csv
 meta/scenario_splits.json
+*.progress
