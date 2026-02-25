@@ -67,8 +67,55 @@ Available score groups (see `config/characterizer`):
 - **`interaction_scores`**: Computes agent and scenario scores from interaction descriptors.
 - **`safeshift_scores`**: Combines individual and interaction scores.
 
----
+
+## Categorical Profiling
+
+Use the categorical profiling runner script to execute the full profiling pipeline (features, scores, and distribution analyses):
+
+```bash
+bash src/scripts/run_categorical_profiler.sh [options]
+```
+
+### Options
+
+- `-p <paths_config>`: Paths configuration to use (default: `labeling_set`)
+- `-d <meta_dir>`: Meta directory where analysis JSON files are copied (default: `./meta`)
+- `-u <output_dir>`: Output directory for categorical profiling analyses (default: `outputs/categorical_profiler`)
+- `-m <mode>`: Run mode, either `resume` (default) or `scratch`
+- `-c`: Create metadata for feature computation
+- `-o`: Overwrite existing outputs
+- `-n`: Dry run (print commands without executing)
+
+### Common examples
+
+Resume from the last completed step (default behavior):
+
+```bash
+bash src/scripts/run_categorical_profiler.sh -m resume
+```
+
+Run from scratch (clears progress and starts from step 1):
+
+```bash
+bash src/scripts/run_categorical_profiler.sh -m scratch
+```
+
+Run with metadata creation and overwrite enabled:
+
+```bash
+bash src/scripts/run_categorical_profiler.sh -c -o
+```
+
+Run with custom meta and output directories:
+
+```bash
+bash src/scripts/run_categorical_profiler.sh -d ./meta_custom -u outputs/categorical_profiler_custom
+```
+
+Preview commands without running:
+
+```bash
+bash src/scripts/run_categorical_profiler.sh -n
+```
 
 ## ![TO-DO](https://img.shields.io/badge/status-TODO-red) Scenario Probing
-
----

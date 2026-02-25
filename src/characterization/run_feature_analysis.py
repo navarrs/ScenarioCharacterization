@@ -56,7 +56,7 @@ def run(cfg: DictConfig) -> None:
 
     # Generate score histogram and density plot
     logger.info("Loading the features")
-    individual_features, interaction_features = analysis_utils.load_scenario_features(
+    individual_features, interaction_features, _ = analysis_utils.load_scenario_features(
         scenario_ids,
         cfg.scenario_types,
         cfg.criteria,
