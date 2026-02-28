@@ -117,13 +117,13 @@ class BaseVisualizer(ABC):
                 self.categories_values = list(json.load(f).values())
             self.num_categories = len(self.categories_values) + 1
 
-        color_map = cm.get_cmap(config.get("categorical_color_map", "Spectral_r"))
-        vals = np.linspace(0, 1, self.num_categories)
-        colors = [color_map(v) for v in vals]  # RGBA
-        # Convert RGBA to hex colors for matplotlib
-        hex_colors = [f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}" for r, g, b, _ in colors]
-        self.categorical_color_map = {i: hex_colors[i] for i in range(self.num_categories + 1)}
-        self.categorical_color_map[-1] = "lightgray"  # Color for invalid scores
+            color_map = cm.get_cmap(config.get("categorical_color_map", "Spectral_r"))
+            vals = np.linspace(0, 1, self.num_categories)
+            colors = [color_map(v) for v in vals]  # RGBA
+            # Convert RGBA to hex colors for matplotlib
+            hex_colors = [f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}" for r, g, b, _ in colors]
+            self.categorical_color_map = {i: hex_colors[i] for i in range(self.num_categories + 1)}
+            self.categorical_color_map[-1] = "lightgray"  # Color for invalid scores
 
         # Set up panes to plot. It will fail if an invalid pane is provided.
         panes = config.get("panes_to_plot", ["ALL_AGENTS"])
