@@ -29,6 +29,88 @@ from characterization.utils.scenario_types import AgentPairType, AgentType, get_
 
 logger = get_logger(__name__)
 
+
+def _chunked_prefilter_candidates(
+    agent_masks: NDArray[np.bool_],
+    agent_positions: NDArray[np.float32],
+    agent_to_agent_max_distance: float,
+    chunk_size: int = 256,
+) -> NDArray[np.bool_]:
+    """Return a boolean mask of agent pairs that are candidate interactions.
+
+    This is the exact equivalent of the per-pair distance check inside the worker:
+    ``np.any(||pos_i(t) - pos_j(t)|| <= threshold for shared valid t)``.
+    A pair is marked ``True`` (candidate) when its minimum pairwise distance
+    across all shared valid timesteps is within the threshold.  Pairs that are
+    always beyond the threshold would receive ``InteractionStatus.DISTANCE_TOO_FAR``
+    and are marked ``False``.
+
+    The naive broadcast ``(n, n, T, 2)`` would require more memory.
+    To keep the memory footprint bounded, timesteps are processed in chunks.
+
+    Why not AABB?
+    An Axis-Aligned Bounding Box filter checks whether
+    the trajectory extents of two agents overlap spatially,
+    but is blind to when each agent occupies a region.
+    This filter is the exact temporal equivalent of the existing check
+    and produces zero false positives.
+
+    Why not a KD-tree?
+    A per-timestep KD-tree approach would need a for loop over all timesteps,
+    each building or querying a spatial index.
+    The chunked NumPy approach replaces that with
+    `T // chunk_size` fully vectorised iterations,
+    which should be faster.
+
+    Args:
+        agent_masks: Boolean validity mask of shape ``(n_agents, T)``.
+        agent_positions: Agent XYZ positions of shape ``(n_agents, T, 3)``.
+            Only the XY components are used.
+        agent_to_agent_max_distance: Distance threshold in metres.
+        chunk_size: Number of timesteps to process per iteration.  Controls the
+            memory/iteration-count trade-off.  Defaults to 256.
+
+    Returns:
+        Boolean array of shape ``(num_pairs,)`` where ``num_pairs = n*(n-1)/2``.
+        Element ``k`` is ``True`` when pair ``k``
+        (ordered as ``np.triu_indices(n, k=1)``,
+        equivalently ``itertools.combinations(range(n), 2)``)
+        comes within the distance threshold at some shared valid timestep.
+
+    """
+    n_agents: int = agent_positions.shape[0]
+    num_timesteps: int = agent_positions.shape[1]
+    pair_rows: NDArray[np.intp]
+    pair_cols: NDArray[np.intp]
+    pair_rows, pair_cols = np.triu_indices(n_agents, k=1)
+    num_pairs: int = pair_rows.shape[0]
+
+    # Replace invalid timesteps with inf so they never contribute to a minimum distance.
+    pos_xy: NDArray[np.float32] = np.where(
+        agent_masks[:, :, None],
+        agent_positions[:, :, :2],
+        np.inf,
+    )  # (n_agents, T, 2)
+
+    # Running minimum pairwise distance across all timesteps, initialised to inf.
+    min_dists: NDArray[np.float32] = np.full(num_pairs, np.inf, dtype=np.float32)  # (num_pairs,)
+
+    for t0 in tqdm(range(0, num_timesteps, chunk_size), desc="Distance pre-filter", unit="chunk"):
+        chunk: NDArray[np.float32] = pos_xy[:, t0 : t0 + chunk_size, :]  # (n_agents, chunk, 2)
+        # inf - inf = nan when both agents are invalid at the same timestep.
+        # This is expected and intentional:
+        # the nan is replaced with inf immediately afterwards
+        # so those timesteps never contribute to the running minimum.
+        # Suppress the numpy RuntimeWarning that would otherwise fire here.
+        with np.errstate(invalid="ignore"):
+            diff: NDArray[np.float32] = chunk[pair_rows] - chunk[pair_cols]  # (num_pairs, chunk, 2)
+        dists: NDArray[np.float32] = np.linalg.norm(diff, axis=-1)  # (num_pairs, chunk)
+        np.nan_to_num(dists, copy=False, nan=np.inf)
+        min_dists = np.minimum(min_dists, dists.min(axis=1))  # (num_pairs,)
+
+    return min_dists <= agent_to_agent_max_distance  # (num_pairs,)
+
+
 # Global context for multiprocessing workers (populated via initializer)
 _WORKER_CONTEXT: dict[str, Any] = {}
 
@@ -422,6 +504,26 @@ class InteractionFeatures(BaseFeature):
                 "cyclist_cyclist": self.cyclist_cyclist_categories,
             }
 
+        # Pre-filter: compute exact pairwise minimum distances
+        # before invoking the pool.
+        # Pairs that are never within range are marked DISTANCE_TOO_FAR here
+        # and never submitted to a worker,
+        # avoiding their IPC and scheduling overhead.
+        is_candidate: NDArray[np.bool_] = _chunked_prefilter_candidates(
+            agent_masks, agent_positions, agent_to_agent_max_distance
+        )  # (num_pairs,)
+
+        candidate_ns: NDArray[np.intp] = np.where(is_candidate)[0]
+        for i in np.where(~is_candidate)[0]:
+            scenario_interaction_statuses[int(i)] = InteractionStatus.DISTANCE_TOO_FAR
+
+        logger.info(
+            "Distance pre-filter: %d / %d pairs left (%.1f%% skipped)",
+            len(candidate_ns),
+            num_interactions,
+            100.0 * (~is_candidate).mean(),
+        )
+
         # Process agent combinations in parallel with fork context for zero-copy data sharing
         with ProcessPoolExecutor(
             max_workers=max_workers,
@@ -449,9 +551,10 @@ class InteractionFeatures(BaseFeature):
                 categorization_dicts,
             ),
         ) as executor:
-            # Submit all tasks (only passing indices now)
+            # Submit only candidate pairs; the rest are already marked DISTANCE_TOO_FAR.
             futures = [
-                executor.submit(_process_agent_pair_worker, n, i, j) for n, (i, j) in enumerate(agent_combinations)
+                executor.submit(_process_agent_pair_worker, int(n), agent_combinations[n][0], agent_combinations[n][1])
+                for n in candidate_ns
             ]
 
             # Process results as they complete with tqdm progress bar
