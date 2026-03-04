@@ -322,7 +322,12 @@ class InteractionFeatures(BaseFeature):
             with cyclist_cyclist_file.open("r") as f:
                 self.cyclist_cyclist_categories = json.load(f)
 
-    def compute_interaction_features(self, scenario: Scenario) -> Interaction | None:
+    def compute_interaction_features(
+        self,
+        scenario: Scenario,
+        *,
+        max_workers: int | None = None,
+    ) -> Interaction | None:
         """Compute comprehensive pairwise interaction features for all agent combinations.
 
         Args:
@@ -330,6 +335,8 @@ class InteractionFeatures(BaseFeature):
                 - agent_data: Agent positions, velocities, headings, dimensions, validity masks, and types
                 - metadata: Timestamps, distance thresholds, speed limits, and interaction parameters
                 - static_map_data: Map conflict points and agent distances to conflict points
+            max_workers: Maximum number of worker processes for parallel computation.
+                Defaults to None, which uses the number of processors on the machine.
 
         Returns:
             Interaction: Structured object containing computed interaction features:
@@ -417,6 +424,7 @@ class InteractionFeatures(BaseFeature):
 
         # Process agent combinations in parallel with fork context for zero-copy data sharing
         with ProcessPoolExecutor(
+            max_workers=max_workers,
             mp_context=mp.get_context("fork"),  # faster than spawn
             initializer=_init_worker_context,  # read-only
             initargs=(
@@ -479,7 +487,12 @@ class InteractionFeatures(BaseFeature):
             interaction_agent_types=scenario_agents_pair_types,
         )
 
-    def compute(self, scenario: Scenario) -> ScenarioFeatures:
+    def compute(
+        self,
+        scenario: Scenario,
+        *,
+        max_workers: int | None = None,
+    ) -> ScenarioFeatures:
         """Compute scenario features focused on agent-to-agent interactions.
 
         Args:
@@ -488,6 +501,8 @@ class InteractionFeatures(BaseFeature):
                 - metadata: Scenario parameters including distance thresholds, speed limits,
                   and interaction-specific configuration values
                 - static_map_data: Map conflict points and precomputed distances for mTTCP analysis
+            max_workers (int | None): Maximum number of worker processes for parallel computation.
+                Defaults to None, which uses the number of processors on the machine.
 
         Returns:
             ScenarioFeatures: Feature object containing:
@@ -511,6 +526,6 @@ class InteractionFeatures(BaseFeature):
 
         return ScenarioFeatures(
             metadata=scenario.metadata,
-            interaction_features=self.compute_interaction_features(scenario),
+            interaction_features=self.compute_interaction_features(scenario, max_workers=max_workers),
             agent_to_agent_closest_dists=agent_to_agent_closest_dists,
         )
