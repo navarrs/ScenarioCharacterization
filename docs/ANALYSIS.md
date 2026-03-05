@@ -235,5 +235,5 @@ Commonly overridden keys:
 
 | | | |
 |---|---|---|
-| <img width="230" height="230" alt="4dc0cacf62cfdb09_2 7" src="https://github.com/user-attachments/assets/ed9cacaa-df14-43d2-ba79-a70015d512d5" /> <!-- pragma: allowlist secret -->  | <img width="230" height="230" alt="5c1f8d26c481e36d_2 43" src="https://github.com/user-attachments/assets/2e078a15-34e3-40d8-b854-776c3cdbce3c" /> <!-- pragma: allowlist secret -->  | <img width="230" height="230" alt="1068c27cceb21de5_3 5" src="https://github.com/user-attachments/assets/60c0079f-d5ed-423c-bc1d-8cd6b55ac76d" /> <!-- pragma: allowlist secret -->  |
+| <img width="250" height="250" alt="4dc0cacf62cfdb09_2 7" src="https://github.com/user-attachments/assets/ed9cacaa-df14-43d2-ba79-a70015d512d5" /> <!-- pragma: allowlist secret -->  | <img width="250" height="250" alt="5c1f8d26c481e36d_2 43" src="https://github.com/user-attachments/assets/2e078a15-34e3-40d8-b854-776c3cdbce3c" /> <!-- pragma: allowlist secret -->  | <img width="250" height="250" alt="1068c27cceb21de5_3 5" src="https://github.com/user-attachments/assets/60c0079f-d5ed-423c-bc1d-8cd6b55ac76d" /> <!-- pragma: allowlist secret -->  |
 | | | |
