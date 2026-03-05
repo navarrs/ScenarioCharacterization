@@ -152,7 +152,7 @@ Shows the score density over a set of scenarios across either in 2D (individual,
 | | |
 |---|---|
 | **2D Categorical Heatmap** | **3D Categorical Voxel Grid** |
-| <img width="300" height="240" alt="Image" src="https://github.com/user-attachments/assets/91032ac3-de90-40ad-b08b-06beb437c767" /> <!-- pragma: allowlist secret -->  | <img width="300" height="240" alt="Image" src="https://github.com/user-attachments/assets/81a0848c-7716-410d-97f8-a99d18a29500" /> <!-- pragma: allowlist secret -->  |
+| <img width="450" height="360" alt="Image" src="https://github.com/user-attachments/assets/91032ac3-de90-40ad-b08b-06beb437c767" /> <!-- pragma: allowlist secret -->  | <img width="450" height="360" alt="Image" src="https://github.com/user-attachments/assets/81a0848c-7716-410d-97f8-a99d18a29500" /> <!-- pragma: allowlist secret -->  |
 | | |
 
 ## Scenario Visualizer
