@@ -65,7 +65,7 @@ Commonly overridden keys:
 | | | |
 |---|---|---|
 | **Vehicle** | **Cyclist** | **Pedestrian** |
-| <img width="300" height="180" alt="individual_speed_limit_diff_type_vehicle_distributions" src="https://github.com/user-attachments/assets/be2f6bbf-3ae3-400d-840d-35ac43758605" /> <!-- pragma: allowlist secret -->  | <img width="300" height="180" alt="individual_speed_limit_diff_type_cyclist_distributions" src="https://github.com/user-attachments/assets/189d1c0c-7627-4d94-8a51-7f975264a3e1" /> <!-- pragma: allowlist secret -->  | <img width="300" height="180" alt="individual_speed_limit_diff_type_pedestrian_distributions" src="https://github.com/user-attachments/assets/5e7c58bc-5636-4dbc-a7df-d6d6e360d2e8" /> <!-- pragma: allowlist secret -->  |
+| <img width="300" height="200" alt="individual_speed_limit_diff_type_vehicle_distributions" src="https://github.com/user-attachments/assets/be2f6bbf-3ae3-400d-840d-35ac43758605" /> <!-- pragma: allowlist secret -->  | <img width="300" height="200" alt="individual_speed_limit_diff_type_cyclist_distributions" src="https://github.com/user-attachments/assets/189d1c0c-7627-4d94-8a51-7f975264a3e1" /> <!-- pragma: allowlist secret -->  | <img width="300" height="200" alt="individual_speed_limit_diff_type_pedestrian_distributions" src="https://github.com/user-attachments/assets/5e7c58bc-5636-4dbc-a7df-d6d6e360d2e8" /> <!-- pragma: allowlist secret -->  |
 | | | |
 
 ## Score Analysis
@@ -228,7 +228,7 @@ Commonly overridden keys:
 | | | | |
 |---|---|---|---|
 | **[0, 10)** | **[10, 50)** | **[50, 80)** | **[80, 100]** |
-| <img width="180" height="180" alt="aa3c7fe966200717" src="https://github.com/user-attachments/assets/3a7b583d-1161-4c64-a074-b48d56cb8c91" /> <!-- pragma: allowlist secret -->  | <img width="180" height="180" alt="3ebeef67db72c170" src="https://github.com/user-attachments/assets/8807a99f-5148-4691-8f9e-c1e96c706d18" /> <!-- pragma: allowlist secret -->  | <img width="180" height="180" alt="6e593bf6b9dbbf73" src="https://github.com/user-attachments/assets/06c0598f-3145-4b75-b2aa-a66cccde0638" /> <!-- pragma: allowlist secret -->  | <img width="180" height="180" alt="937761acb6800cab" src="https://github.com/user-attachments/assets/36e29c42-484b-41f2-bd2a-2004ee6a02ec" /> <!-- pragma: allowlist secret -->  |
+| <img width="200" height="200" alt="aa3c7fe966200717" src="https://github.com/user-attachments/assets/3a7b583d-1161-4c64-a074-b48d56cb8c91" /> <!-- pragma: allowlist secret -->  | <img width="200" height="200" alt="3ebeef67db72c170" src="https://github.com/user-attachments/assets/8807a99f-5148-4691-8f9e-c1e96c706d18" /> <!-- pragma: allowlist secret -->  | <img width="200" height="200" alt="6e593bf6b9dbbf73" src="https://github.com/user-attachments/assets/06c0598f-3145-4b75-b2aa-a66cccde0638" /> <!-- pragma: allowlist secret -->  | <img width="200" height="200" alt="937761acb6800cab" src="https://github.com/user-attachments/assets/36e29c42-484b-41f2-bd2a-2004ee6a02ec" /> <!-- pragma: allowlist secret -->  |
 | | | | |
 
 #### Categorical Scenarios
