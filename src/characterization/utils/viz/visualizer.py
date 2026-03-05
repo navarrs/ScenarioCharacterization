@@ -117,13 +117,13 @@ class BaseVisualizer(ABC):
                 self.categories_values = list(json.load(f).values())
             self.num_categories = len(self.categories_values) + 1
 
-        color_map = cm.get_cmap(config.get("categorical_color_map", "Spectral_r"))
-        vals = np.linspace(0, 1, self.num_categories)
-        colors = [color_map(v) for v in vals]  # RGBA
-        # Convert RGBA to hex colors for matplotlib
-        hex_colors = [f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}" for r, g, b, _ in colors]
-        self.categorical_color_map = {i: hex_colors[i] for i in range(self.num_categories + 1)}
-        self.categorical_color_map[-1] = "lightgray"  # Color for invalid scores
+            color_map = cm.get_cmap(config.get("categorical_color_map", "Spectral_r"))
+            vals = np.linspace(0, 1, self.num_categories)
+            colors = [color_map(v) for v in vals]  # RGBA
+            # Convert RGBA to hex colors for matplotlib
+            hex_colors = [f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}" for r, g, b, _ in colors]
+            self.categorical_color_map = {i: hex_colors[i] for i in range(self.num_categories + 1)}
+            self.categorical_color_map[-1] = "lightgray"  # Color for invalid scores
 
         # Set up panes to plot. It will fail if an invalid pane is provided.
         panes = config.get("panes_to_plot", ["ALL_AGENTS"])
@@ -143,6 +143,8 @@ class BaseVisualizer(ABC):
         self.buffer_distance = config.get("distance_to_ego_zoom_in", 5.0)  # in meters
         self.distance_to_ego_zoom_in = config.get("distance_to_ego_zoom_in", 100.0)  # in meters
         self.show_relevant = config.get("show_relevant", False)
+        self._warned_no_static_map: bool = False
+        self._warned_no_dynamic_map: bool = False
 
     def plot_map_data(self, ax: Axes, scenario: Scenario, num_windows: int = 1) -> None:
         """Plots the map data.
@@ -154,15 +156,25 @@ class BaseVisualizer(ABC):
         """
         # Plot static map information
         if scenario.static_map_data is None:
-            warning_message = "Scenario does not contain static_map_data, skipping static map visualization."
-            warn(warning_message, UserWarning, stacklevel=2)
+            if not self._warned_no_static_map:
+                warn(
+                    "Scenario does not contain static_map_data, skipping static map visualization.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                self._warned_no_static_map = True
         else:
             self.plot_static_map_data(ax, static_map_data=scenario.static_map_data, num_windows=num_windows)
 
         # Plot dynamic map information
         if scenario.dynamic_map_data is None:
-            warning_message = "Scenario does not contain dynamic_map_data, skipping dynamic map visualization."
-            warn(warning_message, UserWarning, stacklevel=2)
+            if not self._warned_no_dynamic_map:
+                warn(
+                    "Scenario does not contain dynamic_map_data, skipping dynamic map visualization.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                self._warned_no_dynamic_map = True
         else:
             self.plot_dynamic_map_data(ax, dynamic_map_data=scenario.dynamic_map_data, num_windows=num_windows)
 

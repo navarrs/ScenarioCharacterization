@@ -39,7 +39,12 @@ class SafeShiftFeatures(BaseFeature):
         self.individual_features = IndividualFeatures(config)
         self.interaction_features = InteractionFeatures(config)
 
-    def compute(self, scenario: Scenario) -> ScenarioFeatures:
+    def compute(
+        self,
+        scenario: Scenario,
+        *,
+        max_workers: int | None = None,
+    ) -> ScenarioFeatures:
         """Compute comprehensive scenario features combining individual and interaction analysis.
 
         Args:
@@ -50,6 +55,9 @@ class SafeShiftFeatures(BaseFeature):
                   distance limits, and interaction configuration values
                 - static_map_data: Map conflict points and precomputed distances for
                   comprehensive spatial analysis
+            max_workers (int | None): Maximum number of worker processes for parallel computation
+                of interaction features. Defaults to None, which uses the number of processors
+                on the machine.
 
         Returns:
             ScenarioFeatures: Comprehensive feature object containing:
@@ -77,6 +85,8 @@ class SafeShiftFeatures(BaseFeature):
         return ScenarioFeatures(
             metadata=scenario.metadata,
             individual_features=self.individual_features.compute_individual_features(scenario),
-            interaction_features=self.interaction_features.compute_interaction_features(scenario),
+            interaction_features=self.interaction_features.compute_interaction_features(
+                scenario, max_workers=max_workers
+            ),
             agent_to_agent_closest_dists=compute_agent_to_agent_closest_dists(agent_positions),
         )
