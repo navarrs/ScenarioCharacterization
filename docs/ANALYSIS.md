@@ -228,7 +228,7 @@ Commonly overridden keys:
 | | | | |
 |---|---|---|---|
 | **[0, 10)** | **[10, 50)** | **[50, 80)** | **[80, 100]** |
-| <img width="160" height="160" alt="aa3c7fe966200717" src="https://github.com/user-attachments/assets/3a7b583d-1161-4c64-a074-b48d56cb8c91" /> <!-- pragma: allowlist secret -->  | <img width="160" height="160" alt="3ebeef67db72c170" src="https://github.com/user-attachments/assets/8807a99f-5148-4691-8f9e-c1e96c706d18" /> <!-- pragma: allowlist secret -->  | <img width="160" height="160" alt="6e593bf6b9dbbf73" src="https://github.com/user-attachments/assets/06c0598f-3145-4b75-b2aa-a66cccde0638" /> <!-- pragma: allowlist secret -->  | <img width="160" height="160" alt="937761acb6800cab" src="https://github.com/user-attachments/assets/36e29c42-484b-41f2-bd2a-2004ee6a02ec" /> <!-- pragma: allowlist secret -->  |
+| <img width="180" height="180" alt="aa3c7fe966200717" src="https://github.com/user-attachments/assets/3a7b583d-1161-4c64-a074-b48d56cb8c91" /> <!-- pragma: allowlist secret -->  | <img width="180" height="180" alt="3ebeef67db72c170" src="https://github.com/user-attachments/assets/8807a99f-5148-4691-8f9e-c1e96c706d18" /> <!-- pragma: allowlist secret -->  | <img width="180" height="180" alt="6e593bf6b9dbbf73" src="https://github.com/user-attachments/assets/06c0598f-3145-4b75-b2aa-a66cccde0638" /> <!-- pragma: allowlist secret -->  | <img width="180" height="180" alt="937761acb6800cab" src="https://github.com/user-attachments/assets/36e29c42-484b-41f2-bd2a-2004ee6a02ec" /> <!-- pragma: allowlist secret -->  |
 | | | | |
 
 #### Categorical Scenarios
