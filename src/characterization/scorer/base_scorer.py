@@ -42,15 +42,11 @@ class BaseScorer(ABC):
         self.reduce_distance_penalty = self.config.get("reduce_distance_penalty", False)
 
         self.detections = FeatureDetections.from_dict(config.get("detections", None))
-        logger.info(
-            "class [%s] initialized with feature detection thresholds: %s",
-            self.__class__.__name__,
-            self.detections,
-        )
         self.weights = FeatureWeights.from_dict(config.get("weights", None))
         logger.info(
-            "class [%s] initialized with feature weights: %s",
+            "class [%s] initialized with detection thresholds: %s | weights: %s",
             self.__class__.__name__,
+            self.detections,
             self.weights,
         )
 
