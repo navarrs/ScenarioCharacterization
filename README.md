@@ -10,7 +10,7 @@ A generalizable, automated scenario characterization framework for trajectory da
 |:---:|:---:|:---:|
 | **Categorical Scores** | **Animated Scenarios** | **Static Scenarios** |
 | <img width="200" alt="5c1f8d26c481e36d_2 43" src="https://github.com/user-attachments/assets/2e078a15-34e3-40d8-b854-776c3cdbce3c" /> <!-- pragma: allowlist secret --> | <img width="200" alt="5c1f8d26c481e36d_2 43" src="https://github.com/user-attachments/assets/07688b7b-5252-4db7-9960-524761878dee" /> <!-- pragma: allowlist secret -->  | <img width="200" alt="6e593bf6b9dbbf73" src="https://github.com/user-attachments/assets/06c0598f-3145-4b75-b2aa-a66cccde0638" /> <!-- pragma: allowlist secret --> |
-| Result from our categorical profiler. Agents are visualized from dark green (low crit.) to dark red (high crit.) based on their criticality w.r.t. the ego-agent (blue). | Result from our animated visualizer, Shows agents by color vehicle (gray), pedestrian (magenta), cyclist (green) and ego (blue), and the scenario's elapsed time throughout the episode. | Result from our static scenario visualizer. Episode's time is shown by increasing trajectory opacity over time.|
+| Results from our categorical profiler. Agents are visualized from dark green (low crit.) to dark red (high crit.) based on their criticality with respect to the ego agent (blue). | Result from our animated visualizer, showing agents by type: vehicle (gray), pedestrian (magenta), cyclist (green), and ego (blue), along with the scenario's elapsed time throughout the episode. | Result from our static scenario visualizer. The episode's time is shown by increasing trajectory opacity over time. |
 
 Repository: [github.com/navarrs/ScenarioCharacterization](https://github.com/navarrs/ScenarioCharacterization)
 
@@ -40,9 +40,9 @@ To install with Waymo dependencies (required for running the [example](#example)
 uv run pip install -e ".[waymo]"
 ```
 
-If installing with dev, run
+If installing with development dependencies, run:
 ```bash
-uv run pip install -e. ".[dev]"
+uv run pip install -e . ".[dev]"
 uv run pre-commit install
 ```
 
@@ -71,5 +71,5 @@ uv run pre-commit install
 
 ## Development
 
-Run `uv sync --frozen --all-groups` to set up environment.
+Run `uv sync --frozen --all-groups` to set up the environment.
 Run `pre-commit run --all-files` to run all hooks on all files.
