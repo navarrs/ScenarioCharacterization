@@ -22,7 +22,7 @@ A generalizable, automated scenario characterization framework for trajectory da
 
 | | |
 |:---:|:---:|
-| <div align="center"><img width="800" alt="5c1f8d26c481e36d_2 43" src="https://github.com/user-attachments/assets/2e078a15-34e3-40d8-b854-776c3cdbce3c" /> </div><!-- pragma: allowlist secret --> |  Result from our categorical profiler. Agents are visualized from dark green (low crit.) to dark red (high crit.) based on their criticality w.r.t. the ego-agent (blue). |
+| <div align="center"><img width="900" alt="5c1f8d26c481e36d_2 43" src="https://github.com/user-attachments/assets/2e078a15-34e3-40d8-b854-776c3cdbce3c" /> </div><!-- pragma: allowlist secret --> |  Result from our categorical profiler. Agents are visualized from dark green (low crit.) to dark red (high crit.) based on their criticality w.r.t. the ego-agent (blue). |
 
 Repository: [github.com/navarrs/ScenarioCharacterization](https://github.com/navarrs/ScenarioCharacterization)
 
