@@ -110,6 +110,11 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
             step_size,
         )
 
+        # Emit missing-map warnings once in the main process before workers.
+        # Otherwise, each worker would re-issue the warning independently
+        # due to picked processes.
+        self._warn_missing_map_data(scenario)
+
         # Use a temporary dir to save individual frames rather than the output_dir to avoid contamination with multiple
         # runs as temp* files are globbed
         with tempfile.TemporaryDirectory() as tmp_dir:

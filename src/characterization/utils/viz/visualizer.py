@@ -3,12 +3,12 @@
 
 import json
 import time
+import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
 from glob import glob
 from pathlib import Path
 from typing import cast
-from warnings import warn
 
 import numpy as np
 from matplotlib import cm
@@ -143,8 +143,31 @@ class BaseVisualizer(ABC):
         self.buffer_distance = config.get("distance_to_ego_zoom_in", 5.0)  # in meters
         self.distance_to_ego_zoom_in = config.get("distance_to_ego_zoom_in", 100.0)  # in meters
         self.show_relevant = config.get("show_relevant", False)
-        self._warned_no_static_map: bool = False
-        self._warned_no_dynamic_map: bool = False
+        self._warned_missing_map_data: bool = False
+
+    def _warn_missing_map_data(self, scenario: Scenario) -> None:
+        """Emits once-per-instance warnings when map data is absent.
+
+        Centralising the warning text and guard flags here means
+        callers (including pre-checks that run in the main process
+        before a ProcessPoolExecutor is spawned)
+        always use exactly the same messages and deduplication logic.
+        """
+        if self._warned_missing_map_data:
+            return
+        if scenario.static_map_data is None:
+            warnings.warn(
+                "Scenario does not contain static_map_data, skipping static map visualization.",
+                UserWarning,
+                stacklevel=3,
+            )
+        if scenario.dynamic_map_data is None:
+            warnings.warn(
+                "Scenario does not contain dynamic_map_data, skipping dynamic map visualization.",
+                UserWarning,
+                stacklevel=3,
+            )
+        self._warned_missing_map_data = True
 
     def plot_map_data(self, ax: Axes, scenario: Scenario, num_windows: int = 1) -> None:
         """Plots the map data.
@@ -154,28 +177,12 @@ class BaseVisualizer(ABC):
             scenario (Scenario): encapsulates the scenario to visualize.
             num_windows (int, optional): Number of subplot windows. Defaults to 0.
         """
-        # Plot static map information
-        if scenario.static_map_data is None:
-            if not self._warned_no_static_map:
-                warn(
-                    "Scenario does not contain static_map_data, skipping static map visualization.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-                self._warned_no_static_map = True
-        else:
+        self._warn_missing_map_data(scenario)
+
+        if scenario.static_map_data is not None:
             self.plot_static_map_data(ax, static_map_data=scenario.static_map_data, num_windows=num_windows)
 
-        # Plot dynamic map information
-        if scenario.dynamic_map_data is None:
-            if not self._warned_no_dynamic_map:
-                warn(
-                    "Scenario does not contain dynamic_map_data, skipping dynamic map visualization.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-                self._warned_no_dynamic_map = True
-        else:
+        if scenario.dynamic_map_data is not None:
             self.plot_dynamic_map_data(ax, dynamic_map_data=scenario.dynamic_map_data, num_windows=num_windows)
 
     def plot_sequences_categorical(
