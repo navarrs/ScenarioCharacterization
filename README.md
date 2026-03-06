@@ -16,7 +16,7 @@ A generalizable, automated scenario characterization framework for trajectory da
 
 | | |
 |:---:|:---:|
-| <div align="center"><img width="500" alt="6e593bf6b9dbbf73" src="https://github.com/user-attachments/assets/06c0598f-3145-4b75-b2aa-a66cccde0638" /></div> <!-- pragma: allowlist secret --> | Result from our static scenario visualizer. Episode's time is shown by increasing trajectory opacity over time.  |
+| <div align="center"><img width="700" alt="6e593bf6b9dbbf73" src="https://github.com/user-attachments/assets/06c0598f-3145-4b75-b2aa-a66cccde0638" /></div> <!-- pragma: allowlist secret --> | Result from our static scenario visualizer. Episode's time is shown by increasing trajectory opacity over time.  |
 
 ### Scenarios by Categorical Scores
 
