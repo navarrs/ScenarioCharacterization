@@ -524,12 +524,79 @@ class InteractionFeatures(BaseFeature):
             100.0 * (~is_candidate).mean(),
         )
 
-        # Process agent combinations in parallel with fork context for zero-copy data sharing
-        with ProcessPoolExecutor(
-            max_workers=max_workers,
-            mp_context=mp.get_context("fork"),  # faster than spawn
-            initializer=_init_worker_context,  # read-only
-            initargs=(
+        def _run_pairwise_full_loop(pairs: list[tuple[int, int, int]]) -> None:
+            for n, i, j in tqdm(pairs, desc="Computing pairwise interactions (full loop)"):
+                pair_n, status, results = _process_agent_pair_worker(n, i, j)
+                scenario_interaction_statuses[pair_n] = status
+                if results is not None:
+                    scenario_separations[pair_n] = results["separation"]
+                    scenario_intersections[pair_n] = results["intersection"]
+                    scenario_collisions[pair_n] = results["collision"]
+                    scenario_mttcps[pair_n] = results["mttcp"]
+                    scenario_inv_mttcps[pair_n] = results["inv_mttcp"]
+                    scenario_thws[pair_n] = results["thw"]
+                    scenario_inv_thws[pair_n] = results["inv_thw"]
+                    scenario_ttcs[pair_n] = results["ttc"]
+                    scenario_inv_ttcs[pair_n] = results["inv_ttc"]
+                    scenario_dracs[pair_n] = results["drac"]
+
+        candidate_pairs = [(int(n), agent_combinations[n][0], agent_combinations[n][1]) for n in candidate_ns]
+
+        # max_workers=None means "use all CPUs" and goes to the pool path.
+        # When max_workers=1 (or 0), skip subprocess creation entirely: run in-process to
+        # avoid fork overhead and the CoW page faults caused by Python refcount updates.
+        if max_workers is None or max_workers > 1:
+            # Process agent combinations in parallel with fork context for zero-copy data sharing
+            with ProcessPoolExecutor(
+                max_workers=max_workers,
+                mp_context=mp.get_context("fork"),  # faster than spawn
+                initializer=_init_worker_context,  # read-only
+                initargs=(
+                    agent_masks,
+                    agent_positions,
+                    agent_velocities,
+                    agent_headings,
+                    agent_lengths,
+                    agent_widths,
+                    agent_heights,
+                    agent_types,
+                    conflict_points,
+                    dists_to_conflict_points,
+                    stationary_speed,
+                    agent_to_agent_max_distance,
+                    agent_to_conflict_point_max_distance,
+                    agent_to_agent_distance_breach,
+                    heading_threshold,
+                    agent_max_deceleration,
+                    self.return_criterion,
+                    self.categorize_features,
+                    categorization_dicts,
+                ),
+            ) as executor:
+                futures = [executor.submit(_process_agent_pair_worker, n, i, j) for n, i, j in candidate_pairs]
+
+                # Process results as they complete with tqdm progress bar
+                for future in tqdm(
+                    as_completed(futures),
+                    total=len(futures),
+                    desc=f"Computing pairwise interactions (pool with {max_workers=})",
+                ):
+                    n, status, results = future.result()
+                    scenario_interaction_statuses[n] = status
+
+                    if results is not None:
+                        scenario_separations[n] = results["separation"]
+                        scenario_intersections[n] = results["intersection"]
+                        scenario_collisions[n] = results["collision"]
+                        scenario_mttcps[n] = results["mttcp"]
+                        scenario_inv_mttcps[n] = results["inv_mttcp"]
+                        scenario_thws[n] = results["thw"]
+                        scenario_inv_thws[n] = results["inv_thw"]
+                        scenario_ttcs[n] = results["ttc"]
+                        scenario_inv_ttcs[n] = results["inv_ttc"]
+                        scenario_dracs[n] = results["drac"]
+        else:
+            _init_worker_context(
                 agent_masks,
                 agent_positions,
                 agent_velocities,
@@ -549,30 +616,8 @@ class InteractionFeatures(BaseFeature):
                 self.return_criterion,
                 self.categorize_features,
                 categorization_dicts,
-            ),
-        ) as executor:
-            # Submit only candidate pairs; the rest are already marked DISTANCE_TOO_FAR.
-            futures = [
-                executor.submit(_process_agent_pair_worker, int(n), agent_combinations[n][0], agent_combinations[n][1])
-                for n in candidate_ns
-            ]
-
-            # Process results as they complete with tqdm progress bar
-            for future in tqdm(as_completed(futures), total=len(futures), desc="Computing pairwise interactions"):
-                n, status, results = future.result()
-                scenario_interaction_statuses[n] = status
-
-                if results is not None:
-                    scenario_separations[n] = results["separation"]
-                    scenario_intersections[n] = results["intersection"]
-                    scenario_collisions[n] = results["collision"]
-                    scenario_mttcps[n] = results["mttcp"]
-                    scenario_inv_mttcps[n] = results["inv_mttcp"]
-                    scenario_thws[n] = results["thw"]
-                    scenario_inv_thws[n] = results["inv_thw"]
-                    scenario_ttcs[n] = results["ttc"]
-                    scenario_inv_ttcs[n] = results["inv_ttc"]
-                    scenario_dracs[n] = results["drac"]
+            )
+            _run_pairwise_full_loop(candidate_pairs)
 
         return Interaction(
             separation=scenario_separations,
