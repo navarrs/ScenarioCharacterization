@@ -1,18 +1,33 @@
 # pyright: reportUnknownMemberType=false
+import concurrent.futures
+import multiprocessing as mp
 import pathlib
 import tempfile
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+import tqdm
 from omegaconf import DictConfig
-from tqdm import tqdm
 
 from characterization.schemas import Scenario, Score
 from characterization.utils.io_utils import get_logger
 from characterization.utils.viz.visualizer import BaseVisualizer
 
 logger = get_logger(__name__)
+
+
+def _init_worker_matplotlib() -> None:
+    """Force the non-interactive Agg backend in each spawned worker process.
+
+    When using `spawn`, each worker starts with a fresh Python interpreter
+    that has not yet selected a matplotlib backend.
+    Without this initialiser the first plotting call would
+    pick whatever backend is configured in the environment
+    (which may be a GUI backend that requires a live display).
+    Setting ``Agg`` here ensures workers never try to open a display.
+    """
+    mpl.use("Agg")
 
 
 class AnimatedScenarioVisualizer(BaseVisualizer):
@@ -122,7 +137,15 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
             # matplotlib is not thread-safe
             # ThreadPoolExecutor would result in corrupt images
             if self.num_workers > 1:
-                with ProcessPoolExecutor(max_workers=self.num_workers) as executor:
+                # Use spawn instead of the default fork to avoid inheriting locked
+                # mutexes from other threads in the parent process (logging locks,
+                # matplotlib internal locks, import locks, etc.).  Fork in a
+                # multi-threaded parent is the primary cause of worker deadlocks.
+                with concurrent.futures.ProcessPoolExecutor(
+                    max_workers=self.num_workers,
+                    mp_context=mp.get_context("spawn"),
+                    initializer=_init_worker_matplotlib,
+                ) as executor:
                     futures = [
                         executor.submit(
                             self._plot_single_step,
@@ -141,11 +164,19 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
                         for timestep in range(0, total_timesteps, step_size)
                     ]
 
-                # tqdm progress bar
-                for _ in tqdm(as_completed(futures), total=len(futures), desc="Generating plots"):
-                    pass
+                    # tqdm progress bar must be inside the with-block
+                    # so that the executor is still alive
+                    # while results are consumed
+                    # which allows the progress to be visible in real time
+                    # rather than all-at-once after pool closes.
+                    for _ in tqdm.tqdm(
+                        concurrent.futures.as_completed(futures),
+                        total=len(futures),
+                        desc="Generating plots",
+                    ):
+                        pass
             else:
-                for timestep in tqdm(range(0, total_timesteps, step_size), desc="Generating plots"):
+                for timestep in tqdm.tqdm(range(0, total_timesteps, step_size), desc="Generating plots"):
                     self._plot_single_step(
                         scenario,
                         scores,
