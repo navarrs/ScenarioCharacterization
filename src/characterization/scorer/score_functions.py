@@ -1,6 +1,6 @@
 import numpy as np
 
-from characterization.utils.common import SMALL_EPS, TRAJECTORY_TYPE_WEIGHTS, TrajectoryType
+from characterization.utils.common import EPSILON, TRAJECTORY_TYPE_WEIGHTS, TrajectoryType
 
 
 def simple_individual_score(
@@ -115,9 +115,9 @@ def simple_interaction_score(
     Returns:
         float: The aggregated score for the agent pair.
     """
-    inv_mttcp = 1.0 / (mttcp + SMALL_EPS)
-    inv_thw = 1.0 / (thw + SMALL_EPS)
-    inv_ttc = 1.0 / (ttc + SMALL_EPS)
+    inv_mttcp = 1.0 / (mttcp + EPSILON)
+    inv_thw = 1.0 / (thw + EPSILON)
+    inv_ttc = 1.0 / (ttc + EPSILON)
     return (
         collision_weight * min(collision_detection, collision)
         + mttcp_weight * min(mttcp_detection, inv_mttcp)

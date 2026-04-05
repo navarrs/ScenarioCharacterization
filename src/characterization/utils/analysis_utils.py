@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 from tqdm import tqdm
 
 from characterization.schemas import Individual, Interaction, ScenarioFeatures, ScenarioScores
-from characterization.utils.common import BIG_EPS, SMALL_EPS, InteractionStatus
+from characterization.utils.common import LARGE_VALUE, EPSILON, InteractionStatus
 from characterization.utils.io_utils import from_pickle, get_logger
 from characterization.utils.scenario_types import AgentPairType, AgentType, get_agent_pair_type
 
@@ -409,7 +409,7 @@ def regroup_interaction_features(interaction_features: dict[str, Any]) -> dict[A
     ) -> None:
         """Extends features to the corresponding agent type in the feature dictionary."""
         if feature.separation is not None:
-            feature_dict[agent_pair]["inv_separation"].append(1 / (feature.separation[index] + SMALL_EPS))
+            feature_dict[agent_pair]["inv_separation"].append(1 / (feature.separation[index] + EPSILON))
             feature_dict[agent_pair]["separation"].append(feature.separation[index])
         if feature.intersection is not None:
             feature_dict[agent_pair]["intersection"].append(feature.intersection[index])
@@ -449,7 +449,7 @@ def regroup_interaction_features(interaction_features: dict[str, Any]) -> dict[A
     for key in regrouped_features:  # noqa: PLC0206
         for feature_name in regrouped_features[key]:
             regrouped_features[key][feature_name] = np.array(regrouped_features[key][feature_name], dtype=np.float32)  # pyright: ignore[reportArgumentType]
-            regrouped_features[key][feature_name][np.isinf(regrouped_features[key][feature_name])] = BIG_EPS
+            regrouped_features[key][feature_name][np.isinf(regrouped_features[key][feature_name])] = LARGE_VALUE
 
     return regrouped_features
 

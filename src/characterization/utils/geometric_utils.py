@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 from scipy.signal import resample
 
 from characterization.schemas import Scenario
-from characterization.utils.common import SMALL_EPS, AgentTrajectoryMasker
+from characterization.utils.common import EPSILON, AgentTrajectoryMasker
 
 
 def compute_moving_average(values: NDArray[np.float32], window_size: int = 5) -> NDArray[np.float32]:
@@ -337,7 +337,7 @@ def _project_onto_lane_segments(
         seg_vec = lane_points[seg_end] - lane_points[seg_start]
         seg_len_sq = np.sum(seg_vec**2)
 
-        if seg_len_sq < SMALL_EPS:
+        if seg_len_sq < EPSILON:
             continue  # Degenerate segment
 
         # Parameter t for projection (0 <= t <= 1 means point is on segment)

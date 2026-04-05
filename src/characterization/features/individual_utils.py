@@ -3,7 +3,7 @@ from numpy.typing import NDArray
 
 from characterization.schemas import ScenarioMetadata
 from characterization.utils import geometric_utils
-from characterization.utils.common import MIN_VALID_POINTS, SMALL_EPS, LaneMasker, TrajectoryType, mph_to_ms
+from characterization.utils.common import EPSILON, MIN_VALID_POINTS, LaneMasker, TrajectoryType, mph_to_ms
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -198,20 +198,20 @@ def compute_waiting_period(
         # idx = intervals.argmax()
         # # breakpoint()
         # waiting_period_interval_longest = intervals[idx]
-        # waiting_period_distance_longest = dists_cps[idx] + SMALL_EPS
+        # waiting_period_distance_longest = dists_cps[idx] + EPSILON
 
         # # Get the index of the closest conflict point for each interval. Then get the interval for
         # # that index and the distance to that conflict point
         # idx = dists_cps.argmin()
         # waiting_period_interval_closest_conflict = intervals[idx]
-        # waiting_period_distance_closest_conflict = dists_cps[idx] + SMALL_EPS
+        # waiting_period_distance_closest_conflict = dists_cps[idx] + EPSILON
 
     # waiting_intervals = np.asarray(
     #     [waiting_period_interval_longest, waiting_period_interval_closest_conflict])
     # waiting_distances_to_conflict = np.asarray(
     #     [waiting_period_distance_longest, waiting_period_distance_closest_conflict])
 
-    waiting_period = waiting_intervals / (waiting_distances + SMALL_EPS)
+    waiting_period = waiting_intervals / (waiting_distances + EPSILON)
     return waiting_period, waiting_intervals, waiting_distances
 
 
