@@ -9,8 +9,8 @@ from pydantic import BeforeValidator
 
 from characterization.utils.scenario_types import AgentType
 
-SMALL_EPS = 1e-6
-BIG_EPS = 1e6
+EPSILON = 1e-6
+LARGE_VALUE = 1e6
 SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
 SUPPORTED_CRITERIA = ["critical", "average"]
 MIN_VALID_POINTS = 2

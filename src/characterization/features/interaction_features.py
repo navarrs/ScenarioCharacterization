@@ -15,8 +15,8 @@ import characterization.features.interaction_utils as interaction
 from characterization.features.base_feature import BaseFeature
 from characterization.schemas import Interaction, Scenario, ScenarioFeatures
 from characterization.utils.common import (
+    EPSILON,
     MIN_VALID_POINTS,
-    SMALL_EPS,
     AgentTrajectoryMasker,
     FeatureType,
     InteractionStatus,
@@ -315,9 +315,9 @@ def _process_agent_pair_worker(n: int, i: int, j: int) -> tuple[int, Interaction
             raise ValueError(error_message)
 
     # TODO: add the stability cap to configuration
-    inv_mttcp = min(1.0 / (mttcp + SMALL_EPS), 10.0)
-    inv_ttc = min(1.0 / (ttc + SMALL_EPS), 10.0)
-    inv_thw = min(1.0 / (thw + SMALL_EPS), 10.0)
+    inv_mttcp = min(1.0 / (mttcp + EPSILON), 10.0)
+    inv_ttc = min(1.0 / (ttc + EPSILON), 10.0)
+    inv_thw = min(1.0 / (thw + EPSILON), 10.0)
 
     if categorize_features and categorization_dicts is not None:
         agent_pair_type = get_agent_pair_type(agent_i.agent_type, agent_j.agent_type)
@@ -460,7 +460,7 @@ class InteractionFeatures(BaseFeature):
         agent_heights = agent_trajectories.agent_heights.squeeze(-1)
 
         # NOTE: this is also computed as a feature in the individual features.
-        agent_velocities = np.linalg.norm(agent_trajectories.agent_xy_vel, axis=-1) + SMALL_EPS
+        agent_velocities = np.linalg.norm(agent_trajectories.agent_xy_vel, axis=-1) + EPSILON
         agent_headings = np.rad2deg(agent_trajectories.agent_headings)
         conflict_points = map_data.map_conflict_points if map_data is not None else None
         dists_to_conflict_points = map_data.agent_distances_to_conflict_points if map_data is not None else None

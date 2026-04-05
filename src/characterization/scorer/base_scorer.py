@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 from omegaconf import DictConfig
 
 from characterization.schemas import FeatureDetections, FeatureWeights, Scenario, ScenarioFeatures, ScenarioScores
-from characterization.utils.common import SMALL_EPS, AgentTrajectoryMasker, categorize_from_thresholds
+from characterization.utils.common import EPSILON, AgentTrajectoryMasker, categorize_from_thresholds
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
 from characterization.utils.scenario_types import AgentType
@@ -131,12 +131,12 @@ class BaseScorer(ABC):
         ego_agent_index = scenario.metadata.ego_vehicle_index
 
         # Get distance between each agent and the ego agent
-        min_dist = agent_to_agent_dists[:, ego_agent_index] + SMALL_EPS  # Shape (num_agents, 1)
+        min_dist = agent_to_agent_dists[:, ego_agent_index] + EPSILON  # Shape (num_agents, 1)
         if reduce_distance_penalty:
             min_dist = np.sqrt(min_dist)
 
         # Return weights: shape(num_agents, )
-        critical_distance = max(max_critical_distance, SMALL_EPS)
+        critical_distance = max(max_critical_distance, EPSILON)
         weights = np.minimum(1.0 / min_dist, 1.0 / critical_distance)
 
         # Adjust weights for vulnerable road users
@@ -184,13 +184,13 @@ class BaseScorer(ABC):
 
         # Get distance between each agent and the closest relevant agent
         relevant_agents_dists = agent_to_agent_dists[:, relevant_agents]  # Shape (num_agents, num_relevant_agents)
-        min_dist = relevant_agents_dists.min(axis=1) + SMALL_EPS
+        min_dist = relevant_agents_dists.min(axis=1) + EPSILON
         if reduce_distance_penalty:
             min_dist = np.sqrt(min_dist)
 
         # The final weight is the relevance of the closest agent scaled by the inverse of the distance between them.
         argmin_dist = relevant_agents_dists.argmin(axis=1)
-        critical_distance = max(max_critical_distance, SMALL_EPS)
+        critical_distance = max(max_critical_distance, EPSILON)
         weights = relevant_agents_values[argmin_dist] * np.minimum(1.0 / min_dist, 1.0 / critical_distance)
 
         # Adjust weights for vulnerable road users
