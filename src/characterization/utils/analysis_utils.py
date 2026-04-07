@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 from tqdm import tqdm
 
 from characterization.schemas import Individual, Interaction, ScenarioFeatures, ScenarioScores
-from characterization.utils.common import LARGE_VALUE, EPSILON, InteractionStatus
+from characterization.utils.common import EPSILON, LARGE_VALUE, InteractionStatus
 from characterization.utils.io_utils import from_pickle, get_logger
 from characterization.utils.scenario_types import AgentPairType, AgentType, get_agent_pair_type
 
@@ -50,6 +50,14 @@ AGENT_COLORS = {
     AgentPairType.TYPE_CYCLIST_CYCLIST: "darkgreen",
     AgentPairType.TYPE_OTHER: "gray",
 }
+
+DEFAULT_FEATURE_CATEGORIES: list[dict[str, Any]] = [
+    {"name": "LOW",      "percentile_range": [0,  25]},
+    {"name": "MEDIUM",   "percentile_range": [25, 75]},
+    {"name": "HIGH",     "percentile_range": [75, 90]},
+    {"name": "CRITICAL", "percentile_range": [90, 100]},
+]
+
 
 def get_sample_to_plot(
     df: pd.DataFrame,
@@ -519,17 +527,40 @@ def get_scenario_splits(
     return scenario_splits
 
 
-def _filter_percentiles(percentile_values: list[int], percentiles: list[float]) -> tuple[list[int], list[float]]:
-    """Filters percentiles to keep only those where the value changes from the previous one."""
-    filtered_percentiles = []
-    filtered_percentile_values = []
-    prev_value = None
-    for p, v in zip(percentile_values, percentiles, strict=False):
-        if prev_value is None or v != prev_value:
-            filtered_percentile_values.append(p)
-            filtered_percentiles.append(v)
-            prev_value = v
-    return filtered_percentile_values, filtered_percentiles
+def _compute_category_thresholds(data: np.ndarray, categories: list[dict[str, Any]]) -> dict[str, float]:
+    """Computes unique boundary thresholds between consecutive semantic categories.
+
+    For each boundary, the nominal threshold is the upper-end percentile of the lower category. If that value equals the
+    previous boundary, the range is scanned at 0.5-percentile steps to find the first strictly greater value.
+
+    Returns:
+        dict mapping "CAT_A/CAT_B" boundary labels to threshold values.
+    """
+    # Work on a local copy so pushing hi doesn't mutate the caller's category list.
+    cats = [{"name": c["name"], "percentile_range": list(c["percentile_range"])} for c in categories]
+    thresholds: dict[str, float] = {}
+    prev: float | None = None
+    for i in range(len(cats) - 1):
+        cat, next_cat = cats[i], cats[i + 1]
+        hi = cat["percentile_range"][1]
+        next_hi = next_cat["percentile_range"][1]
+        midpoint = (hi + next_hi) / 2
+        label = f"{cat['name']}/{next_cat['name']}"
+        value = float(np.round(np.percentile(data, hi), decimals=2))
+
+        if prev is not None and value == prev:
+            for p in np.arange(hi + 0.5, midpoint + 0.5, 0.5):
+                candidate = float(np.round(np.percentile(data, p), decimals=2))
+                if candidate > prev:
+                    value = candidate
+                    next_cat["percentile_range"][0] = p  # keep ranges contiguous
+                    break
+            else:
+                logger.warning("No unique threshold found for boundary %s; using duplicate value %.4f", label, value)
+
+        thresholds[label] = value
+        prev = value
+    return thresholds
 
 
 def plot_feature_distributions(
@@ -537,7 +568,7 @@ def plot_feature_distributions(
     output_dir: Path,
     dpi: int = 300,
     tag: str = "",
-    percentile_values: list[int] = [1, 10, 25, 50, 75, 90, 95, 99],  # noqa: B006
+    categories: list[dict[str, Any]] | None = None,
     *,
     show_kde: bool = True,
     show_percentiles: bool = True,
@@ -550,11 +581,16 @@ def plot_feature_distributions(
         output_dir (Path): Directory to save the output plots.
         dpi (int): Dots per inch for the saved figure.
         tag (str): Optional tag to prepend to the output filenames.
-        percentile_values (list[int]): List of percentiles to compute and display on the plot.
+        categories: Semantic category definitions, each a dict with "name" and "percentile_range" keys. Boundaries
+            between consecutive categories are used as thresholds. If a boundary value duplicates the previous one, the
+            range is scanned at finer granularity to find a unique value. Defaults to LOW/MEDIUM/HIGH/CRITICAL split at
+            the 25th, 75th, and 90th percentiles.
         show_kde (bool): Whether to show the kernel density estimate on the plot.
         show_percentiles (bool): Whether to display percentile lines on the plot.
         show_colored_by_agent_type (bool): Whether to color the histograms by agent type.
     """
+    if categories is None:
+        categories = DEFAULT_FEATURE_CATEGORIES
     sns.set_theme(
         style="whitegrid",
         font_scale=0.9,
@@ -603,19 +639,15 @@ def plot_feature_distributions(
             ax.set_title(f"{feature_title} Distribution ({feature_values.shape[0]} samples)")
             ax.grid(visible=True, linestyle="--", alpha=0.4)
 
-            percentiles = np.round(np.percentile(feature_values, percentile_values), decimals=2).tolist()
+            thresholds = _compute_category_thresholds(feature_values, categories)
+            feature_percentiles[feature_name] = thresholds
 
-            # Only keep percentiles where the value changes from the previous one
-            filtered_percentile_values, filtered_percentiles = _filter_percentiles(percentile_values, percentiles)
-            feature_percentiles[feature_name] = dict(
-                zip(filtered_percentile_values, filtered_percentiles, strict=False)
-            )
             if show_percentiles:
-                for p, v in zip(filtered_percentile_values, filtered_percentiles, strict=False):
+                for label, v in thresholds.items():
                     ax.axvline(v, color="black", linestyle="--", alpha=0.9)
                     y = ax.get_ylim()[1] * 0.9
                     x = v + 0.08
-                    ax.text(x, y, f"{p}th: {v:.2f}", rotation=90, verticalalignment="center", fontsize=8, color="dimgray")
+                    ax.text(x, y, f"{label}: {v:.2f}", rotation=90, verticalalignment="center", fontsize=8, color="dimgray")
 
             # Only for speed_lim_diff aesthetics
             # ax.set_xlim(left=0, right=30)
@@ -638,7 +670,7 @@ def plot_agent_scores_distributions(
     agent_scores_valid: dict[str, Any],
     output_dir: Path,
     dpi: int = 100,
-    percentile_values: list[int] = [10, 25, 50, 75, 90, 95, 99],  # noqa: B006
+    categories: list[dict[str, Any]] | None = None,
 ) -> None:
     """Plots the distribution of agent scores using histograms and density curves.
 
@@ -647,8 +679,11 @@ def plot_agent_scores_distributions(
         agent_scores_valid (dict[str, Any]): Dictionary containing validity masks for agent scores.
         output_dir (Path): Directory to save the output plots.
         dpi (int): Dots per inch for the saved figure.
-        percentile_values (list[int]): List of percentiles to compute and display on the plot.
+        categories: Semantic category definitions used to compute boundary thresholds.
+            Defaults to LOW/MEDIUM/HIGH/CRITICAL split at the 25th, 75th, and 90th percentiles.
     """
+    if categories is None:
+        categories = DEFAULT_FEATURE_CATEGORIES
     for key, values in agent_scores.items():
         if key == "scenario_ids":
             continue
@@ -681,14 +716,10 @@ def plot_agent_scores_distributions(
         ax.set_title(f"Scores Distribution ({len(agent_scores_flattened)} agents)")
         ax.grid(visible=True, linestyle="--", alpha=0.4)
 
-        percentiles = np.round(np.percentile(agent_scores_flattened, percentile_values), decimals=2).tolist()
-        # Only keep percentiles where the value changes from the previous one
-        filtered_percentile_values, filtered_percentiles = _filter_percentiles(percentile_values, percentiles)
-
-        score_percentiles = dict(zip(filtered_percentile_values, filtered_percentiles, strict=False))
-        for p, v in score_percentiles.items():
-            ax.axvline(float(v), color="black", linestyle="--", alpha=0.6)
-            ax.text(float(v), ax.get_ylim()[1] * 0.9, f"{p}th: {v:.2f}", rotation=90, verticalalignment="center")
+        score_percentiles = _compute_category_thresholds(np.array(agent_scores_flattened), categories)
+        for label, v in score_percentiles.items():
+            ax.axvline(v, color="black", linestyle="--", alpha=0.6)
+            ax.text(v, ax.get_ylim()[1] * 0.9, f"{label}: {v:.2f}", rotation=90, verticalalignment="center")
 
         plt.tight_layout()
         output_filepath = output_dir / f"agent_score_distribution_{key}.png"
@@ -750,7 +781,7 @@ def plot_agent_scores_heatmap(
             continue
         heatmap[individual, interaction] += 1
 
-    sns.heatmap(
+    ax = sns.heatmap(
         heatmap,
         annot=True,
         fmt="d",
@@ -760,6 +791,7 @@ def plot_agent_scores_heatmap(
         cbar_kws={"label": "Number of Agents"},
         annot_kws={"fontsize": 6},
     )
+    ax.invert_yaxis()
     plt.xlabel("Interaction Agent Scores")
     plt.ylabel("Individual Agent Scores")
     plt.title(f"Agent Scores Heatmap for Criterion: {criterion}")
