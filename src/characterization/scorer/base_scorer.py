@@ -50,7 +50,7 @@ class BaseScorer(ABC):
             self.weights,
         )
 
-        self.score_clip = self.config.score_clip
+        self.score_clip = self.config.get("score_clip", {"min": 0.0, "max": 200.0})
         self.score_weighting_method = ScoreWeightingMethod(self.config.get("score_weighting_method", "uniform"))
 
         self.categorize_scores = self.config.get("categorize_scores", False)
@@ -180,6 +180,8 @@ class BaseScorer(ABC):
         if agent_relevance is None:
             return BaseScorer._get_weights_uniform(scenario)
         relevant_agents = np.where(agent_relevance > 0.0)[0]
+        if len(relevant_agents) == 0:
+            return BaseScorer._get_weights_uniform(scenario)
         relevant_agents_values = agent_relevance[relevant_agents]  # Shape (num_relevant_agents)
 
         # Get distance between each agent and the closest relevant agent

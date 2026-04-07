@@ -35,7 +35,6 @@ class SafeShiftScorer(BaseScorer):
             ValueError: If any required feature (agent_to_agent_closest_dists, interaction_agent_indices,
                 interaction_status, collision, mttcp) is missing in scenario_features.
         """
-        valid_scores = None
         scores = np.zeros(shape=(scenario.agent_data.num_agents,), dtype=np.float32)
 
         # Compute individual scores

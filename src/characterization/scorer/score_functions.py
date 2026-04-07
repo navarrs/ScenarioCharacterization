@@ -1,6 +1,4 @@
-import numpy as np
-
-from characterization.utils.common import EPSILON, TRAJECTORY_TYPE_WEIGHTS, TrajectoryType
+from characterization.utils.common import TRAJECTORY_TYPE_WEIGHTS, TrajectoryType
 
 
 def simple_individual_score(
@@ -80,15 +78,15 @@ def simple_interaction_score(
     collision: float = 0.0,
     collision_weight: float = 1.0,
     collision_detection: float = 1.0,
-    mttcp: float = np.inf,
-    mttcp_weight: float = 1.0,
-    mttcp_detection: float = 1.0,
-    thw: float = np.inf,
-    thw_weight: float = 1.0,
-    thw_detection: float = 1.0,
-    ttc: float = np.inf,
-    ttc_weight: float = 1.0,
-    ttc_detection: float = 1.0,
+    inv_mttcp: float = 0.0,
+    inv_mttcp_weight: float = 1.0,
+    inv_mttcp_detection: float = 1.0,
+    inv_thw: float = 0.0,
+    inv_thw_weight: float = 1.0,
+    inv_thw_detection: float = 1.0,
+    inv_ttc: float = 0.0,
+    inv_ttc_weight: float = 1.0,
+    inv_ttc_detection: float = 1.0,
     drac: float = 0.0,
     drac_weight: float = 1.0,
     drac_detection: float = 1.0,
@@ -99,15 +97,15 @@ def simple_interaction_score(
         collision (float): Collision indicator (1 if collision occurred, else 0).
         collision_weight (float): Weight for the collision feature.
         collision_detection (float): Detection threshold for the collision feature.
-        mttcp (float): Minimum time to closest point of approach.
-        mttcp_weight (float): Weight for the mttcp feature.
-        mttcp_detection (float): Detection threshold for the mttcp feature.
-        thw (float): Time headway.
-        thw_weight (float): Weight for the thw feature.
-        thw_detection (float): Detection threshold for the thw feature.
-        ttc (float): Time to collision.
-        ttc_weight (float): Weight for the ttc feature.
-        ttc_detection (float): Detection threshold for the ttc feature.
+        inv_mttcp (float): Inverse minimum time to closest point of approach (pre-capped).
+        inv_mttcp_weight (float): Weight for the inv_mttcp feature.
+        inv_mttcp_detection (float): Detection threshold for the inv_mttcp feature.
+        inv_thw (float): Inverse time headway (pre-capped).
+        inv_thw_weight (float): Weight for the inv_thw feature.
+        inv_thw_detection (float): Detection threshold for the inv_thw feature.
+        inv_ttc (float): Inverse time to collision (pre-capped).
+        inv_ttc_weight (float): Weight for the inv_ttc feature.
+        inv_ttc_detection (float): Detection threshold for the inv_ttc feature.
         drac (float): Deceleration rate to avoid collision.
         drac_weight (float): Weight for the drac feature.
         drac_detection (float): Detection threshold for the drac feature.
@@ -115,14 +113,11 @@ def simple_interaction_score(
     Returns:
         float: The aggregated score for the agent pair.
     """
-    inv_mttcp = 1.0 / (mttcp + EPSILON)
-    inv_thw = 1.0 / (thw + EPSILON)
-    inv_ttc = 1.0 / (ttc + EPSILON)
     return (
         collision_weight * min(collision_detection, collision)
-        + mttcp_weight * min(mttcp_detection, inv_mttcp)
-        + thw_weight * min(thw_detection, inv_thw)
-        + ttc_weight * min(ttc_detection, inv_ttc)
+        + inv_mttcp_weight * min(inv_mttcp_detection, inv_mttcp)
+        + inv_thw_weight * min(inv_thw_detection, inv_thw)
+        + inv_ttc_weight * min(inv_ttc_detection, inv_ttc)
         + drac_weight * min(drac_detection, drac)
     )
 
