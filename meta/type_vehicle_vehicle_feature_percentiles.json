@@ -1,60 +1,57 @@
 {
     "inv_separation": {
-        "10": 0.01,
-        "75": 0.04,
-        "90": 0.07,
-        "95": 0.1,
-        "99": 0.24
+        "LOW/MEDIUM": 0.009999999776482582,
+        "MEDIUM/HIGH": 0.03999999910593033,
+        "HIGH/CRITICAL": 0.07000000029802322
     },
     "separation": {
-        "10": 14.65,
-        "75": 67.51,
-        "80": 72.12,
-        "90": 83.45,
-        "95": 90.8,
-        "99": 97.96
+        "LOW/MEDIUM": 28.010000228881836,
+        "MEDIUM/HIGH": 67.30999755859375,
+        "HIGH/CRITICAL": 83.2699966430664
     },
     "intersection": {
-        "10": 0.0
+        "LOW/MEDIUM": 0.0,
+        "MEDIUM/HIGH": 0.0,
+        "HIGH/CRITICAL": 0.0
     },
     "collision": {
-        "10": 0.0
+        "LOW/MEDIUM": 0.0,
+        "MEDIUM/HIGH": 0.0,
+        "HIGH/CRITICAL": 0.0
     },
     "inv_mttcp": {
-        "10": 0.0,
-        "95": 0.73,
-        "99": 10.0
+        "LOW/MEDIUM": 0.0,
+        "MEDIUM/HIGH": 0.2,
+        "HIGH/CRITICAL": 10.0
     },
     "mttcp": {
-        "10": 1000000.0
+        "LOW/MEDIUM": 1000000.0,
+        "MEDIUM/HIGH": 1000000.0,
+        "HIGH/CRITICAL": 6427170.74
     },
     "inv_thw": {
-        "10": 0.0,
-        "80": 0.1,
-        "90": 0.44,
-        "95": 1.35,
-        "99": 10.0
+        "LOW/MEDIUM": 0.0,
+        "MEDIUM/HIGH": 0.25,
+        "HIGH/CRITICAL": 10.0
     },
     "thw": {
-        "10": 2.26,
-        "75": 1000000.0,
-        "95": 8731669.4,
-        "99": 31604740.78
+        "LOW/MEDIUM": 1000000.0,
+        "MEDIUM/HIGH": 1000000.0,
+        "HIGH/CRITICAL": 42762018.96
     },
     "inv_ttc": {
-        "10": 0.0,
-        "90": 0.27,
-        "95": 0.92,
-        "99": 10.0
+        "LOW/MEDIUM": 0.0,
+        "MEDIUM/HIGH": 0.17,
+        "HIGH/CRITICAL": 10.0
     },
     "ttc": {
-        "10": 3.69,
-        "75": 1000000.0
+        "LOW/MEDIUM": 1000000.0,
+        "MEDIUM/HIGH": 1000000.0,
+        "HIGH/CRITICAL": 1000000.0
     },
     "drac": {
-        "10": 0.0,
-        "90": 1.03,
-        "95": 4.23,
-        "99": 15.0
+        "LOW/MEDIUM": 0.0,
+        "MEDIUM/HIGH": 0.64,
+        "HIGH/CRITICAL": 3.0
     }
 }
