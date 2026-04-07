@@ -52,17 +52,23 @@ class IndividualFeatures(BaseFeature):
         self.categorize_features = FeatureType(self.config.get("feature_type", "continuous")) == FeatureType.CATEGORICAL
         if self.categorize_features:
             vehicle_file = Path(self.config.get("vehicle_categorization_file", ""))
-            assert vehicle_file.is_file(), f"Vehicle categorization file {vehicle_file} does not exist."
+            if not vehicle_file.is_file():
+                msg = f"Vehicle categorization file {vehicle_file} does not exist."
+                raise FileNotFoundError(msg)
             with vehicle_file.open("r") as f:
                 self.vehicle_categories = json.load(f)
 
             cyclist_file = Path(self.config.get("cyclist_categorization_file", ""))
-            assert cyclist_file.is_file(), f"Cyclist categorization file {cyclist_file} does not exist."
+            if not cyclist_file.is_file():
+                msg = f"Cyclist categorization file {cyclist_file} does not exist."
+                raise FileNotFoundError(msg)
             with cyclist_file.open("r") as f:
                 self.cyclist_categories = json.load(f)
 
             pedestrian_file = Path(self.config.get("pedestrian_categorization_file", ""))
-            assert pedestrian_file.is_file(), f"Pedestrian categorization file {pedestrian_file} does not exist."
+            if not pedestrian_file.is_file():
+                msg = f"Pedestrian categorization file {pedestrian_file} does not exist."
+                raise FileNotFoundError(msg)
             with pedestrian_file.open("r") as f:
                 self.pedestrian_categories = json.load(f)
 

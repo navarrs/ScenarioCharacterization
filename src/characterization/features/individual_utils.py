@@ -177,7 +177,7 @@ def compute_waiting_period(
     # On a per-timestep basis, this considers an agent to be waiting if its speed is less than or
     # equal to the predefined stationary speed.
     is_waiting = speed <= stationary_speed
-    if sum(is_waiting) > 0:
+    if is_waiting.any():
         # Find all the transitions between moving and being stationary
         is_waiting = np.hstack([[False], is_waiting, [False]])
         is_waiting = np.diff(is_waiting.astype(int))
