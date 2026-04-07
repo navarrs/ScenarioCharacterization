@@ -8,6 +8,7 @@ from omegaconf import DictConfig
 from characterization.features.interaction_features import InteractionStatus
 from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores, Score
 from characterization.scorer.base_scorer import BaseScorer, ScoreWeightingMethod
+from characterization.utils.common import EPSILON
 from characterization.utils.io_utils import get_logger
 
 from .score_functions import INTERACTION_SCORE_FUNCTIONS
@@ -45,7 +46,9 @@ class InteractionScorer(BaseScorer):
 
         if self.categorize_scores:
             categorization_file = Path(self.config.get("interaction_categorization_file", ""))
-            assert categorization_file.is_file(), f"Categorization file {categorization_file} does not exist."
+            if not categorization_file.is_file():
+                msg = f"Categorization file {categorization_file} does not exist."
+                raise FileNotFoundError(msg)
             with categorization_file.open("r") as f:
                 self.categories = json.load(f)
 
@@ -86,24 +89,28 @@ class InteractionScorer(BaseScorer):
             if status not in [InteractionStatus.COMPUTED_OK, InteractionStatus.PARTIAL_INVALID_HEADING]:
                 continue
 
-            # Compute the agent-pair scores
+            # Compute the agent-pair scores using pre-capped inverse metrics from the feature pipeline.
+            # Detection thresholds are stored in seconds so convert to 1/s for the inverse features.
             agent_pair_score = self.score_function(
                 collision=features.collision[n] if features.collision is not None else 0.0,
                 collision_weight=self.weights.collision,
                 collision_detection=self.detections.collision,
-                mttcp=features.mttcp[n] if features.mttcp is not None else np.inf,
-                mttcp_weight=self.weights.mttcp,
-                mttcp_detection=self.detections.mttcp,
-                thw=features.thw[n] if features.thw is not None else np.inf,
-                thw_weight=self.weights.thw,
-                thw_detection=self.detections.thw,
-                ttc=features.ttc[n] if features.ttc is not None else np.inf,
-                ttc_weight=self.weights.ttc,
-                ttc_detection=self.detections.ttc,
+                inv_mttcp=features.inv_mttcp[n] if features.inv_mttcp is not None else 0.0,
+                inv_mttcp_weight=self.weights.mttcp,
+                inv_mttcp_detection=1.0 / (self.detections.mttcp + EPSILON),
+                inv_thw=features.inv_thw[n] if features.inv_thw is not None else 0.0,
+                inv_thw_weight=self.weights.thw,
+                inv_thw_detection=1.0 / (self.detections.thw + EPSILON),
+                inv_ttc=features.inv_ttc[n] if features.inv_ttc is not None else 0.0,
+                inv_ttc_weight=self.weights.ttc,
+                inv_ttc_detection=1.0 / (self.detections.ttc + EPSILON),
                 drac=features.drac[n] if features.drac is not None else 0.0,
                 drac_weight=self.weights.drac,
                 drac_detection=self.detections.drac,
             )
+            # NOTE: this can be improved in the future. Currently, if "self.categorize_scores" is True, we compute the
+            # weighted score value first and then categorize it. In this case is because we want to categorize the
+            # agent accounting for its relevance to the ego-agent.
             scores[i] += weights[i] * agent_pair_score
             scores[j] += weights[j] * agent_pair_score
             valid[i] = True
@@ -117,8 +124,8 @@ class InteractionScorer(BaseScorer):
         # Replace NaNs with zeros as a safeguard
         scores = np.nan_to_num(scores, nan=0.0)
 
-        # Normalize the scores
-        denom = max(np.where(scores > 0.0)[0].shape[0], 1)
+        # Normalize by the number of agents involved in at least one scored interaction
+        denom = max(int(valid.sum()), 1)
         scene_score = np.clip(scores.sum() / denom, a_min=self.score_clip.min, a_max=self.score_clip.max)
         return Score(agent_scores=scores, agent_scores_valid=valid, scene_score=scene_score)
 

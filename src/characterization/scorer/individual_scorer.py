@@ -44,7 +44,9 @@ class IndividualScorer(BaseScorer):
 
         if self.categorize_scores:
             categorization_file = Path(self.config.get("individual_categorization_file", ""))
-            assert categorization_file.is_file(), f"Categorization file {categorization_file} does not exist."
+            if not categorization_file.is_file():
+                msg = f"Categorization file {categorization_file} does not exist."
+                raise FileNotFoundError(msg)
             with categorization_file.open("r") as f:
                 self.categories = json.load(f)
 
@@ -76,6 +78,9 @@ class IndividualScorer(BaseScorer):
         valid_idxs = features.valid_idxs
         for n in range(valid_idxs.shape[0]):
             valid_idx = valid_idxs[n]
+            # NOTE: this can be improved in the future. Currently, if "self.categorize_scores" is True, we compute the
+            # weighted score value first and then categorize it. In this case is because we want to categorize the
+            # agent accounting for its relevance to the ego-agent.
             score_value = weights[valid_idx] * self.score_function(
                 speed=features.speed[n] if features.speed is not None else 0.0,
                 speed_weight=self.weights.speed,
@@ -103,7 +108,7 @@ class IndividualScorer(BaseScorer):
             )
 
             if self.categorize_scores:
-                score_value = self.categorize(score_value.item())
+                score_value = self.categorize(float(score_value))
 
             scores[valid_idx] = score_value
             valid[valid_idx] = True
@@ -111,8 +116,8 @@ class IndividualScorer(BaseScorer):
         # As a safeguard, replace NaNs with zeros
         scores = np.nan_to_num(scores, nan=0.0)
 
-        # Score normalization factor
-        denom = max(np.where(scores > 0.0)[0].shape[0], 1)
+        # Normalize by the number of valid agents (those that had sufficient data for feature computation)
+        denom = max(valid_idxs.shape[0], 1)
         scene_score = np.clip(scores.sum() / denom, a_min=self.score_clip.min, a_max=self.score_clip.max)
         return Score(agent_scores=scores, agent_scores_valid=valid, scene_score=scene_score)
 
