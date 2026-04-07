@@ -61,6 +61,8 @@ characterizer:
       min: 0.0
       max: 200.0
 
+    inv_stability_cap: 10.0  # Maximum value for inverse interaction metrics (inv_mttcp, inv_ttc, inv_thw)
+
     # NOTE: if weights are not specified here, will use default values from FeatureWeights in schemas/detections.py.
     weights:
       # Individual features

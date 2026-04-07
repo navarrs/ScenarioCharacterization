@@ -135,6 +135,7 @@ def _init_worker_context(
     return_criterion: ReturnCriterion,
     categorize_features: bool,  # noqa: FBT001
     categorization_dicts: dict[str, dict[str, dict[str, Any]]] | None,
+    inv_stability_cap: float,
 ) -> None:
     """Initialize worker process with shared context data."""
     _WORKER_CONTEXT.update(
@@ -158,6 +159,7 @@ def _init_worker_context(
             "return_criterion": return_criterion,
             "categorize_features": categorize_features,
             "categorization_dicts": categorization_dicts,
+            "inv_stability_cap": inv_stability_cap,
         }
     )
 
@@ -224,6 +226,7 @@ def _process_agent_pair_worker(n: int, i: int, j: int) -> tuple[int, Interaction
     return_criterion = _WORKER_CONTEXT["return_criterion"]
     categorize_features = _WORKER_CONTEXT["categorize_features"]
     categorization_dicts = _WORKER_CONTEXT["categorization_dicts"]
+    inv_stability_cap = _WORKER_CONTEXT["inv_stability_cap"]
 
     agent_i = interaction.InteractionAgent()
     agent_j = interaction.InteractionAgent()
@@ -231,7 +234,7 @@ def _process_agent_pair_worker(n: int, i: int, j: int) -> tuple[int, Interaction
     # There should be at least two valid timestamps for the combined agents masks
     mask_i, mask_j = agent_masks[i], agent_masks[j]
     mask = np.where(mask_i & mask_j)[0]
-    if not mask.sum():
+    if len(mask) < MIN_VALID_POINTS:
         # No valid data for this pair of agents
         return (n, InteractionStatus.MASK_NOT_VALID, None)
 
@@ -275,9 +278,10 @@ def _process_agent_pair_worker(n: int, i: int, j: int) -> tuple[int, Interaction
     # we currently assume that agents are sharing the same lane.
     valid_headings = interaction.find_valid_headings(agent_i, agent_j, heading_threshold)
     if valid_headings.shape[0] < MIN_VALID_POINTS:
-        thws = np.full(1, np.inf, dtype=np.float32)
-        ttcs = np.full(1, np.inf, dtype=np.float32)
-        dracs = np.full(1, 0.0, dtype=np.float32)
+        n_timesteps = len(mask)
+        thws = np.full(n_timesteps, np.inf, dtype=np.float32)
+        ttcs = np.full(n_timesteps, np.inf, dtype=np.float32)
+        dracs = np.full(n_timesteps, 0.0, dtype=np.float32)
         status = InteractionStatus.PARTIAL_INVALID_HEADING
     else:
         # At this point agents are sharing a lane and have at least two steps with headings within the defined
@@ -314,10 +318,9 @@ def _process_agent_pair_worker(n: int, i: int, j: int) -> tuple[int, Interaction
             error_message = f"{return_criterion} not supported. Expected 'critical' or 'average'."
             raise ValueError(error_message)
 
-    # TODO: add the stability cap to configuration
-    inv_mttcp = min(1.0 / (mttcp + EPSILON), 10.0)
-    inv_ttc = min(1.0 / (ttc + EPSILON), 10.0)
-    inv_thw = min(1.0 / (thw + EPSILON), 10.0)
+    inv_mttcp = min(1.0 / (mttcp + EPSILON), inv_stability_cap)
+    inv_ttc = min(1.0 / (ttc + EPSILON), inv_stability_cap)
+    inv_thw = min(1.0 / (thw + EPSILON), inv_stability_cap)
 
     if categorize_features and categorization_dicts is not None:
         agent_pair_type = get_agent_pair_type(agent_i.agent_type, agent_j.agent_type)
@@ -371,36 +374,47 @@ class InteractionFeatures(BaseFeature):
         super().__init__(config)
 
         self.categorize_features = FeatureType(self.config.get("feature_type", "continuous")) == FeatureType.CATEGORICAL
+        self.inv_stability_cap: float = self.config.get("inv_stability_cap", 10.0)
         if self.categorize_features:
             vehicle_vehicle_file = Path(self.config.get("vehicle_vehicle_categorization_file", ""))
-            assert vehicle_vehicle_file.is_file(), f"Categorization file {vehicle_vehicle_file} does not exist."
+            if not vehicle_vehicle_file.is_file():
+                msg = f"Categorization file {vehicle_vehicle_file} does not exist."
+                raise FileNotFoundError(msg)
             with vehicle_vehicle_file.open("r") as f:
                 self.vehicle_vehicle_categories = json.load(f)
 
             vehicle_pedestrian_file = Path(self.config.get("vehicle_pedestrian_categorization_file", ""))
-            assert vehicle_pedestrian_file.is_file(), f"Categorization file {vehicle_pedestrian_file} does not exist."
+            if not vehicle_pedestrian_file.is_file():
+                msg = f"Categorization file {vehicle_pedestrian_file} does not exist."
+                raise FileNotFoundError(msg)
             with vehicle_pedestrian_file.open("r") as f:
                 self.vehicle_pedestrian_categories = json.load(f)
 
             vehicle_cyclist_file = Path(self.config.get("vehicle_cyclist_categorization_file", ""))
-            assert vehicle_cyclist_file.is_file(), f"Categorization file {vehicle_cyclist_file} does not exist."
+            if not vehicle_cyclist_file.is_file():
+                msg = f"Categorization file {vehicle_cyclist_file} does not exist."
+                raise FileNotFoundError(msg)
             with vehicle_cyclist_file.open("r") as f:
                 self.vehicle_cyclist_categories = json.load(f)
 
             pedestrian_pedestrian_file = Path(self.config.get("pedestrian_pedestrian_categorization_file", ""))
-            assert pedestrian_pedestrian_file.is_file(), (
-                f"Categorization file {pedestrian_pedestrian_file} does not exist."
-            )
+            if not pedestrian_pedestrian_file.is_file():
+                msg = f"Categorization file {pedestrian_pedestrian_file} does not exist."
+                raise FileNotFoundError(msg)
             with pedestrian_pedestrian_file.open("r") as f:
                 self.pedestrian_pedestrian_categories = json.load(f)
 
             pedestrian_cyclist_file = Path(self.config.get("pedestrian_cyclist_categorization_file", ""))
-            assert pedestrian_cyclist_file.is_file(), f"Categorization file {pedestrian_cyclist_file} does not exist."
+            if not pedestrian_cyclist_file.is_file():
+                msg = f"Categorization file {pedestrian_cyclist_file} does not exist."
+                raise FileNotFoundError(msg)
             with pedestrian_cyclist_file.open("r") as f:
                 self.pedestrian_cyclist_categories = json.load(f)
 
             cyclist_cyclist_file = Path(self.config.get("cyclist_cyclist_categorization_file", ""))
-            assert cyclist_cyclist_file.is_file(), f"Categorization file {cyclist_cyclist_file} does not exist."
+            if not cyclist_cyclist_file.is_file():
+                msg = f"Categorization file {cyclist_cyclist_file} does not exist."
+                raise FileNotFoundError(msg)
             with cyclist_cyclist_file.open("r") as f:
                 self.cyclist_cyclist_categories = json.load(f)
 
@@ -571,6 +585,7 @@ class InteractionFeatures(BaseFeature):
                     self.return_criterion,
                     self.categorize_features,
                     categorization_dicts,
+                    self.inv_stability_cap,
                 ),
             ) as executor:
                 futures = [executor.submit(_process_agent_pair_worker, n, i, j) for n, i, j in candidate_pairs]
@@ -616,6 +631,7 @@ class InteractionFeatures(BaseFeature):
                 self.return_criterion,
                 self.categorize_features,
                 categorization_dicts,
+                self.inv_stability_cap,
             )
             _run_pairwise_full_loop(candidate_pairs)
 

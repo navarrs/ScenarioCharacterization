@@ -216,7 +216,7 @@ def compute_thw(
     Returns:
         thw (NDArray[np.float32]): Array of time headway values for each timestep (shape: [T,]).
     """
-    position_i, position_j = np.linalg.norm(agent_i.position, axis=-1), np.linalg.norm(agent_j.position, axis=-1)
+    position_i, position_j = agent_i.position, agent_j.position
     speed_i, speed_j = agent_i.speed, agent_j.speed
     length_i, length_j = agent_i.length, agent_j.length
     if valid_headings is not None:
@@ -233,13 +233,13 @@ def compute_thw(
     # ...where i is the agent ahead
     i_idx = np.where(leading_agent == 0)[0]
     if len(i_idx) > 0:
-        d_i = position_i[i_idx] - position_j[i_idx] - length_i[i_idx]
+        d_i = np.linalg.norm(position_i[i_idx] - position_j[i_idx], axis=-1) - length_i[i_idx]
         thw[i_idx] = d_i / (speed_j[i_idx] + EPSILON)
 
     # ...where j is the agent ahead
     j_idx = np.where(leading_agent == 1)[0]
     if len(j_idx) > 0:
-        d_j = position_j[j_idx] - position_i[j_idx] - length_j[j_idx]
+        d_j = np.linalg.norm(position_j[j_idx] - position_i[j_idx], axis=-1) - length_j[j_idx]
         thw[j_idx] = d_j / (speed_i[j_idx] + EPSILON)
 
     return np.abs(thw)
@@ -271,7 +271,7 @@ def compute_ttc(
     Returns:
         ttc (NDArray[np.float32]): Array of time-to-collision values for each timestep (shape: [T,]).
     """
-    position_i, position_j = np.linalg.norm(agent_i.position, axis=-1), np.linalg.norm(agent_j.position, axis=-1)
+    position_i, position_j = agent_i.position, agent_j.position
     speed_i, speed_j = agent_i.speed, agent_j.speed
     length_i, length_j = agent_i.length, agent_j.length
     if valid_headings is not None:
@@ -289,7 +289,7 @@ def compute_ttc(
     j_faster = np.where(speed_j > speed_i)[0]
     i_idx = np.intersect1d(i_leads, j_faster)
     if len(i_idx) > 0:
-        d_ij = position_j[i_idx] - position_i[i_idx] - length_i[i_idx]
+        d_ij = np.linalg.norm(position_i[i_idx] - position_j[i_idx], axis=-1) - length_i[i_idx]
         ttc[i_idx] = d_ij / (speed_j[i_idx] - speed_i[i_idx] + EPSILON)
 
     # ...where j is the agent ahead and i's speed is higher
@@ -297,7 +297,7 @@ def compute_ttc(
     i_faster = np.where(speed_i > speed_j)[0]
     j_idx = np.intersect1d(j_leads, i_faster)
     if len(j_idx) > 0:
-        d_ji = position_i[j_idx] - position_j[j_idx] - length_j[j_idx]
+        d_ji = np.linalg.norm(position_j[j_idx] - position_i[j_idx], axis=-1) - length_j[j_idx]
         ttc[j_idx] = d_ji / (speed_i[j_idx] - speed_j[j_idx] + EPSILON)
 
     return np.abs(ttc)
@@ -330,7 +330,7 @@ def compute_drac(
     Returns:
         drac (NDArray[np.float32]): Array of time-to-collision values for each timestep (shape: [T,]).
     """
-    position_i, position_j = np.linalg.norm(agent_i.position, axis=-1), np.linalg.norm(agent_j.position, axis=-1)
+    position_i, position_j = agent_i.position, agent_j.position
     speed_i, speed_j = agent_i.speed, agent_j.speed
     length_i, length_j = agent_i.length, agent_j.length
     if valid_headings is not None:
@@ -348,18 +348,18 @@ def compute_drac(
     j_faster = np.where(speed_j > speed_i)[0]
     i_idx = np.intersect1d(i_leads, j_faster)
     if len(i_idx) > 0:
-        d_ij = np.abs(position_j[i_idx] - position_i[i_idx] - length_i[i_idx])
+        d_ij = np.linalg.norm(position_i[i_idx] - position_j[i_idx], axis=-1) - length_i[i_idx]
         v_ji = speed_j[i_idx] - speed_i[i_idx]
-        drac[i_idx] = (v_ji**2) / (2 * d_ij + EPSILON)
+        drac[i_idx] = (v_ji**2) / (2 * np.abs(d_ij) + EPSILON)
 
     # ...where j is the agent ahead and i's speed is higher
     j_leads = np.where(leading_agent == 1)[0]
     i_faster = np.where(speed_i > speed_j)[0]
     j_idx = np.intersect1d(j_leads, i_faster)
     if len(j_idx) > 0:
-        d_ji = np.abs(position_i[j_idx] - position_j[j_idx] - length_j[j_idx])
+        d_ji = np.linalg.norm(position_j[j_idx] - position_i[j_idx], axis=-1) - length_j[j_idx]
         v_ij = speed_i[j_idx] - speed_j[j_idx]
-        drac[j_idx] = (v_ij**2) / (2 * d_ji + EPSILON)
+        drac[j_idx] = (v_ij**2) / (2 * np.abs(d_ji) + EPSILON)
 
     # Clip drac values to avoid infinite or very high values
     return np.clip(drac, 0.0, max_deceleration)
