@@ -4,10 +4,10 @@ from pathlib import Path
 import hydra
 from omegaconf import DictConfig
 
-from characterization.utils import analysis_utils, common
-from characterization.utils.io_utils import get_logger
+from characterization.domains.ad.utils import analysis_utils, common
+from characterization.utils.logging_utils import get_pylogger
 
-logger = get_logger(__name__)
+logger = get_pylogger(__name__)
 
 
 @hydra.main(config_path="config", config_name="run_analysis", version_base="1.3")

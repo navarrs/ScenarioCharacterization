@@ -1,0 +1,83 @@
+
+defaults:
+  - default.yaml
+
+tag: 'amelia-critical'
+
+# Data paths
+base_path: ./data/
+graph_data_version: a42v01
+traj_data_version: csb
+
+test_data_path: [
+  # keep-sorted start
+  "${paths.proc_traj_data_path}/katl",
+  "${paths.proc_traj_data_path}/kbos",
+  "${paths.proc_traj_data_path}/kdca",
+  "${paths.proc_traj_data_path}/kdfw",
+  "${paths.proc_traj_data_path}/kewr",
+  "${paths.proc_traj_data_path}/khou",
+  "${paths.proc_traj_data_path}/kjfk",
+  "${paths.proc_traj_data_path}/klas",
+  "${paths.proc_traj_data_path}/klax",
+  "${paths.proc_traj_data_path}/klga",
+  "${paths.proc_traj_data_path}/kmco",
+  "${paths.proc_traj_data_path}/kmdw",
+  "${paths.proc_traj_data_path}/kmem",
+  "${paths.proc_traj_data_path}/kmsy",
+  "${paths.proc_traj_data_path}/kord",
+  "${paths.proc_traj_data_path}/ksan",
+  "${paths.proc_traj_data_path}/ksea",
+  "${paths.proc_traj_data_path}/ksfo",
+  "${paths.proc_traj_data_path}/kslc",
+  "${paths.proc_traj_data_path}/panc",
+  # keep-sorted end
+]
+test_split_path: [
+  # keep-sorted start
+  "${paths.splits_path}/katl/katl_day_splits.json",
+  "${paths.splits_path}/kbos/kbos_day_splits.json",
+  "${paths.splits_path}/kdca/kdca_day_splits.json",
+  "${paths.splits_path}/kdfw/kdfw_day_splits.json",
+  "${paths.splits_path}/kewr/kewr_day_splits.json",
+  "${paths.splits_path}/khou/khou_day_splits.json",
+  "${paths.splits_path}/kjfk/kjfk_day_splits.json",
+  "${paths.splits_path}/klas/klas_day_splits.json",
+  "${paths.splits_path}/klax/klax_day_splits.json",
+  "${paths.splits_path}/klga/klga_day_splits.json",
+  "${paths.splits_path}/kmco/kmco_day_splits.json",
+  "${paths.splits_path}/kmdw/kmdw_day_splits.json",
+  "${paths.splits_path}/kmem/kmem_day_splits.json",
+  "${paths.splits_path}/kmsy/kmsy_day_splits.json",
+  "${paths.splits_path}/kord/kord_day_splits.json",
+  "${paths.splits_path}/ksan/ksan_day_splits.json",
+  "${paths.splits_path}/ksea/ksea_day_splits.json",
+  "${paths.splits_path}/ksfo/ksfo_day_splits.json",
+  "${paths.splits_path}/kslc/kslc_day_splits.json",
+  "${paths.splits_path}/panc/panc_day_splits.json",
+  # keep-sorted end
+] # list of data splitting files for test data
+test_data_tag: [
+  # keep-sorted start
+  "critical-katl-test",
+  "critical-kbos-test",
+  "critical-kdca-test",
+  "critical-kdfw-test",
+  "critical-kewr-test",
+  "critical-khou-test",
+  "critical-kjfk-test",
+  "critical-klas-test",
+  "critical-klax-test",
+  "critical-klga-test",
+  "critical-kmco-test",
+  "critical-kmdw-test",
+  "critical-kmem-test",
+  "critical-kmsy-test",
+  "critical-kord-test",
+  "critical-ksan-test",
+  "critical-ksea-test",
+  "critical-ksfo-test",
+  "critical-kslc-test",
+  "critical-panc-test",
+  # keep-sorted end
+]

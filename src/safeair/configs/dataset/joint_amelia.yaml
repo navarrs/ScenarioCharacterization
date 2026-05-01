@@ -1,0 +1,10 @@
+defaults:
+  - default.yaml
+
+_target_: safeair.datasets.amelia_dataset.AmeliaDataset
+
+# When true: one sample per scenario, predict only the ego agent (marginal prediction, K=1).
+# When false: one sample per scenario centered on the ego, also predicting all other agents listed in agents_to_predict
+#   simultaneously (joint prediction, K>1). The model is expected to produce decoded_trajectories of shape
+#   (B, M, K, F, 7), and joint GT keys are added to the batch.
+only_train_on_ego: false

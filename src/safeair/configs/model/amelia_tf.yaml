@@ -1,0 +1,49 @@
+defaults:
+  - default.yaml
+
+_target_: safeair.models.amelia_tf.AmeliaTF
+model_name: amelia-tf
+
+# Add model tags
+base_tags: lr-${model.optimizer.lr}_batch-size-${model.train_batch_size}
+extra_tags: ${model.base_tags}_${model.road_encoder_tags}_${model.scenario_embedder_tags}
+
+# Road Encoder (ContextNet)
+road_encoder_tags: context-net-vectors-${model.road_encoder.num_vectors}
+road_encoder:
+  _target_: safeair.models.components.common.ContextNet
+  input_size: ${model.map_input_size}
+  hidden_size: ${model.hidden_size}
+  num_vectors: ${model.max_num_map_elements}
+  aggregate: false
+
+# Scenario Embedder
+scenario_embedder_tags: num-heads-${model.scenario_embedder.num_heads}_hidden-${model.scenario_embedder.hidden_size}
+scenario_embedder:
+  _target_: safeair.models.scene.factorized_embedder.FactorizedEmbedder
+  num_pre_self_attention_blocks: 1
+  num_pre_cross_attention_blocks: 1
+  num_mid_self_attention_blocks: 1
+  num_mid_cross_attention_blocks: 1
+  num_post_self_attention_blocks: 1
+  # FactorizedEmbedder maintains a (batch, 1+num_agents, num_timesteps, hidden_size) tensor
+  num_timesteps: ${scenario.past_len}
+  num_agents: ${model.max_num_agents}
+  hidden_size: 256
+  num_queries: ${model.num_modes}
+  num_heads: 4
+  widening_factor: 2
+  dropout: 0.0
+  bias: true
+
+# Motion Decoder
+motion_decoder:
+  _target_: safeair.models.scene.decoder.TrajectoryDecoder
+  num_modes: ${model.num_modes}
+  decoding_length: ${scenario.future_len.1}
+  hidden_size: 256
+
+# Model's optimization criterion
+criterion:
+  _target_: safeair.models.criterion.trajpred.TrajectoryPrediction
+  rho_limit: 0.5

@@ -1,0 +1,16 @@
+defaults:
+  - default.yaml
+
+# Define scenario-specific parameters for processing Amelia dataset
+dataset_name: amelia
+
+past_len: 10 # history trajectory length, 10s
+future_len: [600] # future trajectory length of 600s (10 minutes)
+skip: 600 # Skip frames to reduce data size, 10s
+max_agents: 200
+min_past_valid_points: 2
+min_last_valid_idx: 1
+validate_scenario: false
+cutoff_frame: 620
+
+tag: "${scenario.dataset_name}_past-${scenario.past_len}_future-${scenario.future_len}"

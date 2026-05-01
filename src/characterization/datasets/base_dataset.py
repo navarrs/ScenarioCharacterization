@@ -8,12 +8,12 @@ from omegaconf import DictConfig
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
+from characterization.domains.ad.utils.geometric_utils import find_closest_lanes, find_conflict_points
 from characterization.schemas import Scenario
 from characterization.utils.common import SUPPORTED_SCENARIO_TYPES
-from characterization.utils.geometric_utils import find_closest_lanes, find_conflict_points
-from characterization.utils.io_utils import get_logger
+from characterization.utils.logging_utils import get_pylogger
 
-logger = get_logger(__name__)
+logger = get_pylogger(__name__)
 
 
 class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, reportUntypedBaseClass]

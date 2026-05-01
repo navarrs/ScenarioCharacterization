@@ -1,0 +1,63 @@
+_target_: safeair.models.base_model.BaseModel
+eval: null
+model_name: null
+extra_tags: null
+sample_selection: false
+
+# Training parameters
+max_epochs: 300
+train_batch_size: 32
+eval_batch_size: 32
+load_num_workers: 10 # number of workers for loading data
+grad_clip_norm: 0.5
+
+# General Model Parameters, shared across all architectures
+max_num_agents: 20
+max_num_map_elements: 400
+# NOTE: these numbers were determined using 'count_graph_stats.py' and might be too high.
+max_num_graph_nodes: 6616
+max_num_graph_edges: 15098
+num_modes: 6
+hidden_size: 256
+
+# Agent input size is determined by the dataset class (see datasets/base_dataset.py), which consists of the following
+# features: (x, y, z, agent_type_onehot(5), time_embedding(past_len+1), pos_embedding(2), speed, acceleration) = 23
+agents_input_size: 23
+# Map input size is determined by the dataset class (see datasets/base_dataset.py), which consists of the following
+# features: (x, y, dir_x, dir_y, map_type_onehot(6)) = 10
+map_input_size: 10
+xyz_scale: ${scenario.xyz_scale}  # one of "km", "hm", or "m"
+
+past_len: ${scenario.past_len}
+future_len: ${scenario.future_len}
+
+monitor: "losses/val"
+
+cache_train_batch: false
+cache_val_batch: false
+cache_test_batch: true
+cache_every_batch_idx: 1
+batch_cache_path: ${paths.batch_cache_path}
+
+# Criterion needs to be defined in child configs
+criterion: null
+
+# Optimizer
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.001
+  weight_decay: 0.01
+  betas: [0.9, 0.95]
+  eps: 0.0001
+
+# Scheduler
+scheduler:
+  _target_: torch.optim.lr_scheduler.OneCycleLR
+  _partial_: true
+  max_lr: 0.0002
+  steps_per_epoch: 1
+  epochs: ${model.max_epochs}
+  pct_start: 0.02
+  div_factor: 100.0
+  final_div_factor: 10

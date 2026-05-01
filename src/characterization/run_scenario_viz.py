@@ -8,11 +8,12 @@ import numpy as np
 import pandas as pd
 from omegaconf import DictConfig
 
+from characterization.domains.ad.utils.viz.visualizer import BaseVisualizer
 from characterization.schemas import ScenarioScores
-from characterization.utils.io_utils import from_pickle, get_logger
-from characterization.utils.viz.visualizer import BaseVisualizer
+from characterization.utils.io_utils import from_pickle
+from characterization.utils.logging_utils import get_pylogger
 
-logger = get_logger(__name__)
+logger = get_pylogger(__name__)
 
 
 def _organize_scenarios_by_percentile(

@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from characterization.utils.common import BooleanNDArray1D, Float32NDArray1D
+from characterization.schemas.types import BooleanNDArray1D, Float32NDArray1D
 
 from .scenario import ScenarioMetadata
 

@@ -1,0 +1,5 @@
+defaults:
+  - default.yaml
+
+_target_: safeair.datasets.amelia_dataset.AmeliaDataset
+load_data: false

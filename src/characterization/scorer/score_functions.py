@@ -1,4 +1,5 @@
-from characterization.utils.common import TRAJECTORY_TYPE_WEIGHTS, TrajectoryType
+from characterization.utils.common import TrajectoryType
+from characterization.utils.constants import TRAJECTORY_TYPE_WEIGHTS
 
 
 def simple_individual_score(

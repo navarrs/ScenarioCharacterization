@@ -3,9 +3,9 @@ from omegaconf import DictConfig
 
 from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores, Score
 from characterization.scorer import BaseScorer, IndividualScorer, InteractionScorer
-from characterization.utils.io_utils import get_logger
+from characterization.utils.logging_utils import get_pylogger
 
-logger = get_logger(__name__)
+logger = get_pylogger(__name__)
 
 
 class SafeShiftScorer(BaseScorer):

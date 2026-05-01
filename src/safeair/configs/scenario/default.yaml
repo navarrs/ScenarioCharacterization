@@ -1,0 +1,15 @@
+# Define scenario-specific parameters for processing Amelia dataset
+dataset_name: amelia
+
+past_len: 10 # history trajectory length, 10s
+future_len: [20, 50] # future trajectory length, 20s and 50s
+skip: 1 # Skip frames to reduce data size, 10s
+min_agents: 2
+max_agents: 150
+min_past_valid_points: 8
+min_last_valid_idx: 49
+validate_scenario: true
+cutoff_frame: 3601
+xyz_scale: "km" # One of "km", "hm", or "m"
+
+tag: "${scenario.dataset_name}_past-${scenario.past_len}_future-${scenario.future_len}"

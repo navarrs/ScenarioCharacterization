@@ -1,0 +1,52 @@
+_target_: safeair.scenario_processor.scenario_processor.ScenarioProcessor
+to_process: scenarios
+
+# Data Paths
+assets_path: ${paths.assets_path}
+graph_data_path: ${paths.graph_data_path}
+traj_data_path: ${paths.traj_data_path}
+
+raw_traj_data_path: ${processor.traj_data_path}/raw_trajectories
+proc_traj_data_path: ${processor.traj_data_path}/proc_trajectories
+traj_summary_path: ${processor.traj_data_path}/proc_summary
+splits_path: ${processor.traj_data_path}/splits
+
+# Processing Settings
+parallel: ${parallel}
+overwrite: ${overwrite}
+process_map_data: true
+process_trajectory_data: true
+perc_process: 1.0 # Percentage of data to process (0.0-1.0)
+seed: ${seed}
+jobs: -1
+sampling_freq: 1  # Hz
+
+# NOTE: the raw (x, y) coordinates are in km and z is in feet. The scenario processor tool converts them all to km, so
+# that the scales are consistent for trajectory forecasting. We support converting them to hectometers (hm) or meters (m),
+# which might be more numerically stable for some models.
+xyz_scale: ${scenario.xyz_scale}  # one of "km", "hm", or "m"
+
+# Scenario Settings
+dataset_name: ${scenario.dataset_name}
+past_len: ${scenario.past_len}
+future_lens: ${scenario.future_len}
+skip: ${scenario.skip}
+min_agents: ${scenario.min_agents}
+max_agents: ${scenario.max_agents}
+min_past_valid_points: ${scenario.min_past_valid_points}
+min_last_valid_idx: ${scenario.min_last_valid_idx}
+validate_scenario: ${scenario.validate_scenario}
+cutoff_frame: ${scenario.cutoff_frame}
+
+# Processing options
+allowed_ego_agent_types: [
+  'AIRCRAFT',
+  # 'VEHICLE',
+  # 'UNKNOWN',
+]
+agent_score_strategy: 'simple'
+dataset_splitting_strategy: 'day'
+create_dataset_splits: ${create_dataset_splits}
+train_val_test_split: [0.7, 0.10, 0.20]
+
+create_dataset_summary: ${create_dataset_summary}

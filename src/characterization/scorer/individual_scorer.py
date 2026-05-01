@@ -7,11 +7,11 @@ from omegaconf import DictConfig
 
 from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores, Score
 from characterization.scorer.base_scorer import BaseScorer
-from characterization.utils.io_utils import get_logger
+from characterization.utils.logging_utils import get_pylogger
 
 from .score_functions import INDIVIDUAL_SCORE_FUNCTIONS
 
-logger = get_logger(__name__)
+logger = get_pylogger(__name__)
 
 
 class IndividualScorer(BaseScorer):

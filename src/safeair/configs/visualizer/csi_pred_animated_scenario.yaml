@@ -1,0 +1,9 @@
+defaults:
+ - animated_scenario.yaml
+
+name: csi_pred_animated_scenario
+display_agent_ids: false
+display_only_critical_actypes: false
+viz_csi_prediction: true # Whether to visualize CSI predictions
+
+pane_to_plot: CRITICAL_SCENARIO_IDENTIFICATION_PREDICTION

@@ -1,0 +1,10 @@
+defaults:
+  - default.yaml
+
+skip: 1 # Skip frames to reduce data size, 10s
+min_past_valid_points: 2
+min_last_valid_idx: 11
+validate_scenario: true
+cutoff_frame: 610
+
+tag: "${scenario.dataset_name}_past-${scenario.past_len}_future-${scenario.future_len}"

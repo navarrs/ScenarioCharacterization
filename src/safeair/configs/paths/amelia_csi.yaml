@@ -1,0 +1,236 @@
+defaults:
+  - default.yaml
+
+tag: 'amelia'
+
+base_path: ./data/
+graph_data_version: a42v01
+traj_data_version: a42v01
+
+train_data_path: [
+  # keep-sorted start
+  "${paths.proc_traj_data_path}/katl",
+  "${paths.proc_traj_data_path}/kbos",
+  "${paths.proc_traj_data_path}/kdca",
+  "${paths.proc_traj_data_path}/kdfw",
+  "${paths.proc_traj_data_path}/kewr",
+  "${paths.proc_traj_data_path}/khou",
+  "${paths.proc_traj_data_path}/kjfk",
+  "${paths.proc_traj_data_path}/klas",
+  "${paths.proc_traj_data_path}/klax",
+  "${paths.proc_traj_data_path}/klga",
+  "${paths.proc_traj_data_path}/kmco",
+  "${paths.proc_traj_data_path}/kmdw",
+  "${paths.proc_traj_data_path}/kmem",
+  "${paths.proc_traj_data_path}/kmia",
+  "${paths.proc_traj_data_path}/kmsy",
+  "${paths.proc_traj_data_path}/kord",
+  "${paths.proc_traj_data_path}/ksan",
+  "${paths.proc_traj_data_path}/ksea",
+  "${paths.proc_traj_data_path}/ksfo",
+  "${paths.proc_traj_data_path}/kslc",
+  "${paths.proc_traj_data_path}/panc",
+  # keep-sorted end
+] # list of paths to the training data
+train_split_path: [
+  # keep-sorted start
+  "${paths.splits_path}/katl/katl_day_splits.json",
+  "${paths.splits_path}/kbos/kbos_day_splits.json",
+  "${paths.splits_path}/kdca/kdca_day_splits.json",
+  "${paths.splits_path}/kdfw/kdfw_day_splits.json",
+  "${paths.splits_path}/kewr/kewr_day_splits.json",
+  "${paths.splits_path}/khou/khou_day_splits.json",
+  "${paths.splits_path}/kjfk/kjfk_day_splits.json",
+  "${paths.splits_path}/klas/klas_day_splits.json",
+  "${paths.splits_path}/klax/klax_day_splits.json",
+  "${paths.splits_path}/klga/klga_day_splits.json",
+  "${paths.splits_path}/kmco/kmco_day_splits.json",
+  "${paths.splits_path}/kmdw/kmdw_day_splits.json",
+  "${paths.splits_path}/kmem/kmem_day_splits.json",
+  "${paths.splits_path}/kmia/kmia_day_splits.json",
+  "${paths.splits_path}/kmsy/kmsy_day_splits.json",
+  "${paths.splits_path}/kord/kord_day_splits.json",
+  "${paths.splits_path}/ksan/ksan_day_splits.json",
+  "${paths.splits_path}/ksea/ksea_day_splits.json",
+  "${paths.splits_path}/ksfo/ksfo_day_splits.json",
+  "${paths.splits_path}/kslc/kslc_day_splits.json",
+  "${paths.splits_path}/panc/panc_day_splits.json",
+  # keep-sorted end
+] # list of data spliting files for training data
+train_data_tag: [
+  # keep-sorted start
+  "katl-training",
+  "kbos-training",
+  "kdca-training",
+  "kdfw-training",
+  "kewr-training",
+  "khou-training",
+  "kjfk-training",
+  "klas-training",
+  "klax-training",
+  "klga-training",
+  "kmco-training",
+  "kmdw-training",
+  "kmem-training",
+  "kmia-training",
+  "kmsy-training",
+  "kord-training",
+  "ksan-training",
+  "ksea-training",
+  "ksfo-training",
+  "kslc-training",
+  "panc-training",
+  # keep-sorted end
+]
+
+val_data_path: [
+  # keep-sorted start
+  "${paths.proc_traj_data_path}/katl",
+  "${paths.proc_traj_data_path}/kbos",
+  "${paths.proc_traj_data_path}/kdca",
+  "${paths.proc_traj_data_path}/kdfw",
+  "${paths.proc_traj_data_path}/kewr",
+  "${paths.proc_traj_data_path}/khou",
+  "${paths.proc_traj_data_path}/kjfk",
+  "${paths.proc_traj_data_path}/klas",
+  "${paths.proc_traj_data_path}/klax",
+  "${paths.proc_traj_data_path}/klga",
+  "${paths.proc_traj_data_path}/kmco",
+  "${paths.proc_traj_data_path}/kmdw",
+  "${paths.proc_traj_data_path}/kmem",
+  "${paths.proc_traj_data_path}/kmia",
+  "${paths.proc_traj_data_path}/kmsy",
+  "${paths.proc_traj_data_path}/kord",
+  "${paths.proc_traj_data_path}/ksan",
+  "${paths.proc_traj_data_path}/ksea",
+  "${paths.proc_traj_data_path}/ksfo",
+  "${paths.proc_traj_data_path}/kslc",
+  "${paths.proc_traj_data_path}/panc",
+  # keep-sorted end
+]
+val_split_path: [
+  # keep-sorted start
+  "${paths.splits_path}/katl/katl_day_splits.json",
+  "${paths.splits_path}/kbos/kbos_day_splits.json",
+  "${paths.splits_path}/kdca/kdca_day_splits.json",
+  "${paths.splits_path}/kdfw/kdfw_day_splits.json",
+  "${paths.splits_path}/kewr/kewr_day_splits.json",
+  "${paths.splits_path}/khou/khou_day_splits.json",
+  "${paths.splits_path}/kjfk/kjfk_day_splits.json",
+  "${paths.splits_path}/klas/klas_day_splits.json",
+  "${paths.splits_path}/klax/klax_day_splits.json",
+  "${paths.splits_path}/klga/klga_day_splits.json",
+  "${paths.splits_path}/kmco/kmco_day_splits.json",
+  "${paths.splits_path}/kmdw/kmdw_day_splits.json",
+  "${paths.splits_path}/kmem/kmem_day_splits.json",
+  "${paths.splits_path}/kmia/kmia_day_splits.json",
+  "${paths.splits_path}/kmsy/kmsy_day_splits.json",
+  "${paths.splits_path}/kord/kord_day_splits.json",
+  "${paths.splits_path}/ksan/ksan_day_splits.json",
+  "${paths.splits_path}/ksea/ksea_day_splits.json",
+  "${paths.splits_path}/ksfo/ksfo_day_splits.json",
+  "${paths.splits_path}/kslc/kslc_day_splits.json",
+  "${paths.splits_path}/panc/panc_day_splits.json",
+  # keep-sorted end
+] # list of data spliting files for validation data
+val_data_tag: [
+  # keep-sorted start
+  "katl-validation",
+  "kbos-validation",
+  "kdca-validation",
+  "kdfw-validation",
+  "kewr-validation",
+  "khou-validation",
+  "kjfk-validation",
+  "klas-validation",
+  "klax-validation",
+  "klga-validation",
+  "kmco-validation",
+  "kmdw-validation",
+  "kmem-validation",
+  "kmia-validation",
+  "kmsy-validation",
+  "kord-validation",
+  "ksan-validation",
+  "ksea-validation",
+  "ksfo-validation",
+  "kslc-validation",
+  "panc-validation",
+  # keep-sorted end
+]
+
+test_data_path: [
+  # keep-sorted start
+  "${paths.proc_traj_data_path}/katl",
+  "${paths.proc_traj_data_path}/kbos",
+  "${paths.proc_traj_data_path}/kdca",
+  "${paths.proc_traj_data_path}/kdfw",
+  "${paths.proc_traj_data_path}/kewr",
+  "${paths.proc_traj_data_path}/khou",
+  "${paths.proc_traj_data_path}/kjfk",
+  "${paths.proc_traj_data_path}/klas",
+  "${paths.proc_traj_data_path}/klax",
+  "${paths.proc_traj_data_path}/klga",
+  "${paths.proc_traj_data_path}/kmco",
+  "${paths.proc_traj_data_path}/kmdw",
+  "${paths.proc_traj_data_path}/kmem",
+  "${paths.proc_traj_data_path}/kmia",
+  "${paths.proc_traj_data_path}/kmsy",
+  "${paths.proc_traj_data_path}/kord",
+  "${paths.proc_traj_data_path}/ksan",
+  "${paths.proc_traj_data_path}/ksea",
+  "${paths.proc_traj_data_path}/ksfo",
+  "${paths.proc_traj_data_path}/kslc",
+  "${paths.proc_traj_data_path}/panc",
+  # keep-sorted end
+]
+test_split_path: [
+  # keep-sorted start
+  "${paths.splits_path}/katl/katl_day_splits.json",
+  "${paths.splits_path}/kbos/kbos_day_splits.json",
+  "${paths.splits_path}/kdca/kdca_day_splits.json",
+  "${paths.splits_path}/kdfw/kdfw_day_splits.json",
+  "${paths.splits_path}/kewr/kewr_day_splits.json",
+  "${paths.splits_path}/khou/khou_day_splits.json",
+  "${paths.splits_path}/kjfk/kjfk_day_splits.json",
+  "${paths.splits_path}/klas/klas_day_splits.json",
+  "${paths.splits_path}/klax/klax_day_splits.json",
+  "${paths.splits_path}/klga/klga_day_splits.json",
+  "${paths.splits_path}/kmco/kmco_day_splits.json",
+  "${paths.splits_path}/kmdw/kmdw_day_splits.json",
+  "${paths.splits_path}/kmem/kmem_day_splits.json",
+  "${paths.splits_path}/kmia/kmia_day_splits.json",
+  "${paths.splits_path}/kmsy/kmsy_day_splits.json",
+  "${paths.splits_path}/kord/kord_day_splits.json",
+  "${paths.splits_path}/ksan/ksan_day_splits.json",
+  "${paths.splits_path}/ksea/ksea_day_splits.json",
+  "${paths.splits_path}/ksfo/ksfo_day_splits.json",
+  "${paths.splits_path}/kslc/kslc_day_splits.json",
+  "${paths.splits_path}/panc/panc_day_splits.json",
+  # keep-sorted end
+] # list of data spliting files for test data
+test_data_tag: [
+  # keep-sorted start
+  "katl-test",
+  "kbos-test",
+  "kdca-test",
+  "kdfw-test",
+  "kewr-test",
+  "khou-test",
+  "kjfk-test",
+  "klas-test",
+  "klax-test",
+  "klga-test",
+  "kmco-test",
+  "kmdw-test",
+  "kmem-test",
+  "kmia-test",
+  "kmsy-test",
+  "kord-test",
+  "ksan-test",
+  "ksea-test",
+  "ksfo-test",
+  "kslc-test",
+  "panc-test",
+  # keep-sorted end
+]

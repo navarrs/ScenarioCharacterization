@@ -8,9 +8,10 @@ from characterization.features import SUPPORTED_FEATURES, BaseFeature
 from characterization.processors.base_processor import BaseProcessor
 from characterization.schemas import ScenarioFeatures, ScenarioScores
 from characterization.scorer import BaseScorer
-from characterization.utils.io_utils import from_pickle, get_logger, to_pickle
+from characterization.utils.io_utils import from_pickle, to_pickle
+from characterization.utils.logging_utils import get_pylogger
 
-logger = get_logger(__name__)
+logger = get_pylogger(__name__)
 
 
 class ScoresProcessor(BaseProcessor):

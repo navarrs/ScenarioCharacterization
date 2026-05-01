@@ -12,22 +12,20 @@ from omegaconf import DictConfig
 from tqdm import tqdm
 
 import characterization.features.interaction_utils as interaction
+from characterization.domains.ad.scenario_types import (
+    AgentPairType,
+    AgentTrajectoryMasker,
+    AgentType,
+    get_agent_pair_type,
+)
 from characterization.features.base_feature import BaseFeature
 from characterization.schemas import Interaction, Scenario, ScenarioFeatures
-from characterization.utils.common import (
-    EPSILON,
-    MIN_VALID_POINTS,
-    AgentTrajectoryMasker,
-    FeatureType,
-    InteractionStatus,
-    ReturnCriterion,
-    categorize_from_thresholds,
-)
+from characterization.utils.common import FeatureType, InteractionStatus, ReturnCriterion, categorize_from_thresholds
+from characterization.utils.constants import EPSILON, MIN_VALID_POINTS
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
-from characterization.utils.io_utils import get_logger
-from characterization.utils.scenario_types import AgentPairType, AgentType, get_agent_pair_type
+from characterization.utils.logging_utils import get_pylogger
 
-logger = get_logger(__name__)
+logger = get_pylogger(__name__)
 
 
 def _chunked_prefilter_candidates(

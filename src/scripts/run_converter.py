@@ -10,9 +10,10 @@ import pyarrow.parquet as pq
 from natsort import natsorted
 from omegaconf import DictConfig
 
-from characterization.utils.io_utils import get_logger, make_output_paths
+from characterization.utils.io_utils import make_output_paths
+from characterization.utils.logging_utils import get_pylogger
 
-logger = get_logger(__name__)
+logger = get_pylogger(__name__)
 
 
 def reset_infos(cfg: DictConfig) -> dict[str, list[Any]]:

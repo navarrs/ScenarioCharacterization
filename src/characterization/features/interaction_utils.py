@@ -2,10 +2,12 @@ import numpy as np
 from numpy.typing import NDArray
 from shapely import LineString
 
-from characterization.utils.common import EPSILON, MAX_DECELERATION, MIN_VALID_POINTS, InteractionAgent
-from characterization.utils.io_utils import get_logger
+from characterization.domains.ad.scenario_types import InteractionAgent
+from characterization.utils.common import MAX_DECELERATION
+from characterization.utils.constants import EPSILON, MIN_VALID_POINTS
+from characterization.utils.logging_utils import get_pylogger
 
-logger = get_logger(__name__)
+logger = get_pylogger(__name__)
 
 
 def is_sharing_lane(lane_i: NDArray[np.float32] | None, lane_j: NDArray[np.float32] | None) -> bool:  # noqa: ARG001

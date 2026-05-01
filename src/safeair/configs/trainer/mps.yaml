@@ -1,0 +1,6 @@
+defaults:
+  - default.yaml
+
+accelerator: mps
+
+devices: 1

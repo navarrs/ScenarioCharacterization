@@ -1,0 +1,14 @@
+mlflow:
+  _target_: pytorch_lightning.loggers.mlflow.MLFlowLogger
+  save_dir: "${paths.output_dir}/mlflow/" # If MLFLOW_TRACKING_URI is set, save_dir is ignored
+  tracking_uri: null # Or set MLFLOW_TRACKING_URI is set, save_dir is ignored
+  experiment_name: null # NOTE: needed to be null to use exp_name from main config
+  run_name: "${exp_name}"
+  tags:
+    dataset: ${paths.tag}
+    scenario: ${scenario.tag}
+    model: ${model.config.model_name}
+    model_extras: ${model.config.extra_tags}
+    timestamp: ${now:%Y-%m-%d}_${now:%H-%M-%S}
+  prefix: ""
+  artifact_location: null

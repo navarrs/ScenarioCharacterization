@@ -5,15 +5,15 @@ from warnings import warn
 import numpy as np
 from omegaconf import DictConfig
 
-from characterization.features.interaction_features import InteractionStatus
 from characterization.schemas import Scenario, ScenarioFeatures, ScenarioScores, Score
 from characterization.scorer.base_scorer import BaseScorer, ScoreWeightingMethod
-from characterization.utils.common import EPSILON
-from characterization.utils.io_utils import get_logger
+from characterization.utils.common import InteractionStatus
+from characterization.utils.constants import EPSILON
+from characterization.utils.logging_utils import get_pylogger
 
 from .score_functions import INTERACTION_SCORE_FUNCTIONS
 
-logger = get_logger(__name__)
+logger = get_pylogger(__name__)
 
 
 class InteractionScorer(BaseScorer):

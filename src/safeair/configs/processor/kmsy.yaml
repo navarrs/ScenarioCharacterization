@@ -1,0 +1,6 @@
+defaults:
+  - default.yaml
+
+airport: [
+  kmsy
+] # ICAO code or use keyword all for all airports

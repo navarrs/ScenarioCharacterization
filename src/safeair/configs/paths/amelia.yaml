@@ -1,0 +1,21 @@
+defaults:
+  - default.yaml
+
+tag: 'amelia'
+
+base_path: ./data/
+graph_data_version: a42v01
+traj_data_version: a42v01
+
+
+train_data_splits: [ "${paths.proc_traj_data_path}/processed/mini/training" ] # list of paths to the training data
+# train_data_tag: ["mini-training"]
+# val_data_path: ["${paths.base_path}/processed/mini/validation" ] # list of paths to the validation data
+# val_data_tag: ["mini-validation"]
+# test_data_path: [
+#   "${paths.base_path}/processed/mini/validation",
+#   "${paths.base_path}/processed/mini/testing",
+#   "${paths.base_path}/processed/mini_causal/validation",
+#   "${paths.base_path}/processed/mini_causal/testing",
+# ]
+# test_data_tag: ["mini-validation", "mini-testing", "mini-causal-validation", "mini-causal-testing"]

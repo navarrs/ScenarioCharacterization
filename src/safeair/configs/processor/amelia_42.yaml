@@ -1,0 +1,55 @@
+defaults:
+  - default.yaml
+
+graph_data_version: a42v01
+graph_data_path: ${paths.base_path}/graph_data_${processor.graph_data_version}
+
+traj_data_version: a42v01
+traj_data_path: ${paths.base_path}/traj_data_${processor.traj_data_version}
+
+airport: [
+  # keep-sorted start
+  "katl",
+  "kbdl",
+  "kbos",
+  "kbwi",
+  "kcle",
+  "kclt",
+  "kdca",
+  "kden",
+  "kdfw",
+  "kdtw",
+  "kewr",
+  "kfll",
+  "khou",
+  "kiad",
+  "kiah",
+  "kjfk",
+  "klas",
+  "klax",
+  "klga",
+  "kmci",
+  "kmco",
+  "kmdw",
+  "kmem",
+  "kmia",
+  "kmke",
+  "kmsp",
+  "kmsy",
+  "kord",
+  "kpdx",
+  "kphl",
+  "kphx",
+  "kpit",
+  "kpvd",
+  "ksan",
+  "ksdf",
+  "ksea",
+  "ksfo",
+  "kslc",
+  "ksna",
+  "kstl",
+  "panc",
+  "phnl",
+  # keep-sorted end
+] # ICAO code or use keyword all for all airports

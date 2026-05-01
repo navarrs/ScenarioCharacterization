@@ -1,0 +1,23 @@
+defaults:
+  - default.yaml
+
+graph_data_version: a10v01os
+graph_data_path: ${paths.base_path}/graph_data_${processor.graph_data_version}
+
+traj_data_version: a10v08
+traj_data_path: ${paths.base_path}/traj_data_${processor.traj_data_version}
+
+airport: [
+  # keep-sorted start
+  kbos,
+  kdca,
+  kewr,
+  kjfk,
+  klax,
+  kmdw,
+  kmsy,
+  ksea,
+  ksfo,
+  pancz
+  # keep-sorted end
+] # ICAO code or use keyword all for all airports

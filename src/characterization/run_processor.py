@@ -5,9 +5,10 @@ from characterization.datasets import BaseDataset
 from characterization.features.base_feature import BaseFeature
 from characterization.processors.base_processor import BaseProcessor
 from characterization.scorer.base_scorer import BaseScorer
-from characterization.utils.io_utils import get_logger, make_output_paths, print_config
+from characterization.utils.io_utils import make_output_paths, print_config
+from characterization.utils.logging_utils import get_pylogger
 
-logger = get_logger(__name__)
+logger = get_pylogger(__name__)
 
 
 @hydra.main(config_path="config", config_name="run_processor", version_base="1.3")

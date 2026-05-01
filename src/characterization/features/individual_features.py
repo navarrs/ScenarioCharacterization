@@ -5,22 +5,15 @@ import numpy as np
 from omegaconf import DictConfig
 
 import characterization.features.individual_utils as individual
+from characterization.domains.ad.scenario_types import AgentTrajectoryMasker, AgentType, LaneMasker
 from characterization.features.base_feature import BaseFeature
 from characterization.schemas import Individual, Scenario, ScenarioFeatures
-from characterization.utils.common import (
-    MIN_VALID_POINTS,
-    AgentTrajectoryMasker,
-    FeatureType,
-    LaneMasker,
-    ReturnCriterion,
-    TrajectoryType,
-    categorize_from_thresholds,
-)
+from characterization.utils.common import FeatureType, ReturnCriterion, TrajectoryType, categorize_from_thresholds
+from characterization.utils.constants import MIN_VALID_POINTS
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
-from characterization.utils.io_utils import get_logger
-from characterization.utils.scenario_types import AgentType
+from characterization.utils.logging_utils import get_pylogger
 
-logger = get_logger(__name__)
+logger = get_pylogger(__name__)
 
 
 class IndividualFeatures(BaseFeature):

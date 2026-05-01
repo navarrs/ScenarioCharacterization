@@ -1,10 +1,8 @@
-import logging
 import os
 import pickle  # nosec B403
 from typing import Any
 from warnings import warn
 
-import colorlog
 from omegaconf import DictConfig, OmegaConf
 from rich.console import Console
 from rich.syntax import Syntax
@@ -23,37 +21,6 @@ def make_output_paths(cfg: DictConfig) -> None:
 
     for path in cfg.paths.output_paths.values():
         os.makedirs(path, exist_ok=True)
-
-
-def get_logger(name: str = __name__) -> logging.Logger:
-    """Creates a logger with colorized output for better readability.
-
-    Args:
-        name (str, optional): Name of the logger. Defaults to the module's name.
-
-    Returns:
-        logging.Logger: Configured logger instance.
-    """
-    handler = colorlog.StreamHandler()
-    handler.setFormatter(
-        colorlog.ColoredFormatter(
-            "%(log_color)s[%(levelname)s]%(reset)s %(name)s (%(filename)s:%(lineno)d): %(message)s",
-            log_colors={
-                "DEBUG": "cyan",
-                "INFO": "green",
-                "WARNING": "yellow",
-                "ERROR": "red",
-                "CRITICAL": "bold_red",
-            },
-        ),
-    )
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
-    if not logger.handlers:
-        logger.addHandler(handler)
-        logger.propagate = False
-
-    return logger
 
 
 def from_pickle(data_file: str) -> dict[str, Any] | None:

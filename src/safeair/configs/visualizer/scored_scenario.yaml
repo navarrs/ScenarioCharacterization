@@ -1,0 +1,16 @@
+defaults:
+  - scenario.yaml
+
+name: scored_scenario
+add_title: true
+display_only_critical_actypes: false
+
+panes_to_plot:
+  - ALL_AGENTS
+  - SCORED_INDIVIDUAL
+  - SCORED_INTERACTION
+
+# Score visualization config
+score_colormap: Reds
+score_halo_size: 100
+show_score_colorbar: true

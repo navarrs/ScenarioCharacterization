@@ -1,0 +1,140 @@
+# pyright: reportUnknownMemberType=false
+import os
+from itertools import product
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from rich.progress import track
+
+from characterization.schemas import ScenarioScores
+from characterization.utils.io_utils import from_pickle
+from characterization.utils.logging_utils import get_pylogger
+
+logger = get_pylogger(__name__)
+
+
+def get_sample_to_plot(
+    df: pd.DataFrame,
+    key: str,
+    min_value: float,
+    max_value: float,
+    seed: int,
+    sample_size: int,
+) -> pd.DataFrame:
+    """Selects a random sample of rows from a DataFrame within a specified value range for a given column.
+
+    Args:
+        df (pd.DataFrame): The DataFrame to sample from.
+        key (str): The column name to filter by value range.
+        min_value (float): The minimum value (inclusive) for filtering.
+        max_value (float): The maximum value (exclusive) for filtering.
+        seed (int): Random seed for reproducibility.
+        sample_size (int): Number of samples to return.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the sampled rows within the specified range.
+    """
+    df_subset = df[(df[key] >= min_value) & (df[key] < max_value)]
+    subset_size = len(df_subset)
+    logger.info("Found %s rows between [%s to %s] for %s", subset_size, round(min_value, 2), round(max_value, 2), key)
+    sample_size = min(sample_size, subset_size)
+    return df_subset.sample(n=sample_size, random_state=seed)  # pyright: ignore[reportReturnType]
+
+
+def get_scored_scenario_ids(scenario_types: str, criteria: str, base_path: Path) -> dict[str, list[str]]:
+    """Retrieves the list of scored scenario IDs for each combination of scenario type and criterion.
+
+    Args:
+        scenario_types (str): List of scenario types to consider.
+        criteria (str): List of criteria to consider.
+        base_path (Path): Base path where the scored scenario files are located.
+
+    Returns:
+        dict[str, list[str]]: A dictionary mapping each scenario type and criterion combination to a list of scored
+            scenario IDs (file names).
+    """
+    scenario_lists = {}
+    for scenario_type, criterion in product(scenario_types, criteria):
+        key = f"{scenario_type}_{criterion}"
+        scenario_type_criterion_path = base_path / key
+        scenario_type_scores_files = [file.name for file in scenario_type_criterion_path.glob("*.pkl")]
+        scenario_lists[key] = scenario_type_scores_files
+    return scenario_lists
+
+
+def plot_histograms_from_dataframe(
+    df: pd.DataFrame,
+    output_filepath: str = "temp.png",
+    dpi: int = 30,
+    alpha: float = 0.5,
+) -> None:
+    """Plots overlapping histograms and density curves for each numeric column in a DataFrame.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing numeric data to plot.
+        output_filepath (str): Path to save the output plot image.
+        dpi (int): Dots per inch for the saved figure.
+        alpha (float): Transparency level for the histograms (0 = transparent, 1 = solid).
+
+    Raises:
+        ValueError: If no numeric columns are found in the DataFrame.
+    """
+    # Select numeric columns, excluding the specified one
+    columns_to_plot = df.select_dtypes(include="number").columns
+    num_columns_to_plot = len(columns_to_plot)
+
+    if num_columns_to_plot == 0:
+        error_message = "No numeric columns found in the DataFrame to plot."
+        raise ValueError(error_message)
+
+    palette = sns.color_palette("husl", num_columns_to_plot)
+
+    plt.figure(figsize=(10, 6))
+
+    for i, col in enumerate(columns_to_plot):
+        sns.histplot(
+            df[col],  # pyright: ignore[reportArgumentType]
+            color=palette[i],
+            label=col,
+            kde=True,
+            stat="density",
+            alpha=alpha,
+            edgecolor="white",
+        )
+
+    sns.despine(top=True, right=True)
+
+    plt.legend()
+    plt.xlabel("Scores")
+    plt.ylabel("Density")
+    plt.title("Score Density Function over Scenarios")
+    plt.grid(visible=True, linestyle="--", alpha=0.4)
+    plt.tight_layout()
+    plt.savefig(output_filepath, dpi=dpi)
+    plt.close()
+
+
+def load_scores(
+    scenario_ids: list[str],
+    scores_path: str,
+    prefix: str,
+) -> dict[str, ScenarioScores]:
+    """Loads scenario scores from the specified path and updates the scores DataFrame.
+
+    Args:
+        scenario_ids (list[str]): List of scenario IDs to load scores for.
+        scores_path (str): Path to the directory containing score files.
+        prefix (str): Prefix for the score files.
+
+    Returns:
+        dict[str, ScenarioScores]: Dictionary mapping scenario IDs to their corresponding ScenarioScores.
+    """
+    scores_dict = {}
+    for scenario_id in track(scenario_ids, description=f"Loading {prefix} scores"):
+        filepath = os.path.join(scores_path, scenario_id)
+        scores = from_pickle(filepath)  # nosec B301
+        scores = ScenarioScores.model_validate(scores)
+        scores_dict[scenario_id] = scores
+    return scores_dict

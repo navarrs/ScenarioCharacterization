@@ -6,13 +6,14 @@ import numpy as np
 from numpy.typing import NDArray
 from omegaconf import DictConfig
 
+from characterization.domains.ad.scenario_types import AgentTrajectoryMasker, AgentType
 from characterization.schemas import FeatureDetections, FeatureWeights, Scenario, ScenarioFeatures, ScenarioScores
-from characterization.utils.common import EPSILON, AgentTrajectoryMasker, categorize_from_thresholds
+from characterization.utils.common import categorize_from_thresholds
+from characterization.utils.constants import EPSILON
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
-from characterization.utils.io_utils import get_logger
-from characterization.utils.scenario_types import AgentType
+from characterization.utils.logging_utils import get_pylogger
 
-logger = get_logger(__name__)
+logger = get_pylogger(__name__)
 
 
 class ScoreWeightingMethod(Enum):
