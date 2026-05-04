@@ -1,10 +1,11 @@
 import os
 
 from omegaconf import DictConfig
+from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from characterization.datasets import BaseDataset
-from characterization.features import SUPPORTED_FEATURES, BaseFeature
+from characterization.features import SUPPORTED_FEATURES
+from characterization.features.base_feature import BaseFeature
 from characterization.processors.base_processor import BaseProcessor
 from characterization.schemas import ScenarioFeatures, ScenarioScores
 from characterization.scorer import BaseScorer
@@ -20,7 +21,7 @@ class ScoresProcessor(BaseProcessor):
     def __init__(
         self,
         config: DictConfig,
-        dataset: BaseDataset,
+        dataset: Dataset,  # pyright: ignore[reportMissingTypeArgument]
         characterizer: BaseFeature | BaseScorer,
     ) -> None:
         """Initializes the ScoresProcessor with configuration, dataset, and scorer.
@@ -28,7 +29,8 @@ class ScoresProcessor(BaseProcessor):
         Args:
             config (DictConfig): Configuration for the scores processor, including parameters such as
                 batch size, number of workers, features to use, feature paths, and whether to save the output.
-            dataset (Dataset): The dataset to process. Must be a subclass of torch.utils.data.Dataset.
+            dataset (Dataset): The dataset to process. Must be a subclass of torch.utils.data.Dataset and
+                implement a collate_batch method.
             characterizer (BaseFeature | BaseScorer): An instance of BaseFeature or BaseScorer that
                 defines the scoring logic.
 
@@ -66,7 +68,12 @@ class ScoresProcessor(BaseProcessor):
         Returns:
             None
         """
-        logger.info("Processing %s %s for %s.", self.features, self.characterizer.name, self.dataset.name)
+        logger.info(
+            "Processing %s %s for %s.",
+            self.features,
+            self.characterizer.name,
+            self.dataset.name,  # pyright: ignore[reportAttributeAccessIssue]
+        )
 
         # TODO: Need more elegant iteration over the dataset to avoid the two-level for loop.
         # for scenario_batch in track(self.dataloader, total=len(self.dataloader), description="Processing scores..."):
@@ -93,5 +100,9 @@ class ScoresProcessor(BaseProcessor):
 
                 if self.save:
                     to_pickle(
-                        self.output_path, scores.model_dump(), scenario_id, overwrite=self.overwrite, update=self.update
+                        self.output_path,
+                        scores.model_dump(),
+                        scenario_id,
+                        overwrite=self.overwrite,
+                        update=self.update,
                     )

@@ -1,0 +1,14 @@
+defaults:
+ - scenario.yaml
+
+_target_: characterization.domains.aviation.utils.scenario_visualizer.animated_scenario_visualizer.AnimatedScenarioVisualizer
+
+name: animated_scenario
+num_workers: ${num_workers}
+add_title: true
+update_limits: true
+show_latlon: false
+fps: 5
+time_scale_factor: 1.0
+
+pane_to_plot: HIGHLIGHT_RELEVANT_AGENTS

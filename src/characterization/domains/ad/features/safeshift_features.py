@@ -1,0 +1,93 @@
+from omegaconf import DictConfig
+
+from characterization.domains.ad.features.base_feature import ADBaseFeature
+from characterization.domains.ad.features.individual_features import IndividualFeatures
+from characterization.domains.ad.features.interaction_features import InteractionFeatures
+from characterization.domains.ad.scenario_types import AgentTrajectoryMasker
+from characterization.schemas import Scenario, ScenarioFeatures
+from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
+from characterization.utils.logging_utils import get_pylogger
+
+logger = get_pylogger(__name__)
+
+
+class SafeShiftFeatures(ADBaseFeature):
+    """Comprehensive scenario feature extractor combining individual and interaction features.
+
+    Attributes:
+        config (DictConfig): Configuration parameters for comprehensive feature computation.
+        features (Any): Feature-specific configuration extracted from config.
+        characterizer_type (str): Type identifier, always "feature".
+        return_criterion (ReturnCriterion): Criterion for returning results (CRITICAL or AVERAGE).
+        agent_i (InteractionAgent): Utility object for interaction computations (agent i).
+        agent_j (InteractionAgent): Utility object for interaction computations (agent j).
+    """
+
+    def __init__(self, config: DictConfig) -> None:
+        """Initialize the SafeShiftFeatures comprehensive extractor.
+
+        Args:
+            config (DictConfig): Configuration dictionary containing feature parameters.
+                Expected keys:
+                - return_criterion (str, optional): Determines whether to return 'critical'
+                  (max/min/sum values) or 'average' statistics for all features. Defaults to 'critical'.
+                - features (optional): Feature-specific configuration parameters for both
+                  individual and interaction feature computation.
+        """
+        super().__init__(config)
+
+        self.individual_features = IndividualFeatures(config)
+        self.interaction_features = InteractionFeatures(config)
+
+    def compute(
+        self,
+        scenario: Scenario,
+        *,
+        max_workers: int | None = None,
+    ) -> ScenarioFeatures:
+        """Compute comprehensive scenario features combining individual and interaction analysis.
+
+        Args:
+            scenario (Scenario): Complete scenario data containing:
+                - agent_data: Agent trajectories, positions, velocities, dimensions, headings,
+                  validity masks, and type classifications
+                - metadata: Scenario parameters including timestamps, speed thresholds,
+                  distance limits, and interaction configuration values
+                - static_map_data: Map conflict points and precomputed distances for
+                  comprehensive spatial analysis
+            max_workers (int | None): Maximum number of worker processes for parallel computation
+                of interaction features. Defaults to None, which uses the number of processors
+                on the machine.
+
+        Returns:
+            ScenarioFeatures: Comprehensive feature object containing:
+                - metadata: Original scenario metadata for reference and traceability
+                - individual_features: Individual agent motion analysis including:
+                  * Speed profiles and speed limit compliance
+                  * Acceleration and deceleration patterns
+                  * Jerk calculations for comfort assessment
+                  * Waiting behaviors near conflict points (periods, intervals, distances)
+                - interaction_features: Pairwise agent interaction analysis including:
+                  * Spatial relationships (separation, intersection, collision detection)
+                  * Temporal conflict metrics (mTTCP, TTC, THW)
+                  * Safety indicators (DRAC - deceleration rate to avoid collision)
+                  * Interaction status and agent pair metadata
+                - agent_to_agent_closest_dists: Minimum pairwise distances between all
+                  agent combinations across all timesteps for proximity analysis
+
+        Raises:
+            ValueError: If an unknown return criterion is provided or insufficient scenario data.
+        """
+        # Unpack senario fields
+        agent_data = scenario.agent_data
+        agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
+        agent_positions = agent_trajectories.agent_xyz_pos
+        return ScenarioFeatures(
+            metadata=scenario.metadata,
+            individual_features=self.individual_features.compute_individual_features(scenario),
+            interaction_features=self.interaction_features.compute_interaction_features(
+                scenario,
+                max_workers=max_workers,
+            ),
+            agent_to_agent_closest_dists=compute_agent_to_agent_closest_dists(agent_positions),
+        )

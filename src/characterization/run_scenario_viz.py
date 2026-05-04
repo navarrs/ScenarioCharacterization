@@ -8,12 +8,18 @@ import numpy as np
 import pandas as pd
 from omegaconf import DictConfig
 
-from characterization.domains.ad.utils.viz.visualizer import BaseVisualizer
-from characterization.schemas import ScenarioScores
+from characterization.domains.ad.schemas.scenario_scores import Score
+from characterization.domains.ad.utils.scenario_visualizer.base_visualizer import ADBaseVisualizer as BaseVisualizer
+from characterization.schemas import AgentScore, ScenarioScores
 from characterization.utils.io_utils import from_pickle
 from characterization.utils.logging_utils import get_pylogger
 
 logger = get_pylogger(__name__)
+
+
+def _to_score(agent_score_list: list[AgentScore]) -> Score:
+    arr = np.array([a.score for a in agent_score_list], dtype=np.float32)
+    return Score(agent_scores=arr)
 
 
 def _organize_scenarios_by_percentile(
@@ -129,11 +135,11 @@ def run(cfg: DictConfig) -> None:
             scenario_scores = ScenarioScores.model_validate(scenario_scores)
             match cfg.score_to_visualize:
                 case "individual":
-                    scores = scenario_scores.individual_scores
+                    scores = _to_score(scenario_scores.individual_scores)
                 case "interaction":
-                    scores = scenario_scores.interaction_scores
+                    scores = _to_score(scenario_scores.interaction_scores)
                 case "safeshift":
-                    scores = scenario_scores.safeshift_scores
+                    scores = _to_score(scenario_scores.individual_scores)
                 case _:
                     scores = None
 

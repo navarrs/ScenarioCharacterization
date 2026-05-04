@@ -22,10 +22,15 @@ uv run pre-commit run --all-files
   paragraph to a colleague, not a form.
 - PR and commit messages are rendered on GitHub, so don't hard-wrap them at 88 columns. Let each sentence flow on one line.
 
-# Style Guidelines
+# Code Guidelines
 
 - Line length limit is 120 columns. This applies to code, comments, and docstrings.
 - Avoid local imports unless they are strictly necessary (e.g. circular imports).
+- When fixing pre-commit errors, prioritize fixing the root cause over adding suppression comments (like # noqa, # pyright: ignore, etc.)
+- Always use specific type hints instead of `typing.Any`.
+- Don't duplicate logic: Before writing new code, check if similar logic already exists in the codebase. Reuse existing functions, especially those in `src/safeair/utils/`, even if it means importing across modules.
+- Extract shared logic into `src/safeair/utils/` if you encounter duplicated code.
+- Before creating any new utilities, search `src/safeair/utils/` for existing library code.
 - Tests should follow these principles:
   - Use functions and fixtures; do not use test classes.
   - Favor targeted, efficient tests over exhaustive edge-case coverage.

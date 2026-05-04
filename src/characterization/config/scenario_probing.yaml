@@ -1,0 +1,45 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - viz: probe_scenario
+  - probing: cvm
+
+# Domain to run probing for. Valid values: "aviation", "ad"
+domain: aviation
+
+# Root directory containing per-airport subdirectories of .pkl scenario files (aviation)
+# or flat / nested .pkl scenario files (ad)
+scenarios_dir: data/sample/scenarios
+
+# Root directory where updated scenario .pkl files with attached CriticalProbe are written.
+# Each output preserves the input layout.
+output_dir: data/sample/outputs/probed_scenarios
+
+# Root directory where per-scenario probe JSON summaries are written.
+# Each file mirrors the input layout: {probes_dir}/{airport}/{scenario_id}.json (aviation)
+# or {probes_dir}/{scenario_id}.json (ad).
+# Set to null to disable.
+probes_dir: data/sample/outputs/probes
+
+# Root directory containing per-airport map .pkl files ({maps_dir}/{airport_id}/{airport_id}.pkl).
+# Used only for the aviation domain. Set to null to skip map attachment.
+maps_dir: data/graph_data_a42v01
+
+# Root directory where scenario visualizations (.png) are saved. Set to null to disable.
+viz_dir: data/sample/outputs/probes_viz
+
+# Processor paths required by the visualizer config (aviation only).
+processor:
+  assets_path: ${assets_dir}
+  graph_data_path: ${maps_dir}
+  airport: null  # overridden per-airport at runtime
+
+# Top-level assets_dir; used to populate processor.assets_path above (aviation only).
+assets_dir: data/assets
+
+# Number of scenarios to process in parallel. Set to 1 to disable parallelism.
+num_workers: 8
+
+# Path for the output CSV summary of all processed scenarios. Set to null to disable.
+summary_csv: data/sample/outputs/probes/summary.csv

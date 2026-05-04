@@ -4,7 +4,8 @@ from pathlib import Path
 import hydra
 from omegaconf import DictConfig
 
-from characterization.domains.ad.utils import analysis_utils, common
+from characterization.domains.ad.utils import analysis_utils
+from characterization.utils import common
 from characterization.utils.logging_utils import get_pylogger
 
 logger = get_pylogger(__name__)

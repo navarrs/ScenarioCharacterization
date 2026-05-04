@@ -1,0 +1,5 @@
+_target_: characterization.domains.aviation.datasets.amelia.AmeliaDataset
+config:
+  scenarios_dir: ${paths.scenario_base_path}
+  maps_dir: ${paths.maps_dir}
+  num_scenarios: ${num_scenarios}

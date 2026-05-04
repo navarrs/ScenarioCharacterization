@@ -1,0 +1,31 @@
+# @package _global_
+# AD (autonomous driving) domain configuration for run_scenario_characterization.
+# Data layout: data/ad/waymo/scenarios/ with per-split subdirectories.
+
+scenarios_dir: data/ad/waymo/scenarios
+output_dir: data/ad/waymo/outputs/features
+scores_dir: data/ad/waymo/outputs/scores
+maps_dir: null
+viz_dir: data/ad/waymo/outputs/viz
+summaries_dir: data/ad/waymo/outputs/summaries
+plots_dir: data/ad/waymo/outputs/stats
+
+domain_runner:
+  _target_: characterization.domains.ad.utils.scenario_runner.ADScenarioRunner
+  _recursive_: false
+  visualizer:
+    _target_: characterization.domains.ad.utils.scenario_visualizer.scenario_visualizer.ScenarioVisualizer
+    config:
+      add_title: false
+      scenario_type: gt
+      update_limits: true
+      plot_categorical: false
+      panes_to_plot:
+        - HIGHLIGHT_RELEVANT_AGENTS
+
+extractor:
+  _target_: characterization.domains.ad.features.scenario_characterizer.ADScenarioCharacterizer
+  n_jobs: ${n_jobs}
+
+scorer:
+  _target_: characterization.domains.ad.scorer.safeshift_scorer.SafeShiftScorer

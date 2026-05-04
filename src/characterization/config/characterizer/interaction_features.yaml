@@ -15,4 +15,4 @@ processor:
       - drac
 
 characterizer:
-  _target_: characterization.features.interaction_features.InteractionFeatures
+  _target_: characterization.domains.ad.features.interaction_features.InteractionFeatures

@@ -16,4 +16,4 @@ processor:
       - kalman_difficulty
 
 characterizer:
-  _target_: characterization.features.individual_features.IndividualFeatures
+  _target_: characterization.domains.ad.features.individual_features.IndividualFeatures

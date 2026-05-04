@@ -340,7 +340,7 @@ class InteractionAgent:
     def in_conflict_point(self) -> bool:
         """bool: Whether the agent is in a conflict point."""
         self._in_conflict_point = np.any(
-            self._dists_to_conflict <= self._agent_to_conflict_point_max_distance
+            self._dists_to_conflict <= self._agent_to_conflict_point_max_distance,
         ).__bool__()
         return self._in_conflict_point
 

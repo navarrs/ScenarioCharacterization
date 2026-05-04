@@ -1,7 +1,7 @@
 defaults:
  - scenario.yaml
 
-_target_: characterization.utils.viz.animated_scenario.AnimatedScenarioVisualizer
+_target_: characterization.domains.ad.utils.scenario_visualizer.animated_scenario_visualizer.AnimatedScenarioVisualizer
 config:
   scenario_type: ${scenario_type}
   num_workers: ${num_workers}

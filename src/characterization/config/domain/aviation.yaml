@@ -1,0 +1,48 @@
+# @package _global_
+# Aviation domain configuration for run_scenario_characterization.
+# Data layout: data/aviation/amelia/{assets,graph_data,scenarios}/ with per-airport subdirectories.
+
+scenarios_dir: data/aviation/amelia/scenarios
+output_dir: data/aviation/amelia/outputs/features
+scores_dir: data/aviation/amelia/outputs/scores
+maps_dir: data/aviation/amelia/graph_data
+assets_dir: data/aviation/amelia/assets
+viz_dir: data/aviation/amelia/outputs/viz
+summaries_dir: data/aviation/amelia/outputs/summaries
+plots_dir: data/aviation/amelia/outputs/stats
+
+domain_runner:
+  _target_: characterization.domains.aviation.utils.scenario_runner.AviationScenarioRunner
+  _recursive_: false
+  maps_dir: ${maps_dir}
+  visualizer:
+    _target_: characterization.domains.aviation.utils.scenario_visualizer.scenario_visualizer.ScenarioVisualizer
+    assets_path: ${assets_dir}
+    graph_data_path: ${maps_dir}
+    airport: null  # overridden per-airport at runtime
+    min_valid_timesteps: 2
+    espg: "ESPG:4326"
+    use_icons: true
+    add_title: false
+    update_limits: false
+    show_raster: false
+    use_latlon: true
+    display_agent_ids: true
+    display_only_critical_actypes: true
+    viz_csi_prediction: false
+    viz_trajpred: false
+    agent_zoom:
+      AIRCRAFT: 0.010
+      VEHICLE: 0.15
+      UNKNOWN: 0.010
+    panes_to_plot:
+      - HIGHLIGHT_RELEVANT_AGENTS
+      - SCORED_INDIVIDUAL
+      - SCORED_INTERACTION
+
+extractor:
+  _target_: characterization.domains.aviation.features.base_feature.AviationFeatures
+  n_jobs: ${n_jobs}
+
+scorer:
+  _target_: characterization.domains.aviation.scorer.aviation_scorer.AviationScorer

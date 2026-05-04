@@ -1,0 +1,17 @@
+# @package _global_
+defaults:
+  - default.yaml
+
+processor:
+  _target_: characterization.processors.feature_processor.FeatureProcessor
+  config:
+    features:
+      - loss_of_separation
+      - mttcp
+      - thw
+      - ttc
+      - drac
+
+characterizer:
+  _target_: characterization.domains.aviation.features.interaction_features.InteractionFeatures
+  return_criterion: ${return_criterion}

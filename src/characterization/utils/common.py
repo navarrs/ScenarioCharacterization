@@ -1,5 +1,9 @@
-from enum import Enum
+from enum import Enum, StrEnum
 from itertools import pairwise
+
+import numpy as np
+from numpy.typing import NDArray
+from pydantic import BaseModel
 
 # ---------------------------------------------------------------------------
 # General-purpose Enums
@@ -62,12 +66,12 @@ class InteractionStatus(Enum):
     STATIONARY = 4
 
 
-class ReturnCriterion(Enum):
-    """Enumeration for return criteria."""
+class ReturnCriterion(StrEnum):
+    """How to reduce a per-timestep feature array to a scalar, or return it unchanged."""
 
-    CRITICAL = 0
-    AVERAGE = 1
-    UNSET = -1
+    CRITICAL = "critical"
+    AVERAGE = "average"
+    ALL = "all"
 
 
 class TrajectoryType(Enum):
@@ -85,8 +89,39 @@ class TrajectoryType(Enum):
 
 
 # ---------------------------------------------------------------------------
-# Shared utility function
+# Shared utility functions
 # ---------------------------------------------------------------------------
+
+
+def return_by_criterion(
+    values: NDArray[np.float32],
+    criterion: ReturnCriterion,
+    *,
+    critical_is_min: bool = False,
+) -> float | NDArray[np.float32]:
+    """Reduce a 1-D array to a scalar, or return it unchanged, depending on the criterion.
+
+    Args:
+        values: Array of values to reduce or return.
+        criterion: Aggregation strategy.
+        critical_is_min: When ``True``, ``CRITICAL`` returns the minimum instead of the maximum.
+            Use this for safety-relevant time features (TTC, THW) where smaller means more dangerous.
+            Ignored when ``criterion`` is ``ALL``.
+
+    Returns:
+        The original array when ``criterion`` is ``ALL``; a scalar otherwise.
+        Returns ``float("nan")`` for empty arrays with scalar criteria.
+    """
+    if len(values) == 0:
+        return float("nan")
+
+    match criterion:
+        case ReturnCriterion.ALL:
+            return values
+        case ReturnCriterion.CRITICAL:
+            return float(np.nanmin(values)) if critical_is_min else float(np.nanmax(values))
+        case ReturnCriterion.AVERAGE:
+            return float(np.nanmean(values))
 
 
 def categorize_from_thresholds(value: float, threshold_values: list[float]) -> int:
@@ -122,6 +157,22 @@ def categorize_from_thresholds(value: float, threshold_values: list[float]) -> i
 # ---------------------------------------------------------------------------
 # Module-level constants
 # ---------------------------------------------------------------------------
+
+
+class ValueClipper(BaseModel):
+    """Bounds for clipping a value."""
+
+    min: float = 0.0
+    max: float = float("inf")
+
+    def clip(self, value: float) -> float:
+        """Clip the input value to the configured bounds."""
+        return float(np.clip(value, self.min, self.max))
+
+    def clip_array(self, values: NDArray[np.float32]) -> NDArray[np.float32]:
+        """Clip the input array to the configured bounds."""
+        return np.clip(values, self.min, self.max).astype(np.float32)
+
 
 SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
 SUPPORTED_CRITERIA = ["critical", "average"]

@@ -1,64 +1,57 @@
+"""General scenario scoring output schemas shared across domains."""
+
 from typing import Any
 
 from pydantic import BaseModel
 
-from characterization.schemas.types import BooleanNDArray1D, Float32NDArray1D
 
-from .scenario import ScenarioMetadata
-
-
-class Score(BaseModel):
-    """Represents a score for a scenario or agent, including individual and scene scores.
+class AgentScore(BaseModel):
+    """Score for a single agent.
 
     Attributes:
-        agent_scores (Float32NDArray1D | None): Individual scores for each agent in the scenario.
-        agent_scores_valid (BooleanNDArray1D | None): Mask indicating if the agent score is valid.
-        scene_score (float | None): Overall score for the scene based on individual agent scores.
+        agent_id: Agent identifier.
+        score: Computed score value.
     """
 
-    agent_scores: Float32NDArray1D | None = None
-    agent_scores_valid: BooleanNDArray1D | None = None
-    scene_score: float | None = None
+    agent_id: int
+    score: float
 
-    model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
+    model_config = {"validate_assignment": True}
 
 
 class ScenarioScores(BaseModel):
-    """Represents the scores for a scenario, including individual agent scores, interaction scores, and combined.
-
-    This class is used to encapsulate the results of scoring a scenario based on various criteria, such as safety and
-    interaction quality.
+    """Scoring outputs for a scenario.
 
     Attributes:
-        metadata (ScenarioMetadata): Metadata about the scenario being scored.
-        individual (Score | None): Individual scores for agents in the scenario.
-        interaction (Score | None): Interaction scores for the scenario, capturing the quality of interactions
-            between agents.
-        safeshift (Score | None): Combined score that reflects the overall safety and interaction quality of the
-            scenario.
+        scenario_id: Scenario identifier.
+        individual_scores: Per-agent individual (kinematic) scores.
+        interaction_scores: Per-agent accumulated interaction scores.
+        individual_scene_score: Scene-level aggregate of individual scores. ``None`` if not computed.
+        interaction_scene_score: Scene-level aggregate of interaction scores. ``None`` if not computed.
+        scene_score: Combined scene-level score (weighted average of individual and interaction). ``None`` if not
+            computed.
     """
 
-    metadata: ScenarioMetadata
+    scenario_id: str
+    individual_scores: list[AgentScore] = []
+    interaction_scores: list[AgentScore] = []
+    individual_scene_score: float | None = None
+    interaction_scene_score: float | None = None
+    scene_score: float | None = None
 
-    # Individual Scores
-    individual_scores: Score | None = None
-
-    # Interaction Scores
-    interaction_scores: Score | None = None
-
-    # Combined Scores
-    safeshift_scores: Score | None = None
-
-    model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
+    model_config = {"validate_assignment": True}
 
     def __getitem__(self, key: str) -> Any:  # noqa: ANN401
-        """Get the value of a key in the ScenarioScores object.
+        """Get a score by attribute name.
 
         Args:
-            key (str): The key to retrieve.
+            key: Attribute name to look up.
 
         Returns:
-            Any: The value associated with the key.
+            The value of the named attribute.
+
+        Raises:
+            KeyError: If the key is not found.
         """
         if hasattr(self, key):
             return getattr(self, key)

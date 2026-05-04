@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import Any
 from warnings import warn
 
+from characterization.domains.aviation.schemas.scenario import MapData, Scenario
 from characterization.domains.aviation.utils.scenario_characterization_utils import load_map
 from characterization.utils.constants import LARGE_FLOAT
 from characterization.utils.logging_utils import get_pylogger
-from safeair.schemas import model_outputs as output_data
-from safeair.schemas.scenario import MapData, Scenario
+from safeair.schemas import model_outputs as output_data  # pyright: ignore[reportAttributeAccessIssue]
 
 _LOGGER = get_pylogger(__name__)
 
@@ -36,7 +36,12 @@ def from_pickle(data_file: str) -> dict[str, Any] | None:
 
 
 def to_pickle(
-    output_path: str, input_data: dict[str, Any], tag: str, *, overwrite: bool = False, update: bool = False
+    output_path: str,
+    input_data: dict[str, Any],
+    tag: str,
+    *,
+    overwrite: bool = False,
+    update: bool = False,
 ) -> None:
     """Save data to a pickle file, merging with existing data if present.
 
@@ -238,7 +243,10 @@ def _resplit_batch(batch: output_data.ModelOutput) -> dict[str, output_data.Mode
 
 
 def load_batches(
-    base_data_path: Path, num_batches: int | None, num_scenarios: int | None, seed: int
+    base_data_path: Path,
+    num_batches: int | None,
+    num_scenarios: int | None,
+    seed: int,
 ) -> dict[str, output_data.ModelOutput]:
     """Load scenario batches from a directory, with options to limit the number of batches and scenarios.
 

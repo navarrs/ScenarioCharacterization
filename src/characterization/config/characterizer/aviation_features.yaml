@@ -1,0 +1,23 @@
+# @package _global_
+defaults:
+  - default.yaml
+
+processor:
+  _target_: characterization.processors.feature_processor.FeatureProcessor
+  config:
+    features:
+      - speed
+      - acceleration
+      - deceleration
+      - waiting_period
+      - trajectory_type
+      - kalman_difficulty
+      - loss_of_separation
+      - mttcp
+      - thw
+      - ttc
+      - drac
+
+characterizer:
+  _target_: characterization.domains.aviation.features.base_feature.AviationFeatures
+  return_criterion: ${return_criterion}

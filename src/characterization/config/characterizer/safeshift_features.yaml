@@ -6,4 +6,4 @@ processor:
   _target_: characterization.processors.feature_processor.FeatureProcessor
 
 characterizer:
-  _target_: characterization.features.safeshift_features.SafeShiftFeatures
+  _target_: characterization.domains.ad.features.safeshift_features.SafeShiftFeatures

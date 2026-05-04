@@ -1,4 +1,4 @@
-_target_: characterization.utils.viz.scenario.ScenarioVisualizer
+_target_: characterization.domains.ad.utils.scenario_visualizer.scenario_visualizer.ScenarioVisualizer
 config:
   scenario_type: ${scenario_type}
   add_title: false

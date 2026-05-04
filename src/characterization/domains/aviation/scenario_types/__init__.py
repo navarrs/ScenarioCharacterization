@@ -10,6 +10,7 @@ from .agent_types import (
     AgentTrajectory,
     AgentType,
     RawAgentTrajectory,
+    raw_to_agent_type,
 )
 from .map_types import (
     MAP_COLORS,
@@ -36,4 +37,5 @@ __all__ = [
     "MapInfo",
     "MapType",
     "RawAgentTrajectory",
+    "raw_to_agent_type",
 ]

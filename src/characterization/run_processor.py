@@ -1,7 +1,7 @@
 import hydra
 from omegaconf import DictConfig
+from torch.utils.data import Dataset
 
-from characterization.datasets import BaseDataset
 from characterization.features.base_feature import BaseFeature
 from characterization.processors.base_processor import BaseProcessor
 from characterization.scorer.base_scorer import BaseScorer
@@ -28,7 +28,7 @@ def run(cfg: DictConfig) -> None:
     print_config(cfg, theme="native")
 
     logger.info("Instatiating dataset: %s", cfg.dataset._target_)
-    dataset: BaseDataset = hydra.utils.instantiate(cfg.dataset)
+    dataset: Dataset = hydra.utils.instantiate(cfg.dataset)  # pyright: ignore[reportMissingTypeArgument]
 
     logger.info("Instatiating characterizer: %s", cfg.characterizer._target_)
     characterizer: BaseFeature | BaseScorer = hydra.utils.instantiate(cfg.characterizer)

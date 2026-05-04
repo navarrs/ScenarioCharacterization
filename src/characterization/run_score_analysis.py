@@ -6,7 +6,8 @@ import hydra
 import pandas as pd
 from omegaconf import DictConfig
 
-from characterization.domains.ad.utils import analysis_utils, common
+from characterization.domains.ad.utils import analysis_utils
+from characterization.utils import common
 from characterization.utils.logging_utils import get_pylogger
 
 logger = get_pylogger(__name__)
@@ -71,7 +72,11 @@ def run(cfg: DictConfig) -> None:
     logger.info("Loading the scores")
     scenario_scores = analysis_utils.load_scenario_scores(scenario_ids, cfg.scenario_types, cfg.criteria, scores_path)
     scene_scores, agent_scores, agent_scores_valid = analysis_utils.regroup_scenario_scores(
-        scenario_scores, scenario_ids, cfg.scenario_types, cfg.scores, cfg.criteria
+        scenario_scores,
+        scenario_ids,
+        cfg.scenario_types,
+        cfg.scores,
+        cfg.criteria,
     )
 
     scene_scores_df = pd.DataFrame(scene_scores)
@@ -98,7 +103,12 @@ def run(cfg: DictConfig) -> None:
 
         # Plots the individual and interaction scores as a 2D heatmap
         analysis_utils.plot_agent_scores_heatmap(
-            agent_scores, agent_scores_valid, scenario_type, criterion, output_dir, cfg.dpi
+            agent_scores,
+            agent_scores_valid,
+            scenario_type,
+            criterion,
+            output_dir,
+            cfg.dpi,
         )
 
         # Plots the (individual, interaction, safeshift) scores as a 3D voxel plot

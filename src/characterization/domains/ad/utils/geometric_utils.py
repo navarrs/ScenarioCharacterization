@@ -11,7 +11,8 @@ from characterization.utils.constants import EPSILON
 
 
 def compute_dists_to_conflict_points(
-    conflict_points: NDArray[np.float32] | None, trajectories: NDArray[np.float32]
+    conflict_points: NDArray[np.float32] | None,
+    trajectories: NDArray[np.float32],
 ) -> NDArray[np.float32] | None:
     """Computes distances from agent trajectories to conflict points.
 
@@ -223,7 +224,10 @@ def compute_k_closest_lanes(
 
         # Project points onto lane segments for better accuracy
         projected_dists, projected_points, projected_idxs = _project_onto_lane_segments(
-            valid_traj, valid_lane, closest_point_idxs, closest_dists
+            valid_traj,
+            valid_lane,
+            closest_point_idxs,
+            closest_dists,
         )
 
         # Store results
@@ -302,7 +306,9 @@ def _project_onto_lane_segments(
 
 
 def _select_k_closest_lanes(
-    lane_meta: NDArray[np.float32], k_lanes: int, mask: NDArray[np.bool_]
+    lane_meta: NDArray[np.float32],
+    k_lanes: int,
+    mask: NDArray[np.bool_],
 ) -> NDArray[np.float32]:
     """Select k closest lanes for each timestep.
 
@@ -333,7 +339,11 @@ def _select_k_closest_lanes(
 
 
 def find_closest_lanes(
-    scenario: Scenario, ndim: int = 3, k_closest: int = 10, threshold_distance: float = 10, subsample_factor: int = 1
+    scenario: Scenario,
+    ndim: int = 3,
+    k_closest: int = 10,
+    threshold_distance: float = 10,
+    subsample_factor: int = 1,
 ) -> dict[str, Any] | None:
     """Finds the closest lanes to each agent in a scenario.
 
@@ -375,7 +385,9 @@ def find_closest_lanes(
 
     k_closest = min(k_closest, lanes.shape[0])
     closest_lanes_data = np.full(
-        shape=(agent_data.num_agents, num_timesteps, k_closest, 6), fill_value=np.inf, dtype=np.float32
+        shape=(agent_data.num_agents, num_timesteps, k_closest, 6),
+        fill_value=np.inf,
+        dtype=np.float32,
     )
     for n in range(agent_data.num_agents):
         agent_closest_lanes = compute_k_closest_lanes(

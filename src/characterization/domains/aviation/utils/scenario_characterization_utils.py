@@ -13,18 +13,21 @@ import hydra
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from characterization.domains.aviation.schemas.scenario import MapData, Scenario
+from characterization.domains.aviation.schemas.scenario_features import (
+    IndividualAgentFeatures,
+    InteractionPairFeatures,
+    ScenarioFeatures,
+)
+from characterization.domains.aviation.schemas.scenario_scores import ScenarioScores
 from characterization.utils.logging_utils import get_pylogger
-from safeair.schemas.scenario import MapData, Scenario
-from safeair.schemas.scenario_features import IndividualAgentFeatures, InteractionPairFeatures, ScenarioFeatures
-from safeair.schemas.scenario_scores import ScenarioScores
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from omegaconf import DictConfig
-    from safeair.schemas.model_outputs import ModelOutput
 
-    from safeair.scenario_visualizer.scenario_visualizer import ScenarioVisualizer
+    from characterization.domains.aviation.utils.scenario_visualizer.scenario_visualizer import ScenarioVisualizer
 
 _LOGGER = get_pylogger(__name__, use_rank_zero_only=False)
 
@@ -184,7 +187,7 @@ def _is_valid_float(v: object) -> bool:
     if v is None:
         return False
     try:
-        f = float(v)  # type: ignore[arg-type]
+        f = float(v)  # pyright: ignore[reportArgumentType]
     except (TypeError, ValueError):
         return False
     return not (math.isnan(f) or math.isinf(f))
@@ -227,7 +230,7 @@ def plot_features(features_list: list[ScenarioFeatures], out_path: Path, title: 
         for col in _IND_CONT_COLS:
             v = getattr(f, col)
             if _is_valid_float(v):
-                ind_cont[col][atype].append(float(v))  # type: ignore[arg-type]
+                ind_cont[col][atype].append(float(v))  # pyright: ignore[reportArgumentType]
 
     traj_counts: Counter[str] = Counter(f.trajectory_type for f in ind_feats if f.trajectory_type is not None)
 
@@ -239,7 +242,7 @@ def plot_features(features_list: list[ScenarioFeatures], out_path: Path, title: 
         for col in _INT_CONT_COLS:
             v = getattr(f, col)
             if _is_valid_float(v):
-                int_cont[col][ptype].append(float(v))  # type: ignore[arg-type]
+                int_cont[col][ptype].append(float(v))  # pyright: ignore[reportArgumentType]
 
     pair_counts: Counter[str] = Counter(_abbrev_pair_type(f.pair_type) for f in int_feats)
 
@@ -338,7 +341,7 @@ def _write_airport_text_summary(  # noqa: PLR0912
         f"  Airport : {airport_id}"
         f"  |  {len(features_list)} scenarios"
         f"  |  {len(ind_feats)} agents"
-        f"  |  {len(int_feats)} pairs"
+        f"  |  {len(int_feats)} pairs",
     )
     lines.append(sep)
 
@@ -348,7 +351,7 @@ def _write_airport_text_summary(  # noqa: PLR0912
     lines.append(f"  {'─' * 60}")
     ind_stat_rows: list[tuple[str, ...]] = []
     for col in _IND_CONT_COLS:
-        vals = [float(getattr(f, col)) for f in ind_feats if _is_valid_float(getattr(f, col))]  # type: ignore[arg-type]
+        vals = [float(getattr(f, col)) for f in ind_feats if _is_valid_float(getattr(f, col))]  # pyright: ignore[reportArgumentType]
         s = _stats(vals)
         if s:
             ind_stat_rows.append(
@@ -360,7 +363,7 @@ def _write_airport_text_summary(  # noqa: PLR0912
                     f"{s['min']:.4f}",
                     f"{s['max']:.4f}",
                     f"{s['median']:.4f}",
-                )
+                ),
             )
         else:
             ind_stat_rows.append((col, "0", _NONE_STR, _NONE_STR, _NONE_STR, _NONE_STR, _NONE_STR))
@@ -392,7 +395,7 @@ def _write_airport_text_summary(  # noqa: PLR0912
     lines.append(f"  {'─' * 60}")
     int_stat_rows: list[tuple[str, ...]] = []
     for col in _INT_CONT_COLS:
-        vals = [float(getattr(f, col)) for f in int_feats if _is_valid_float(getattr(f, col))]  # type: ignore[arg-type]
+        vals = [float(getattr(f, col)) for f in int_feats if _is_valid_float(getattr(f, col))]  # pyright: ignore[reportArgumentType]
         s = _stats(vals)
         if s:
             int_stat_rows.append(
@@ -404,7 +407,7 @@ def _write_airport_text_summary(  # noqa: PLR0912
                     f"{s['min']:.4f}",
                     f"{s['max']:.4f}",
                     f"{s['median']:.4f}",
-                )
+                ),
             )
         else:
             int_stat_rows.append((col, "0", _NONE_STR, _NONE_STR, _NONE_STR, _NONE_STR, _NONE_STR))
@@ -432,7 +435,7 @@ def _write_airport_text_summary(  # noqa: PLR0912
         if s:
             lines.append(
                 f"    {score_field:<26}: mean={s['mean']:.4f}  std={s['std']:.4f}"
-                f"  min={s['min']:.4f}  max={s['max']:.4f}"
+                f"  min={s['min']:.4f}  max={s['max']:.4f}",
             )
         else:
             lines.append(f"    {score_field:<26}: no data")
@@ -489,7 +492,6 @@ def visualize_scenario(
     viz_cache: dict[str, ScenarioVisualizer | None],
     cfg: DictConfig,
     *,
-    model_output: ModelOutput | None = None,
     scores: ScenarioScores | None = None,
 ) -> None:
     """Render and save a visualization for *scenario* using the configured ScenarioVisualizer.
@@ -504,7 +506,6 @@ def visualize_scenario(
         viz_dir: Root directory for visualization output; files are saved under ``viz_dir/airport_id/``.
         viz_cache: Mutable dict mapping airport_id → ScenarioVisualizer (or None on failure).
         cfg: Hydra DictConfig; must contain a ``visualizer`` sub-config with ``_target_`` and ``airport``.
-        model_output: Optional model output forwarded to ``visualizer.visualize_scenario``.
         scores: Optional scenario scores forwarded to ``visualizer.visualize_scenario``.
     """
     if airport_id not in viz_cache:
@@ -523,7 +524,7 @@ def visualize_scenario(
     viz_out_dir = viz_dir / airport_id
     viz_out_dir.mkdir(parents=True, exist_ok=True)
     try:
-        visualizer.visualize_scenario(scenario, model_output=model_output, scores=scores, output_dir=viz_out_dir)
+        visualizer.visualize_scenario(scenario, scores=scores, output_dir=viz_out_dir)
     except Exception:
         _LOGGER.exception("Failed to visualize scenario %s", scenario.metadata.scenario_id)
 

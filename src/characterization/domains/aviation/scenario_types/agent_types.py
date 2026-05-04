@@ -66,6 +66,19 @@ STRING_TO_AGENT_TYPE = {
 VALID_STATE_VALUE = 1
 INVALID_STATE_VALUE = 0
 
+
+def raw_to_agent_type(raw_type: str) -> AgentType:
+    """Convert a raw agent-type string to :class:`AgentType`, falling back to ``UNKNOWN``.
+
+    Args:
+        raw_type: Raw agent type string as stored in scenario data.
+
+    Returns:
+        Corresponding :class:`AgentType`, or :attr:`AgentType.UNKNOWN` if unrecognised.
+    """
+    return STRING_TO_AGENT_TYPE.get(raw_type, AgentType.UNKNOWN)
+
+
 RAW_STATE_SIZE_NO_AIRCRAFT_TYPE = 13
 RAW_STATE_SIZE_WITH_AIRCRAFT_TYPE = 14
 
@@ -134,7 +147,7 @@ class RawAgentTrajectory:
     # Raw agent state information (altitude, speed, heading, lat, lon, range, bearing, valid, x, y)
     # fmt: off
     _TRAJECTORY_RAW_STATE: ClassVar[list[bool]] = [
-        False, False, True, True, True, True, True, True, True, False, True, True, True
+        False, False, True, True, True, True, True, True, True, False, True, True, True,
     ]
 
     # Raw agent state information (altitude, speed, heading, lat, lon, range, bearing, valid, x, y)
@@ -144,7 +157,7 @@ class RawAgentTrajectory:
     ]
 
     _SUPPORTED_TRAJECTORY_DIMS: ClassVar[set[int]] = {
-        RAW_STATE_SIZE_NO_AIRCRAFT_TYPE, RAW_STATE_SIZE_WITH_AIRCRAFT_TYPE
+        RAW_STATE_SIZE_NO_AIRCRAFT_TYPE, RAW_STATE_SIZE_WITH_AIRCRAFT_TYPE,
     }
     # State masks based on the new order (x, y, altitude, heading, speed, lat, lon, range, bearing, valid
     # _STATE_ORDER reindexes the raw state columns: [x=8, y=9, alt=0, hdg=2, spd=1, lat=3, lon=4, rng=5, brg=6, valid=7]
@@ -181,7 +194,7 @@ class RawAgentTrajectory:
 
         # One agent type per agent
         self._agent_type = np.array(
-            [AgentType(agent_type) for agent_type in trajectory[..., self._TRAJECTORY_AGENT_TYPE].flatten()]
+            [AgentType(agent_type) for agent_type in trajectory[..., self._TRAJECTORY_AGENT_TYPE].flatten()],
         )
 
         # One aircraft type per agent (only present when D=14)
@@ -332,7 +345,7 @@ class RawAgentTrajectory:
         """
         # Wrap heading back to [-pi, pi] (heading is already in radians from unwrap_heading)
         self._agent_trajectory[..., self._TRAJECTORY_HEADING] = wrap_angle(
-            self._agent_trajectory[..., self._TRAJECTORY_HEADING]
+            self._agent_trajectory[..., self._TRAJECTORY_HEADING],
         )
         match scale_factor:
             case XYZScale.KM:

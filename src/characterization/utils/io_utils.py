@@ -45,7 +45,12 @@ def from_pickle(data_file: str) -> dict[str, Any] | None:
 
 
 def to_pickle(
-    output_path: str, input_data: dict[str, Any], tag: str, *, overwrite: bool = False, update: bool = False
+    output_path: str,
+    input_data: dict[str, Any],
+    tag: str,
+    *,
+    overwrite: bool = False,
+    update: bool = False,
 ) -> None:
     """Saves data to a pickle file, merging with existing data if present.
 

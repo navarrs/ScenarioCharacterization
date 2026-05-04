@@ -1,0 +1,7 @@
+defaults:
+  - default.yaml
+
+base_path: data/aviation/amelia
+maps_dir: ${paths.base_path}/graph_data
+
+scenario_base_path: ${paths.base_path}/scenarios

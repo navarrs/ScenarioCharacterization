@@ -1,0 +1,19 @@
+# Minimum interaction scene score delta required to count a probe as impactful (range 0..1)
+min_score_delta: 0.2
+
+# Aggregation criterion forwarded to the interaction feature extractor
+return_criterion: CRITICAL
+
+# Parallelism for the interaction extractor; 1 is recommended when running many scenarios
+# in parallel (avoids nested joblib overhead)
+n_jobs: 1
+
+# Agent types to skip during probing. Agents whose type appears in this list will not have their
+# trajectory perturbed.
+# Aviation valid values: AIRCRAFT, VEHICLE, UNKNOWN
+# AD valid values: TYPE_VEHICLE, TYPE_PEDESTRIAN, TYPE_CYCLIST, TYPE_OTHER, TYPE_EGO_AGENT, TYPE_UNSET
+skip_agent_types:
+  - UNKNOWN
+
+# When true (default), keep only the single most-critical affected agent. When false, keep all qualifying agents.
+single_affected_agent: true

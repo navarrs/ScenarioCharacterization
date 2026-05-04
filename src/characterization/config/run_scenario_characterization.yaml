@@ -1,0 +1,18 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - domain: aviation
+
+# Parallelism degree for interaction feature extractor; -1 uses all CPUs
+n_jobs: 1
+
+# Maximum number of individual feature rows to print per scenario
+max_agents: 20
+
+# Maximum number of interaction feature rows to print per scenario
+max_pairs: 20
+
+# All path variables (scenarios_dir, output_dir, scores_dir, maps_dir, viz_dir,
+# summaries_dir, plots_dir) and domain components (domain_runner, extractor, scorer,
+# visualizer) are defined in the active domain config under config/domain/.

@@ -1,9 +1,0 @@
-defaults:
-  - default.yaml
-
-_target_: safeair.models.random_csi.RandomCSI
-model_name: random-csi
-
-# Add model tags
-base_tags: null
-extra_tags: null

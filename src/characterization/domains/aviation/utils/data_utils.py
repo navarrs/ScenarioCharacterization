@@ -11,8 +11,8 @@ from airportsdata import load as tz_load
 from numpy.typing import NDArray
 
 from characterization.domains.aviation.scenario_types import INVALID_STATE_VALUE
+from characterization.domains.aviation.schemas.airport_metadata import TimeMetadata
 from characterization.utils.logging_utils import get_pylogger
-from safeair.schemas.airport_metadata import TimeMetadata
 
 log = get_pylogger(__name__)
 

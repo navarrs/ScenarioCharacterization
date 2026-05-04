@@ -1,0 +1,5 @@
+defaults:
+  - default
+
+# Probe type identifier — used to look up the probe function in CounterfactualProber's registry
+probe_type: CONSTANT_VELOCITY

@@ -1,367 +1,467 @@
+"""Utility functions for pairwise agent interaction feature computation."""
+
 import numpy as np
 from numpy.typing import NDArray
-from shapely import LineString
 
-from characterization.domains.ad.scenario_types import InteractionAgent
-from characterization.utils.common import MAX_DECELERATION
-from characterization.utils.constants import EPSILON, MIN_VALID_POINTS
-from characterization.utils.logging_utils import get_pylogger
-
-logger = get_pylogger(__name__)
+from characterization.utils.common import ReturnCriterion, return_by_criterion
+from characterization.utils.constants import EPSILON
 
 
-def is_sharing_lane(lane_i: NDArray[np.float32] | None, lane_j: NDArray[np.float32] | None) -> bool:  # noqa: ARG001
-    """Checks if two agents are sharing the same lane.
+def get_joint_valid_mask(valid_a: NDArray[np.float32], valid_b: NDArray[np.float32]) -> NDArray[np.bool_]:
+    """Return the mask of timesteps where both agents have valid observations.
 
     Args:
-        lane_i (NDArray[np.float32] | None): The lane of the first agent.
-        lane_j (NDArray[np.float32] | None): The lane of the second agent.
+        valid_a: Shape ``(T,)`` valid mask for agent A (1 = valid, 0 = interpolated).
+        valid_b: Shape ``(T,)`` valid mask for agent B.
 
     Returns:
-        bool: True if both agents are sharing the same lane, False otherwise.
+        Shape ``(T,)`` boolean array.
     """
-    # if lane_i is None or lane_j is None:
-    #     return False
-    # lane_i = lane_i[np.isfinite(lane_i)]
-    # lane_j = lane_j[np.isfinite(lane_j)]
-    # return np.isin(lane_i, lane_j).any()
-    return True
+    return (valid_a.squeeze(-1).astype(bool)) & (valid_b.squeeze(-1).astype(bool))
 
 
-def find_valid_headings(
-    agent_i: InteractionAgent,
-    agent_j: InteractionAgent,
-    heading_threshold: float = 0.1,
-) -> NDArray[np.intp]:
-    """Checks if the headings of two agents are within a specified threshold.
+def compute_separation(
+    pos_a: NDArray[np.float32],
+    pos_b: NDArray[np.float32],
+    joint_valid: NDArray[np.bool_],
+) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    """Return per-timestep lateral and vertical separations for joint-valid timesteps.
 
     Args:
-        agent_i (InteractionAgent): The first agent.
-        agent_j (InteractionAgent): The second agent.
-        heading_threshold (float): Threshold for considering headings as valid. Heading are assumed to be in degrees.
+        pos_a: Shape ``(T, 3)`` positions of agent A in meters.
+        pos_b: Shape ``(T, 3)`` positions of agent B in meters.
+        joint_valid: Shape ``(T,)`` joint-validity mask.
 
     Returns:
-        bool: True if the headings of both agents are within the threshold, False otherwise.
+        ``(lateral_dists, vertical_dists)``, each shape ``(N_valid,)`` in meters.
+        Returns a pair of empty arrays if no joint-valid timestep exists.
     """
-    valid_headings = np.empty(shape=(0,), dtype=bool)
-    # if agent_i.heading is None or agent_j.heading is None:
-    #     return valid_headings
-    if not is_sharing_lane(agent_i.lane, agent_j.lane):
-        return valid_headings
-
-    heading_diff = np.abs((agent_j.heading - agent_i.heading + 540) % 360 - 180)
-    # return valid headings
-    return np.where(heading_diff <= heading_threshold)[0]
+    if not np.any(joint_valid):
+        return np.empty(0, dtype=np.float32), np.empty(0, dtype=np.float32)
+    lateral_dists = np.linalg.norm(pos_a[joint_valid, :2] - pos_b[joint_valid, :2], axis=1).astype(np.float32)
+    vertical_dists = np.abs(pos_a[joint_valid, 2] - pos_b[joint_valid, 2]).astype(np.float32)
+    return lateral_dists, vertical_dists
 
 
-def find_leading_agent(
-    agent_i: InteractionAgent,
-    agent_j: InteractionAgent,
-    mask: NDArray[np.intp] | None = None,
-    angle_threshold: float = 90,
-) -> NDArray[np.intp]:
-    """Determines which agent is leading based on their positions and headings.
+def compute_separation_1d(
+    pos_a: NDArray[np.float32],
+    pos_b: NDArray[np.float32],
+    joint_valid: NDArray[np.bool_],
+) -> NDArray[np.float32]:
+    """Return per-joint-valid-timestep 2D Euclidean separation distances.
 
     Args:
-        agent_i (InteractionAgent): The first agent.
-        agent_j (InteractionAgent): The second agent.
-        mask (NDArray[np.intp] | None): Optional mask to filter positions.
-        angle_threshold (float): Angle threshold in degrees to determine if one agent is behind the other.
+        pos_a: Shape ``(T, 3)`` positions of agent A.
+        pos_b: Shape ``(T, 3)`` positions of agent B.
+        joint_valid: Shape ``(T,)`` joint-validity mask.
 
     Returns:
-        int: 0 if agent_i is leading, 1 if agent_j is leading.
+        Shape ``(N_valid,)`` array of 2D distances. Empty if no joint-valid timesteps.
     """
-    position_i, position_j = agent_i.position, agent_j.position
-    heading_i = agent_i.heading
-    if mask is not None:
-        position_i = position_i[mask]
-        position_j = position_j[mask]
-        heading_i = heading_i[mask]
-
-    # Compute i-to-j angles based on positions and headings
-    x_i, y_i = position_i[:, 0], position_i[:, 1]
-    x_j, y_j = position_j[:, 0], position_j[:, 1]
-    heading_i = np.deg2rad(heading_i)
-
-    # Vector i to j
-    vector_to_j = np.array([x_j - x_i, y_j - y_i])
-    angle_to_j = np.arctan2(vector_to_j[1], vector_to_j[0])  # Angle in radians
-
-    # Adjust the angle difference to be between -π and π
-    angle_ij = angle_to_j - heading_i
-    # Wrap the angle difference to be between -π and π
-    angle_ij = np.rad2deg((angle_ij + np.pi) % (2 * np.pi) - np.pi)
-
-    # Check if position_j is "behind" position_i
-    leading_agent = np.abs(angle_ij) > angle_threshold
-    # 0 -> i is leading, 1 -> j is leading
-    return (~leading_agent).astype(int)
-
-
-def compute_separation(agent_i: InteractionAgent, agent_j: InteractionAgent) -> NDArray[np.float32]:
-    """Computes the separation distance between two agents at each timestep.
-
-    Args:
-        agent_i (InteractionAgent): The first agent.
-        agent_j (InteractionAgent): The second agent.
-
-    Returns:
-        separation (NDArray[np.float32]): Array of separation distances between agent_i and agent_j at each timestep
-        (shape: [T,]).
-    """
-    position_i, position_j = agent_i.position, agent_j.position
-    return np.linalg.norm(position_i - position_j, axis=-1)
-
-
-def compute_intersections(agent_i: InteractionAgent, agent_j: InteractionAgent) -> NDArray[np.bool_]:
-    """Computes whether two agents' trajectory segments intersect at each timestep.
-
-    Args:
-        agent_i (InteractionAgent): The first agent.
-        agent_j (InteractionAgent): The second agent.
-
-    Returns:
-        intersections (NDArray[np.bool_]): Boolean array indicating whether each segment of agent_i intersects with the
-            corresponding segment of agent_j (shape: [T,]).
-    """
-    position_i, position_j = agent_i.position, agent_j.position
-    if position_i.shape[0] < MIN_VALID_POINTS or position_j.shape[0] < MIN_VALID_POINTS:
-        return np.zeros((position_i.shape[0],), dtype=bool)
-
-    segments_i = np.stack([position_i[:-1], position_i[1:]], axis=1)
-    segments_j = np.stack([position_j[:-1], position_j[1:]], axis=1)
-    segments_i = [LineString(x) for x in segments_i]
-    segments_j = [LineString(x) for x in segments_j]
-
-    intersections = [x.intersects(y) for x, y in zip(segments_i, segments_j, strict=False)]
-    # Make it consistent with the number of timesteps
-    return np.array([intersections[0]] + intersections, dtype=bool)  # noqa: RUF005
+    if not np.any(joint_valid):
+        return np.empty(0, dtype=np.float32)
+    return np.linalg.norm(pos_a[joint_valid, :2] - pos_b[joint_valid, :2], axis=1).astype(np.float32)
 
 
 def compute_mttcp(
-    agent_i: InteractionAgent,
-    agent_j: InteractionAgent,
-    agent_to_agent_max_distance: float = 0.5,
-) -> NDArray[np.float32]:
-    """Computes the minimum time to conflict point (mTTCP) between two agents.
+    pos_a: NDArray[np.float32],
+    pos_b: NDArray[np.float32],
+    speeds_a_ms: NDArray[np.float32],
+    speeds_b_ms: NDArray[np.float32],
+    conflict_points_m: NDArray[np.float32],
+    joint_valid: NDArray[np.bool_],
+    agent_to_conflict_point_max_distance: float,
+    criterion: ReturnCriterion,
+) -> float | NDArray[np.float32]:
+    """Compute the aggregated time-to-conflict-point (MTTCP) difference between two agents.
 
-                                 |  𝚫xi(t)     𝚫xj(t) |
-        𝚫TTCP  =       min       | ------  -  ------  |
-                  t in {0, tcp}  |  𝚫vi(t)     𝚫vj(t) |
-
-    The mTTCP is defined as the minimum absolute difference in time for each agent to reach a conflict point,
-    for all timesteps where the agents are within a specified distance threshold.
+    For each conflict point and each joint-valid timestep the function estimates the time for each agent to reach that
+    point (distance / speed) and records |t_a - t_b|.
 
     Args:
-        agent_i (InteractionAgent): The first agent.
-        agent_j (InteractionAgent): The second agent.
-        agent_to_agent_max_distance (float): The maximum distance between agents to consider for mTTCP.
+        pos_a: Shape ``(T, 3)`` positions of agent A in meters.
+        pos_b: Shape ``(T, 3)`` positions of agent B in meters.
+        speeds_a_ms: Shape ``(T,)`` speeds of agent A in m/s.
+        speeds_b_ms: Shape ``(T,)`` speeds of agent B in m/s.
+        conflict_points_m: Shape ``(K, 3)`` conflict-point positions in meters.
+        joint_valid: Shape ``(T,)`` joint-validity mask.
+        agent_to_conflict_point_max_distance: Distance threshold in meters; only consider timesteps where at least one
+            agent is within this distance of a conflict point.
+        criterion: How to reduce the per-timestep |t_a - t_b| values. ``CRITICAL`` returns the minimum (simultaneous
+            arrival = most dangerous); ``AVERAGE`` returns the mean.
 
     Returns:
-        mttcp (NDArray[np.float32]): An array of mTTCP values for each timestep (shape: [N,]), or [np.inf] if no valid
-            pairs are found.
+        Aggregated MTTCP in seconds, or ``inf`` if no relevant interactions found.
+        Returns ``nan`` if ``conflict_points_m`` is empty.
     """
-    position_i, position_j = agent_i.position, agent_j.position
-    vel_i, vel_j = agent_i.speed, agent_j.speed
+    if len(conflict_points_m) == 0:
+        return float("nan")
+    if not np.any(joint_valid):
+        return float("inf")
 
-    # T, 2 -> T, T
-    dists = np.linalg.norm(position_i[:, None, :] - position_j, axis=-1)
-    i_idx, _ = np.where(dists <= agent_to_agent_max_distance)
+    pa = pos_a[joint_valid]  # (N, 3)
+    pb = pos_b[joint_valid]
+    sa = speeds_a_ms[joint_valid]
+    sb = speeds_b_ms[joint_valid]
 
-    _, i_unique = np.unique(i_idx, return_index=True)
-    ti = i_idx[i_unique]
-    if len(ti) == 0:
-        return np.array([np.inf], dtype=np.float32)
+    all_diffs: list[NDArray[np.float32]] = []
+    for cp in conflict_points_m:
+        dist_a = np.linalg.norm(pa - cp, axis=1)  # (N,)
+        dist_b = np.linalg.norm(pb - cp, axis=1)
 
-    conflict_points = position_i[ti]
-    mttcp = np.inf * np.ones(conflict_points.shape[0], dtype=np.float32)
+        near = (dist_a <= agent_to_conflict_point_max_distance) | (dist_b <= agent_to_conflict_point_max_distance)
+        if not np.any(near):
+            continue
 
-    cp_to_position_i = np.linalg.norm(position_i - conflict_points[:, None], axis=-1)
-    cp_to_position_j = np.linalg.norm(position_j - conflict_points[:, None], axis=-1)
-    tj = cp_to_position_j.argmin(axis=-1)
+        t_a = dist_a[near] / (sa[near] + EPSILON)
+        t_b = dist_b[near] / (sb[near] + EPSILON)
+        all_diffs.append(np.abs(t_a - t_b).astype(np.float32))
 
-    t_min = np.minimum(ti, tj) + 1
-    for n, t in enumerate(t_min):
-        # Compute the time to conflict point for each agent
-        ttcp_i = cp_to_position_i[n, :t] / vel_i[:t]  # Shape: (num. conflict points, 0 to t)
-        ttcp_j = cp_to_position_j[n, :t] / vel_j[:t]
+    if not all_diffs:
+        return float("inf")
 
-        # Calculate the absolute difference in time to conflict point
-        ttcp = np.abs(ttcp_i - ttcp_j)
+    combined = np.concatenate(all_diffs)
+    return return_by_criterion(combined, criterion, critical_is_min=True)
 
-        # Update the minimum mTTCP
-        mttcp[n] = ttcp.min()
 
-    return mttcp
+def _find_leader(
+    pos_a: NDArray[np.float32],
+    pos_b: NDArray[np.float32],
+    headings_a: NDArray[np.float32],
+    _headings_b: NDArray[np.float32],
+) -> NDArray[np.int8]:
+    """Determine the leading agent at each timestep.
+
+    The leader is the agent that is further ahead along its own heading direction. If the angle from A to B projected
+    onto A's heading is positive, B is ahead (A follows B). Otherwise A leads. Only the xy components of the positions
+    are used because heading is defined on the horizontal plane.
+
+    Args:
+        pos_a: Shape ``(N, 3)`` positions.
+        pos_b: Shape ``(N, 3)`` positions.
+        headings_a: Shape ``(N,)`` headings of A in radians.
+        _headings_b: Shape ``(N,)`` headings of B in radians (unused; reserved for future use).
+
+    Returns:
+        Shape ``(N,)`` int8 array; 0 = A leads, 1 = B leads.
+    """
+    diff_xy = pos_b[:, :2] - pos_a[:, :2]  # (N, 2) — horizontal displacement only
+    heading_vec = np.stack([np.cos(headings_a), np.sin(headings_a)], axis=1)  # (N, 2)
+    proj = np.sum(diff_xy * heading_vec, axis=1)  # positive → B is ahead
+    return np.where(proj >= 0, np.int8(1), np.int8(0)).astype(np.int8)
 
 
 def compute_thw(
-    agent_i: InteractionAgent,
-    agent_j: InteractionAgent,
-    leading_agent: NDArray[np.intp],
-    valid_headings: NDArray[np.intp] | None = None,
-) -> NDArray[np.float32]:
-    """Computes the following leader-follower interaction measurements.
+    pos_a: NDArray[np.float32],
+    pos_b: NDArray[np.float32],
+    speeds_a_ms: NDArray[np.float32],
+    speeds_b_ms: NDArray[np.float32],
+    headings_a: NDArray[np.float32],
+    headings_b: NDArray[np.float32],
+    joint_valid: NDArray[np.bool_],
+    heading_threshold_deg: float,
+    criterion: ReturnCriterion,
+) -> float | NDArray[np.float32]:
+    """Compute the aggregated time headway (THW) between two agents.
 
-        Time Headway (THW):
-        -------------------
-            TWH = d / v_f
-
-        where d is the gap between the leader and the follower, and v_f is the speed of the follower.
+    THW = separation / follower_speed. Only computed at timesteps where the agents are co-directional
+    (|heading difference| <= ``heading_threshold_deg``).
 
     Args:
-        agent_i (InteractionAgent): The first agent.
-        agent_j (InteractionAgent): The second agent.
-        leading_agent (NDArray[np.intp]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
-        valid_headings (NDArray[np.intp] | None): Optional mask to filter valid headings.
+        pos_a: Shape ``(T, 3)`` positions of agent A in meters.
+        pos_b: Shape ``(T, 3)`` positions of agent B in meters.
+        speeds_a_ms: Shape ``(T,)`` speeds of agent A in m/s.
+        speeds_b_ms: Shape ``(T,)`` speeds of agent B in m/s.
+        headings_a: Shape ``(T,)`` headings of agent A in radians.
+        headings_b: Shape ``(T,)`` headings of agent B in radians.
+        joint_valid: Shape ``(T,)`` joint-validity mask.
+        heading_threshold_deg: Maximum heading difference in degrees to consider co-directional.
+        criterion: How to reduce per-timestep THW values. ``CRITICAL`` returns the minimum (smallest headway =
+            most dangerous); ``AVERAGE`` returns the mean.
 
     Returns:
-        thw (NDArray[np.float32]): Array of time headway values for each timestep (shape: [T,]).
+        Aggregated THW in seconds, or ``inf`` if no co-directional follower pair is found.
     """
-    position_i, position_j = agent_i.position, agent_j.position
-    speed_i, speed_j = agent_i.speed, agent_j.speed
-    length_i, length_j = agent_i.length, agent_j.length
-    if valid_headings is not None:
-        position_i = position_i[valid_headings]
-        speed_i = speed_i[valid_headings]
-        length_i = length_i[valid_headings]
-        position_j = position_j[valid_headings]
-        speed_j = speed_j[valid_headings]
-        length_j = length_j[valid_headings]
+    if not np.any(joint_valid):
+        return float("inf")
 
-    thw = np.full(position_i.shape[0], np.inf, dtype=np.float32)
+    pa, pb = pos_a[joint_valid], pos_b[joint_valid]
+    sa, sb = speeds_a_ms[joint_valid], speeds_b_ms[joint_valid]
+    ha, hb = headings_a[joint_valid], headings_b[joint_valid]
 
-    # NOTE: this assumes the leader value is correctly computed. Need to still verify this.
-    # ...where i is the agent ahead
-    i_idx = np.where(leading_agent == 0)[0]
-    if len(i_idx) > 0:
-        d_i = np.linalg.norm(position_i[i_idx] - position_j[i_idx], axis=-1) - length_i[i_idx]
-        thw[i_idx] = d_i / (speed_j[i_idx] + EPSILON)
+    hdiff = np.abs(np.degrees(np.arctan2(np.sin(ha - hb), np.cos(ha - hb))))
+    co_directional = hdiff <= heading_threshold_deg
+    if not np.any(co_directional):
+        return float("inf")
 
-    # ...where j is the agent ahead
-    j_idx = np.where(leading_agent == 1)[0]
-    if len(j_idx) > 0:
-        d_j = np.linalg.norm(position_j[j_idx] - position_i[j_idx], axis=-1) - length_j[j_idx]
-        thw[j_idx] = d_j / (speed_i[j_idx] + EPSILON)
+    pa_cd, pb_cd = pa[co_directional], pb[co_directional]
+    sa_cd, sb_cd = sa[co_directional], sb[co_directional]
+    ha_cd, hb_cd = ha[co_directional], hb[co_directional]
 
-    return np.abs(thw)
+    leader = _find_leader(pa_cd, pb_cd, ha_cd, hb_cd)  # 0=A leads, 1=B leads
+    separation = np.linalg.norm(pa_cd - pb_cd, axis=1)
+
+    follower_speed = np.where(leader == 1, sa_cd, sb_cd)  # leader==1 means B leads → A follows
+    with np.errstate(divide="ignore", invalid="ignore"):
+        thw = separation / (follower_speed + EPSILON)
+
+    valid_thw = thw[follower_speed > EPSILON].astype(np.float32)
+    if len(valid_thw) == 0:
+        return float("inf")
+    return return_by_criterion(valid_thw, criterion, critical_is_min=True)
+
+
+def velocity_components_2d(
+    speeds_ms: NDArray[np.float32],
+    headings_rad: NDArray[np.float32],
+) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    """Decompose scalar speeds into (east, north) velocity components using heading.
+
+    Args:
+        speeds_ms: Per-timestep scalar speeds in m/s.
+        headings_rad: Per-timestep headings in radians, measured clockwise from north.
+
+    Returns:
+        ``(vx, vy)`` where vx is the east component and vy is the north component, both shape ``(N,)``.
+    """
+    return speeds_ms * np.sin(headings_rad), speeds_ms * np.cos(headings_rad)
+
+
+def closing_rate_2d(
+    pa: NDArray[np.float32],
+    pb: NDArray[np.float32],
+    vx_a: NDArray[np.float32],
+    vy_a: NDArray[np.float32],
+    vx_b: NDArray[np.float32],
+    vy_b: NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Horizontal closing rate as the component of relative velocity along the A→B direction.
+
+    Equivalent to the time-derivative of horizontal separation, negated (positive = shrinking). Only uses the xy
+    (horizontal) plane; altitude is ignored.
+
+    Args:
+        pa: Shape ``(N, 3)`` positions of A (only xy used).
+        pb: Shape ``(N, 3)`` positions of B (only xy used).
+        vx_a: East velocity component of A in m/s.
+        vy_a: North velocity component of A in m/s.
+        vx_b: East velocity component of B in m/s.
+        vy_b: North velocity component of B in m/s.
+
+    Returns:
+        Shape ``(N,)`` array. Positive = agents closing; negative = separating.
+    """
+    d = pb[:, :2] - pa[:, :2]
+    dist = np.linalg.norm(d, axis=1)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        d_hat = d / (dist[:, None] + EPSILON)
+    v_rel = np.stack([vx_a - vx_b, vy_a - vy_b], axis=1)
+    return np.einsum("ni,ni->n", v_rel, d_hat)
+
+
+def projected_cpa_dist_2d(
+    pa: NDArray[np.float32],
+    pb: NDArray[np.float32],
+    vx_a: NDArray[np.float32],
+    vy_a: NDArray[np.float32],
+    vx_b: NDArray[np.float32],
+    vy_b: NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Horizontal closest-point-of-approach distance under constant-velocity assumption.
+
+    For each timestep, extrapolates both agents at constant velocity and returns the minimum horizontal separation they
+    will reach. Used to suppress TTC/DRAC for pairs whose paths do not converge within a meaningful threshold (e.g.
+    parallel runways, non-intersecting paths), and as a candidate-level filter in pair selection.
+
+    When agents have the same velocity (v_rel ≈ 0), separation stays constant, so CPA = current separation (t_cpa
+    clamped to 0).
+
+    Args:
+        pa: Positions of A (only xy used), shape ``(N, 2)`` or ``(N, 3)``.
+        pb: Positions of B (only xy used), shape ``(N, 2)`` or ``(N, 3)``.
+        vx_a: East velocity component of A in m/s.
+        vy_a: North velocity component of A in m/s.
+        vx_b: East velocity component of B in m/s.
+        vy_b: North velocity component of B in m/s.
+
+    Returns:
+        Shape ``(N,)`` projected horizontal CPA distances in meters.
+    """
+    d = pa[:, :2] - pb[:, :2]
+    v_rel = np.stack([vx_a - vx_b, vy_a - vy_b], axis=1)
+    v_rel_sq = np.sum(v_rel**2, axis=1)
+    t_cpa = np.where(v_rel_sq > EPSILON, -np.sum(d * v_rel, axis=1) / np.maximum(v_rel_sq, EPSILON), 0.0)
+    t_cpa = np.maximum(t_cpa, 0.0)
+    r_cpa = d + v_rel * t_cpa[:, None]
+    return np.linalg.norm(r_cpa, axis=1).astype(np.float32)
+
+
+def compute_pair_gate(
+    pos_a: NDArray[np.float32],
+    pos_b: NDArray[np.float32],
+    speeds_a_ms: NDArray[np.float32],
+    speeds_b_ms: NDArray[np.float32],
+    headings_a_rad: NDArray[np.float32],
+    headings_b_rad: NDArray[np.float32],
+    joint_valid: NDArray[np.bool_],
+    max_cpa_dist: float,
+    max_vertical_separation: float,
+) -> NDArray[np.bool_]:
+    """Return a refined joint-validity mask gating out timesteps where TTC/DRAC are not meaningful.
+
+    Two per-timestep checks are applied on top of the existing ``joint_valid`` mask:
+
+    - **CPA gate**: suppresses timesteps where the constant-velocity projected closest-point-of-approach (CPA) distance
+      exceeds ``max_cpa_dist``.
+    - **Altitude gate**: suppresses timesteps where the vertical separation ``|z_a - z_b|`` exceeds
+      ``max_vertical_separation``.
+
+    Args:
+        pos_a: Shape ``(T, 3)`` positions of A in meters.
+        pos_b: Shape ``(T, 3)`` positions of B in meters.
+        speeds_a_ms: Shape ``(T,)`` speeds of A in m/s.
+        speeds_b_ms: Shape ``(T,)`` speeds of B in m/s.
+        headings_a_rad: Shape ``(T,)`` headings of A in radians (clockwise from north).
+        headings_b_rad: Shape ``(T,)`` headings of B in radians (clockwise from north).
+        joint_valid: Shape ``(T,)`` existing joint-validity mask.
+        max_cpa_dist: CPA gate threshold in meters.
+        max_vertical_separation: Altitude gate threshold in meters. Pass ``float("inf")`` to disable.
+
+    Returns:
+        Shape ``(T,)`` boolean mask that is a subset of ``joint_valid``.
+    """
+    if not np.any(joint_valid):
+        return joint_valid
+    pa, pb = pos_a[joint_valid], pos_b[joint_valid]
+    vx_a, vy_a = velocity_components_2d(speeds_a_ms[joint_valid], headings_a_rad[joint_valid])
+    vx_b, vy_b = velocity_components_2d(speeds_b_ms[joint_valid], headings_b_rad[joint_valid])
+    altitude_ok = np.abs(pa[:, 2] - pb[:, 2]) <= max_vertical_separation
+    cpa_ok = projected_cpa_dist_2d(pa, pb, vx_a, vy_a, vx_b, vy_b) <= max_cpa_dist
+    result = joint_valid.copy()
+    result[joint_valid] = altitude_ok & cpa_ok
+    return result
 
 
 def compute_ttc(
-    agent_i: InteractionAgent,
-    agent_j: InteractionAgent,
-    leading_agent: NDArray[np.intp],
-    valid_headings: NDArray[np.intp] | None = None,
-) -> NDArray[np.float32]:
-    """Computes the following leader-follower interaction measurement.
+    pos_a: NDArray[np.float32],
+    pos_b: NDArray[np.float32],
+    speeds_a_ms: NDArray[np.float32],
+    speeds_b_ms: NDArray[np.float32],
+    headings_a_rad: NDArray[np.float32],
+    headings_b_rad: NDArray[np.float32],
+    joint_valid: NDArray[np.bool_],
+    criterion: ReturnCriterion,
+) -> float | NDArray[np.float32]:
+    """Compute the aggregated time-to-collision (TTC) using velocity-vector closing rate.
 
-        Time-to-Collision (TTC):
-        ------------------------
-                        d
-            TTC = ---------------  forall v_i > v_j
-                     v_i - v_j
-
-        where d is the gap between the leader and the follower, and v_i and v_j are the speeds of the follower and the
-        leader, and where the follower's speed is higher than the leader's speed.
+    TTC at each valid timestep = horizontal_separation / closing_rate, where the closing rate is the projection of the
+    relative velocity (v_a - v_b) onto the A->B unit vector. Only timesteps with a positive closing rate (agents
+    approaching) contribute. ``joint_valid`` should already incorporate any geometry-based filtering (e.g. via
+    ``compute_pair_gate``) before being passed here.
 
     Args:
-        agent_i (InteractionAgent): The first agent.
-        agent_j (InteractionAgent): The second agent.
-        leading_agent (NDArray[np.intp]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
-        valid_headings (NDArray[np.intp] | None): Optional mask to filter valid headings.
+        pos_a: Shape ``(T, 3)`` positions of agent A in meters.
+        pos_b: Shape ``(T, 3)`` positions of agent B in meters.
+        speeds_a_ms: Shape ``(T,)`` speeds of agent A in m/s.
+        speeds_b_ms: Shape ``(T,)`` speeds of agent B in m/s.
+        headings_a_rad: Shape ``(T,)`` headings of A in radians, clockwise from north.
+        headings_b_rad: Shape ``(T,)`` headings of B in radians, clockwise from north.
+        joint_valid: Shape ``(T,)`` mask — True where both agents are observed and the geometry is meaningful.
+        criterion: How to reduce per-timestep TTC values. ``CRITICAL`` returns the minimum (soonest collision =
+            most dangerous); ``AVERAGE`` returns the mean. ``ALL`` returns a shape-``(T,)`` array with ``nan``
+            at joint-invalid and non-closing timesteps.
 
     Returns:
-        ttc (NDArray[np.float32]): Array of time-to-collision values for each timestep (shape: [T,]).
+        Aggregated TTC in seconds, shape-``(T,)`` array when ``criterion`` is ``ALL``, or ``inf`` if agents are not
+            approaching (scalar criteria only).
     """
-    position_i, position_j = agent_i.position, agent_j.position
-    speed_i, speed_j = agent_i.speed, agent_j.speed
-    length_i, length_j = agent_i.length, agent_j.length
-    if valid_headings is not None:
-        position_i = position_i[valid_headings]
-        speed_i = speed_i[valid_headings]
-        length_i = length_i[valid_headings]
-        position_j = position_j[valid_headings]
-        speed_j = speed_j[valid_headings]
-        length_j = length_j[valid_headings]
+    n_t = len(joint_valid)
+    if not np.any(joint_valid):
+        return np.full(n_t, np.nan, dtype=np.float32) if criterion == ReturnCriterion.ALL else float("inf")
 
-    ttc = np.full(position_i.shape[0], np.inf, dtype=np.float32)
+    pa, pb = pos_a[joint_valid], pos_b[joint_valid]
+    sa, sb = speeds_a_ms[joint_valid], speeds_b_ms[joint_valid]
+    ha, hb = headings_a_rad[joint_valid], headings_b_rad[joint_valid]
 
-    # ...where i is the agent ahead and j's speed is higher
-    i_leads = np.where(leading_agent == 0)[0]
-    j_faster = np.where(speed_j > speed_i)[0]
-    i_idx = np.intersect1d(i_leads, j_faster)
-    if len(i_idx) > 0:
-        d_ij = np.linalg.norm(position_i[i_idx] - position_j[i_idx], axis=-1) - length_i[i_idx]
-        ttc[i_idx] = d_ij / (speed_j[i_idx] - speed_i[i_idx] + EPSILON)
+    vx_a, vy_a = velocity_components_2d(sa, ha)
+    vx_b, vy_b = velocity_components_2d(sb, hb)
 
-    # ...where j is the agent ahead and i's speed is higher
-    j_leads = np.where(leading_agent == 1)[0]
-    i_faster = np.where(speed_i > speed_j)[0]
-    j_idx = np.intersect1d(j_leads, i_faster)
-    if len(j_idx) > 0:
-        d_ji = np.linalg.norm(position_j[j_idx] - position_i[j_idx], axis=-1) - length_j[j_idx]
-        ttc[j_idx] = d_ji / (speed_i[j_idx] - speed_j[j_idx] + EPSILON)
+    dist = np.linalg.norm(pb[:, :2] - pa[:, :2], axis=1)
+    closing_rate = closing_rate_2d(pa, pb, vx_a, vy_a, vx_b, vy_b)
+    closing = closing_rate > 0
 
-    return np.abs(ttc)
+    if criterion == ReturnCriterion.ALL:
+        result = np.full(n_t, np.nan, dtype=np.float32)
+        if np.any(closing):
+            valid_indices = np.where(joint_valid)[0]
+            result[valid_indices[closing]] = dist[closing] / (closing_rate[closing] + EPSILON)
+        return return_by_criterion(result, criterion, critical_is_min=True)
+
+    if not np.any(closing):
+        return float("inf")
+
+    ttc_vals = (dist[closing] / (closing_rate[closing] + EPSILON)).astype(np.float32)
+    return return_by_criterion(ttc_vals, criterion, critical_is_min=True)
 
 
 def compute_drac(
-    agent_i: InteractionAgent,
-    agent_j: InteractionAgent,
-    leading_agent: NDArray[np.intp],
-    valid_headings: NDArray[np.intp] | None = None,
-    max_deceleration: float = MAX_DECELERATION,
-) -> NDArray[np.float32]:
-    """Computes the following leader-follower interaction measurement.
+    pos_a: NDArray[np.float32],
+    pos_b: NDArray[np.float32],
+    speeds_a_ms: NDArray[np.float32],
+    speeds_b_ms: NDArray[np.float32],
+    headings_a_rad: NDArray[np.float32],
+    headings_b_rad: NDArray[np.float32],
+    joint_valid: NDArray[np.bool_],
+    agent_max_deceleration: float,
+    criterion: ReturnCriterion,
+) -> float | NDArray[np.float32]:
+    """Compute the aggregated deceleration rate to avoid collision (DRAC).
 
-        Deceleration Rate to Avoid a Crash (DRAC):
-        -----------------------------------------
-                (v_j - v_i) ** 2
-        DRAC = ------------------
-                      2 d
-        the average delay of a road user to avoid an accident at given velocities and distance between vehicles,
-        where i is the leader and j is the follower.
+    DRAC at each valid timestep = closing_rate^2 / (2 * horizontal_separation), where closing_rate is the magnitude
+    of the closing component of the relative velocity vector. Per-timestep values are clamped to
+    ``agent_max_deceleration`` before aggregation. ``joint_valid`` should incorporate geometry-based filtering (via
+    ``compute_pair_gate``) before being passed here.
 
     Args:
-        agent_i (InteractionAgent): The first agent.
-        agent_j (InteractionAgent): The second agent.
-        leading_agent (NDArray[np.intp]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
-        valid_headings (NDArray[np.intp] | None): Optional mask to filter valid headings.
-        max_deceleration (float): Maximum deceleration value to clip DRAC values.
+        pos_a: Shape ``(T, 3)`` positions of agent A in meters.
+        pos_b: Shape ``(T, 3)`` positions of agent B in meters.
+        speeds_a_ms: Shape ``(T,)`` speeds of agent A in m/s.
+        speeds_b_ms: Shape ``(T,)`` speeds of agent B in m/s.
+        headings_a_rad: Shape ``(T,)`` headings of A in radians, clockwise from north.
+        headings_b_rad: Shape ``(T,)`` headings of B in radians, clockwise from north.
+        joint_valid: Shape ``(T,)`` mask after geometry gating.
+        agent_max_deceleration: Maximum feasible deceleration in m/s² (used as clip upper bound).
+        criterion: How to reduce per-timestep DRAC values. ``CRITICAL`` returns the maximum (highest required
+            braking = most dangerous); ``AVERAGE`` returns the mean. ``ALL`` returns a shape-``(T,)`` array with
+            ``nan`` at joint-invalid timesteps.
 
     Returns:
-        drac (NDArray[np.float32]): Array of time-to-collision values for each timestep (shape: [T,]).
+        Aggregated DRAC in m/s², shape-``(T,)`` array when ``criterion`` is ``ALL``, or ``nan`` if not computable
+            (scalar criteria only).
     """
-    position_i, position_j = agent_i.position, agent_j.position
-    speed_i, speed_j = agent_i.speed, agent_j.speed
-    length_i, length_j = agent_i.length, agent_j.length
-    if valid_headings is not None:
-        position_i = position_i[valid_headings]
-        speed_i = speed_i[valid_headings]
-        length_i = length_i[valid_headings]
-        position_j = position_j[valid_headings]
-        speed_j = speed_j[valid_headings]
-        length_j = length_j[valid_headings]
+    n_t = len(joint_valid)
+    if not np.any(joint_valid):
+        return np.full(n_t, np.nan, dtype=np.float32) if criterion == ReturnCriterion.ALL else float("nan")
 
-    drac = np.full(position_i.shape[0], 0.0, dtype=np.float32)
+    pa, pb = pos_a[joint_valid], pos_b[joint_valid]
+    sa, sb = speeds_a_ms[joint_valid], speeds_b_ms[joint_valid]
+    ha, hb = headings_a_rad[joint_valid], headings_b_rad[joint_valid]
 
-    # ...where i is the agent ahead and j's speed is higher
-    i_leads = np.where(leading_agent == 0)[0]
-    j_faster = np.where(speed_j > speed_i)[0]
-    i_idx = np.intersect1d(i_leads, j_faster)
-    if len(i_idx) > 0:
-        d_ij = np.linalg.norm(position_i[i_idx] - position_j[i_idx], axis=-1) - length_i[i_idx]
-        v_ji = speed_j[i_idx] - speed_i[i_idx]
-        drac[i_idx] = (v_ji**2) / (2 * np.abs(d_ij) + EPSILON)
+    vx_a, vy_a = velocity_components_2d(sa, ha)
+    vx_b, vy_b = velocity_components_2d(sb, hb)
 
-    # ...where j is the agent ahead and i's speed is higher
-    j_leads = np.where(leading_agent == 1)[0]
-    i_faster = np.where(speed_i > speed_j)[0]
-    j_idx = np.intersect1d(j_leads, i_faster)
-    if len(j_idx) > 0:
-        d_ji = np.linalg.norm(position_j[j_idx] - position_i[j_idx], axis=-1) - length_j[j_idx]
-        v_ij = speed_i[j_idx] - speed_j[j_idx]
-        drac[j_idx] = (v_ij**2) / (2 * np.abs(d_ji) + EPSILON)
+    separation = np.linalg.norm(pa[:, :2] - pb[:, :2], axis=1)
+    closing_rate = closing_rate_2d(pa, pb, vx_a, vy_a, vx_b, vy_b)
+    closing_positive = np.maximum(closing_rate, 0.0)
 
-    # Clip drac values to avoid infinite or very high values
-    return np.clip(drac, 0.0, max_deceleration)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        drac = closing_positive**2 / (2 * separation + EPSILON)
+
+    drac_clipped = np.clip(drac, 0.0, agent_max_deceleration).astype(np.float32)
+
+    if criterion == ReturnCriterion.ALL:
+        result = np.full(n_t, np.nan, dtype=np.float32)
+        result[joint_valid] = drac_clipped
+        return return_by_criterion(result, criterion)
+
+    return return_by_criterion(drac_clipped, criterion)
