@@ -110,7 +110,7 @@ RAW_SCORES_FROM_CAT_FEATURES_ANALYSIS_OUTPUT_DIR="$output_dir/$RAW_SCORES_FROM_C
 raw_features_cmd=(
     uv run -m characterization.run_processor
     paths="$paths_config"
-    characterizer=safeshift_features
+    characterizer=ad_safeshift_features
     feature_type=continuous
     create_metadata="$create_metadata"
     overwrite="$overwrite"
@@ -132,7 +132,7 @@ cp_raw_feature_analysis_to_meta_cmd=(
 cat_features_cmd=(
     uv run -m characterization.run_processor
     paths="$paths_config"
-    characterizer=safeshift_features
+    characterizer=ad_safeshift_features
     feature_type=categorical
     overwrite="$overwrite"
 )
@@ -149,7 +149,7 @@ cat_feature_distribution_analysis_cmd=(
 raw_scores_cmd=(
     uv run -m characterization.run_processor
     paths="$paths_config"
-    characterizer=safeshift_scores
+    characterizer=ad_safeshift_scores
     feature_type=continuous
     score_weighting_method="distance_to_ego_agent"
     overwrite="$overwrite"
@@ -167,7 +167,7 @@ raw_scores_distribution_analysis_cmd=(
 raw_scores_from_cat_features_cmd=(
     uv run -m characterization.run_processor
     paths="$paths_config"
-    characterizer=safeshift_scores_categorical
+    characterizer=ad_safeshift_scores_categorical
     feature_type=categorical
     score_weighting_method="distance_to_ego_agent"
     overwrite="$overwrite"
@@ -189,7 +189,7 @@ cp_raw_scores_from_cat_features_analysis_to_meta_cmd=(
 cat_scores_cmd=(
     uv run -m characterization.run_processor
     paths="$paths_config"
-    characterizer=safeshift_scores_categorical
+    characterizer=ad_safeshift_scores_categorical
     feature_type=categorical
     score_weighting_method="distance_to_ego_agent"
     categorize_scores=true

@@ -1,8 +1,13 @@
 defaults:
  - default.yaml
 
-base_path: /data/driving/waymo/processed/mini_causal
+base_path: data/ad/waymo
+data_path: /data/driving/waymo/processed/mini_causal
 
-# scenario_base_path: ${paths.base_path}/validation
-scenario_base_path: ${paths.base_path}/training
-# scenario_base_path: ${paths.base_path}/testing
+cache_path: ${paths.base_path}/cache
+viz_dir: ${paths.base_path}/viz
+scenario_to_score_mapping_filepath: ${paths.base_path}/meta/scene_to_scores_mapping.csv
+
+# scenario_base_path: ${paths.data_path}/validation
+scenario_base_path: ${paths.data_path}/training
+# scenario_base_path: ${paths.data_path}/testing

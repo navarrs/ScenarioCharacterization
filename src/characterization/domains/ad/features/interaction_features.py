@@ -20,7 +20,7 @@ from characterization.domains.ad.scenario_types import (
     AgentType,
     get_agent_pair_type,
 )
-from characterization.schemas import InteractionPairFeatures, Scenario, ScenarioFeatures
+from characterization.domains.ad.schemas import InteractionPairFeatures, Scenario, ScenarioFeatures
 from characterization.utils.common import (
     FeatureType,
     InteractionStatus,

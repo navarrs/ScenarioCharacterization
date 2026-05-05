@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 import tqdm
 from omegaconf import DictConfig
 
+from characterization.domains.ad.schemas import Scenario, Score
 from characterization.domains.ad.utils.scenario_visualizer.base_visualizer import ADBaseVisualizer
-from characterization.schemas import Scenario, Score
 from characterization.utils.logging_utils import get_pylogger
 
 logger = get_pylogger(__name__)
@@ -135,12 +135,12 @@ class AnimatedScenarioVisualizer(ADBaseVisualizer):
                         )
                         for timestep in range(0, total_timesteps, step_size)
                     ]
-                    for _ in tqdm.tqdm(
+                    for future in tqdm.tqdm(
                         concurrent.futures.as_completed(futures),
                         total=len(futures),
                         desc="Generating plots",
                     ):
-                        pass
+                        future.result()
             else:
                 for timestep in tqdm.tqdm(range(0, total_timesteps, step_size), desc="Generating plots"):
                     self._plot_single_step(scenario, scores, tmp_dir_path, timestep, timestamp_seconds[timestep])

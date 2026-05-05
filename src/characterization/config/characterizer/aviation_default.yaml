@@ -1,0 +1,76 @@
+processor:
+    config:
+      return_criterion: ${return_criterion} # Can be 'critical', 'average', or 'none'
+      scenario_type: ${scenario_type}
+
+      batch_size: ${batch_size}
+      num_workers: ${num_workers}
+      shuffle: ${shuffle}
+
+      save: ${save}
+      overwrite: ${overwrite}
+      update: ${update}
+      output_path: ${paths.output_paths.feature_cache_path}
+      feature_path: ${paths.output_paths.feature_cache_path}
+
+      features:
+        - speed
+        - acceleration
+        - deceleration
+        - waiting_period
+        - trajectory_type
+        - kalman_difficulty
+        - loss_of_separation
+        - mttcp
+        - thw
+        - ttc
+        - drac
+
+characterizer:
+  config:
+    feature_type: ${feature_type}
+
+    # Scoring parameters
+    categorize_scores: ${categorize_scores}
+    score_weighting_method: ${score_weighting_method}
+    aggregated_score_weight: ${aggregated_score_weight}
+    ego_pairs_only: true
+    individual_score_function: simple
+    individual_categorization_file: ./meta/amelia/${scenario_type}_${return_criterion}_${feature_type}_individual.json
+    interaction_score_function: simple
+    interaction_categorization_file: ./meta/amelia/${scenario_type}_${return_criterion}_${feature_type}_interaction.json
+    score_clip:
+      min: 0.0
+      max: 200.0
+
+    # NOTE: if weights are not specified here, will use default values from FeatureWeights in schemas/scenario_features.py.
+    weights:
+      # Individual features
+      speed: 1.0
+      acceleration: 1.0
+      deceleration: 1.0
+      waiting_period: 1.0
+      trajectory_type: 0.1
+      kalman_difficulty: 1.0
+
+      # Interaction features
+      loss_of_separation: 4.0
+      mttcp: 2.0
+      thw: 2.0
+      ttc: 2.0
+      drac: 2.0
+
+    # NOTE: if detections are not specified here, the code uses the default values from FeatureDetections which is
+    # defined in 'schemas/scenario_features.py'.
+    detections:
+      speed: 20.0  # in m/s
+      acceleration: 3.0  # in m/s²
+      deceleration: 3.0  # in m/s²
+      waiting_period: 60.0  # in s
+      kalman_difficulty: 30.0
+
+      loss_of_separation: 1.0
+      mttcp: 10.0  # applied to 1/mttcp
+      thw: 10.0  # applied to 1/thw
+      ttc: 10.0  # applied to 1/ttc
+      drac: 5.0  # in m/s²

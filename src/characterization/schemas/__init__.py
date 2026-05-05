@@ -1,21 +1,3 @@
-from characterization.domains.ad.schemas import (
-    AgentData,
-    DynamicMapData,
-    FeatureDetections,
-    FeatureWeights,
-    Individual,
-    IndividualAgentFeatures,
-    Interaction,
-    InteractionPairFeatures,
-    Scenario,
-    ScenarioFeatures,
-    ScenarioMetadata,
-    Score,
-    StaticMapData,
-    TracksToPredict,
-    to_individual_array,
-    to_interaction_array,
-)
 from characterization.schemas.scenario import BaseAgentData, BaseScenario, BaseScenarioMetadata
 from characterization.schemas.scenario_features import (
     BaseFeatureDetections,
@@ -26,7 +8,6 @@ from characterization.schemas.scenario_features import (
 from characterization.schemas.scenario_scores import AgentScore, ScenarioScores
 
 __all__ = [
-    "AgentData",
     "AgentScore",
     "BaseAgentData",
     "BaseFeatureDetections",
@@ -35,20 +16,5 @@ __all__ = [
     "BaseInteractionPairFeatures",
     "BaseScenario",
     "BaseScenarioMetadata",
-    "DynamicMapData",
-    "FeatureDetections",
-    "FeatureWeights",
-    "Individual",
-    "IndividualAgentFeatures",
-    "Interaction",
-    "InteractionPairFeatures",
-    "Scenario",
-    "ScenarioFeatures",
-    "ScenarioMetadata",
     "ScenarioScores",
-    "Score",
-    "StaticMapData",
-    "TracksToPredict",
-    "to_individual_array",
-    "to_interaction_array",
 ]

@@ -1,5 +1,5 @@
 defaults:
- - scenario.yaml
+ - ad_scenario.yaml
 
 _target_: characterization.domains.ad.utils.scenario_visualizer.scenario_visualizer.ScenarioVisualizer
 config:

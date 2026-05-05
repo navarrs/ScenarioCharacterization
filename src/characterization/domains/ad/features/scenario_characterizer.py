@@ -4,7 +4,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from characterization.domains.ad.features.individual_features import IndividualFeatures
 from characterization.domains.ad.features.interaction_features import InteractionFeatures
-from characterization.schemas import Scenario, ScenarioFeatures
+from characterization.domains.ad.schemas import Scenario, ScenarioFeatures
 
 
 class ADScenarioCharacterizer:

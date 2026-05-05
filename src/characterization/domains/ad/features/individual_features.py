@@ -8,7 +8,7 @@ import characterization.features.individual_utils as individual
 from characterization.domains.ad.features.base_feature import ADBaseFeature
 from characterization.domains.ad.features.individual_utils import compute_trajectory_type
 from characterization.domains.ad.scenario_types import AgentTrajectoryMasker, AgentType, LaneMasker
-from characterization.schemas import IndividualAgentFeatures, Scenario, ScenarioFeatures
+from characterization.domains.ad.schemas import IndividualAgentFeatures, Scenario, ScenarioFeatures
 from characterization.utils.common import FeatureType, ReturnCriterion, categorize_from_thresholds
 from characterization.utils.constants import MIN_VALID_POINTS
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists

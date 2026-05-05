@@ -12,6 +12,7 @@ from numpy.typing import NDArray
 from omegaconf import DictConfig
 from pydantic import BaseModel, Field
 
+from characterization.domains.ad.schemas import ScenarioFeatures as ADScenarioFeatures
 from characterization.schemas.scenario_scores import ScenarioScores
 from characterization.utils.common import ValueClipper, categorize_from_thresholds
 
@@ -130,6 +131,20 @@ class BaseScorer(ABC):
             raise FileNotFoundError(msg)
         with categorization_file.open("r") as f:
             return json.load(f)
+
+    def parse_scenario_features(self, data: dict[str, object]) -> object:
+        """Parse and validate a feature dict into the domain's ScenarioFeatures model.
+
+        The default implementation uses the AD ScenarioFeatures schema. Domain-specific
+        scorers should override this to use their own schema class.
+
+        Args:
+            data: Raw dict produced by ``ScenarioFeatures.model_dump()``.
+
+        Returns:
+            A validated ScenarioFeatures instance.
+        """
+        return ADScenarioFeatures.model_validate(data)
 
     @abstractmethod
     def compute(self, scenario: object, scenario_features: object) -> ScenarioScores:

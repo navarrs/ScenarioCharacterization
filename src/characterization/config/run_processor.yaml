@@ -1,8 +1,10 @@
+# Defaults target the AD/Waymo domain. To run for aviation (Amelia), override on the command line:
+#   uv run python -m characterization.run_processor paths=amelia dataset=amelia characterizer=aviation_features
 defaults:
   - _self_
   - paths: waymo
   - dataset: waymo
-  - characterizer: individual_features
+  - characterizer: ad_individual_features
   - debug: null
 
 seed: 42

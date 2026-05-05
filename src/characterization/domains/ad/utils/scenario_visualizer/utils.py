@@ -8,7 +8,7 @@ import pandas as pd
 import seaborn as sns
 from rich.progress import track
 
-from characterization.schemas import ScenarioScores
+from characterization.schemas.scenario_scores import ScenarioScores
 from characterization.utils.io_utils import from_pickle
 from characterization.utils.logging_utils import get_pylogger
 

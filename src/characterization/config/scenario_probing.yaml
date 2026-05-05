@@ -2,7 +2,7 @@
 
 defaults:
   - _self_
-  - viz: probe_scenario
+  - viz: aviation_probe_scenario
   - probing: cvm
 
 # Domain to run probing for. Valid values: "aviation", "ad"

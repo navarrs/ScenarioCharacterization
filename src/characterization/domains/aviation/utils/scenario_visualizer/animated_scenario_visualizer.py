@@ -11,13 +11,13 @@ import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 from tqdm import tqdm
 
+from characterization.domains.aviation.schemas.scenario import Scenario
 from characterization.domains.aviation.schemas.scenario_scores import ScenarioScores
 from characterization.domains.aviation.utils.scenario_visualizer.base_visualizer import (
     AviationBaseVisualizer,
     SupportedPanes,
 )
 from characterization.utils.logging_utils import get_pylogger
-from safeair.schemas import Scenario
 
 _LOGGER = get_pylogger(__name__)
 
@@ -137,12 +137,12 @@ class AnimatedScenarioVisualizer(AviationBaseVisualizer):
                         )
                         for timestep in range(0, total_timesteps, step_size)
                     ]
-                    for _ in tqdm(
+                    for future in tqdm(
                         concurrent.futures.as_completed(futures),
                         total=len(futures),
                         desc="Generating plots",
                     ):
-                        pass
+                        future.result()
             else:
                 for timestep in tqdm(range(0, total_timesteps, step_size), desc="Generating plots"):
                     self._plot_single_step(scenario, tmp_dir_path, timestep, timestamp_seconds[timestep])

@@ -1,5 +1,6 @@
 _target_: characterization.domains.ad.utils.scenario_visualizer.scenario_visualizer.ScenarioVisualizer
 config:
+  name: scenario
   scenario_type: ${scenario_type}
   add_title: false
   update_limits: true
@@ -7,7 +8,7 @@ config:
   # Parameters for categorical visualization
   plot_categorical: false
   categorical_color_map: Spectral_r
-  categories_file: ./meta/gt_critical_categorical_safeshift.json
+  categories_file: ./meta/waymo/gt_critical_categorical_safeshift.json
 
   panes_to_plot:
     # - ALL_AGENTS

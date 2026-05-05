@@ -5,13 +5,13 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 
+from characterization.domains.aviation.schemas.scenario import Scenario
 from characterization.domains.aviation.schemas.scenario_scores import ScenarioScores
 from characterization.domains.aviation.utils.scenario_visualizer.base_visualizer import (
     AviationBaseVisualizer,
     SupportedPanes,
 )
 from characterization.utils.logging_utils import get_pylogger
-from safeair.schemas import Scenario
 
 _LOGGER = get_pylogger(__name__)
 

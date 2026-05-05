@@ -11,10 +11,10 @@ from characterization.domains.ad.features.interaction_features import Interactio
 from characterization.domains.ad.probing.counterfactual_probes import constant_velocity_probe
 from characterization.domains.ad.probing.criticality.interaction_criticality import find_criticality_timestamp
 from characterization.domains.ad.scenario_types import AgentType
+from characterization.domains.ad.schemas import InteractionPairFeatures, ScenarioFeatures
 from characterization.domains.ad.schemas.scenario import Scenario
 from characterization.domains.ad.scorer import InteractionScorer
 from characterization.probing.common import ProbeValidity
-from characterization.schemas import InteractionPairFeatures, ScenarioFeatures
 from characterization.schemas.critical_probe import CriticalityMetric, CriticalityResult, CriticalProbe, ProbeType
 from characterization.utils.common import ReturnCriterion
 from characterization.utils.constants import SCALE_FACTOR_TO_M

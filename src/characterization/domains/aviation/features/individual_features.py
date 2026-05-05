@@ -1,20 +1,17 @@
-"""Individual (per-agent) feature extractor for SafeAir scenarios."""
+"""Individual (per-agent) feature extractor for aviation scenarios."""
 
 from characterization.domains.aviation.features import individual_utils as indv
 from characterization.domains.aviation.features.base_feature import AviationBaseFeature
 from characterization.domains.aviation.scenario_types import AgentTrajectory
+from characterization.domains.aviation.scenario_types.agent_types import raw_to_agent_type
 from characterization.domains.aviation.schemas.scenario import Scenario
 from characterization.domains.aviation.schemas.scenario_features import (
     CharacterizationParameters,
     IndividualAgentFeatures,
     ScenarioFeatures,
 )
-from safeair.scenario_characterization.common import (
-    ReturnCriterion,
-    ValueClipper,
-    get_conflict_points_from_scenario,
-    raw_to_agent_type,
-)
+from characterization.domains.aviation.utils.scenario_characterization_utils import get_conflict_points_from_scenario
+from characterization.utils.common import ReturnCriterion, ValueClipper
 
 _MIN_VALID_FRAMES = 2
 _DEFAULT_CHARACTERIZATION = CharacterizationParameters()
@@ -36,7 +33,7 @@ class IndividualFeatures(AviationBaseFeature):
     Args:
         return_criterion: How to reduce per-timestep values to a scalar. ``CRITICAL`` returns the
             peak (most extreme) value; ``AVERAGE`` returns the mean.
-        characterization: Thresholds controlling feature computation. Defaults to the standard SafeAir values.
+        characterization: Thresholds controlling feature computation. Defaults to the standard aviation values.
     """
 
     def __init__(

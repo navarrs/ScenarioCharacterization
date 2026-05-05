@@ -1,5 +1,5 @@
 defaults:
- - scenario.yaml
+ - aviation_scenario.yaml
 
 _target_: characterization.domains.aviation.utils.scenario_visualizer.animated_scenario_visualizer.AnimatedScenarioVisualizer
 

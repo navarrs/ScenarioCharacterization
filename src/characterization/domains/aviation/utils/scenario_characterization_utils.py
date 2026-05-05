@@ -11,7 +11,9 @@ from typing import TYPE_CHECKING
 
 import hydra
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
+from numpy.typing import NDArray
 
 from characterization.domains.aviation.schemas.scenario import MapData, Scenario
 from characterization.domains.aviation.schemas.scenario_features import (
@@ -51,6 +53,22 @@ _SCENE_SCORE_COLS = ("individual_scene", "interaction_scene", "combined")
 
 _FLOAT_FMT = "{:.4f}"
 _NONE_STR = "—"
+
+
+def get_conflict_points_from_scenario(scenario: Scenario, *, scale: float = 1.0) -> NDArray[np.float32] | None:
+    """Extract hold-short conflict points from a scenario's map data.
+
+    Args:
+        scenario: Aviation scenario, optionally containing map data with hold-short points.
+        scale: Factor to convert stored position units to the target unit (e.g. km→m = 1000.0).
+
+    Returns:
+        Shape ``(K, 2)`` array of conflict-point ``[x, y]`` positions in the target unit,
+        or ``None`` if no map data is attached to the scenario.
+    """
+    if scenario.static_map_data is None:
+        return None
+    return (scenario.static_map_data.hold_short_points_xy[:, :2] * scale).astype(np.float32)
 
 
 def _fmt(value: object) -> str:

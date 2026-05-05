@@ -28,12 +28,13 @@ from characterization.domains.aviation.scenario_types import (
     AgentType,
     MapType,
 )
+from characterization.domains.aviation.schemas.airport_metadata import ReferenceMetadata
 from characterization.domains.aviation.schemas.critical_probe import CriticalProbe
+from characterization.domains.aviation.schemas.scenario import MapData, Scenario
 from characterization.domains.aviation.schemas.scenario_scores import AgentScore, ScenarioScores
 from characterization.utils.common import XYZScale
 from characterization.utils.constants import SCALE_FACTOR_TO_M
 from characterization.utils.logging_utils import get_pylogger
-from safeair.schemas import MapData, ReferenceMetadata, Scenario
 
 _LOGGER = get_pylogger(__name__)
 
@@ -67,13 +68,26 @@ class AviationBaseVisualizer(ABC):
         """Initializes aviation-specific visualization state on top of the generic base.
 
         Args:
-            config: Visualizer configuration. Shared keys are consumed by ``super().__init__``;
-                aviation-specific keys are consumed here.
+            config: Visualizer configuration.
 
         Raises:
             FileNotFoundError: If ``show_raster=True`` and the raster map PNG cannot be read.
         """
-        super().__init__(config)
+        super().__init__()
+
+        panes_cfg = config.get("panes_to_plot", ["HIGHLIGHT_RELEVANT_AGENTS"])
+        self.panes_to_plot: list[SupportedPanes] = [SupportedPanes[p] for p in panes_cfg]
+        self.num_panes_to_plot: int = len(self.panes_to_plot)
+        self.add_title: bool = config.get("add_title", False)
+        self.fps: int = config.get("fps", 10)
+        self.num_workers: int = config.get("num_workers", 1)
+        self.time_scale_factor: float = config.get("time_scale_factor", 1.0)
+        self.display_time: bool = config.get("display_time", True)
+        self.min_valid_timesteps: int = config.get("min_valid_timesteps", 2)
+        self.display_agent_ids: bool = config.get("display_agent_ids", True)
+        self.score_color_map = cm.get_cmap(config.get("score_colormap", "Reds"))
+        self.score_halo_size: int = config.get("score_halo_size", 80)
+        self.show_score_colorbar: bool = config.get("show_score_colorbar", False)
 
         assets_path = Path(config.get("assets_path", "assets"))
 

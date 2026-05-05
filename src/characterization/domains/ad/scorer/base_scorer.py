@@ -8,7 +8,7 @@ from omegaconf import DictConfig
 from pydantic import Field
 
 from characterization.domains.ad.scenario_types import AgentTrajectoryMasker, AgentType
-from characterization.schemas import FeatureDetections, FeatureWeights, Scenario, ScenarioFeatures
+from characterization.domains.ad.schemas import FeatureDetections, FeatureWeights, Scenario, ScenarioFeatures
 from characterization.scorer.base_scorer import BaseScorer, BaseScorerConfig, ScoreWeightingMethod
 from characterization.utils.common import ValueClipper
 from characterization.utils.constants import EPSILON, SCALE_FACTOR_TO_M

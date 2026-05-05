@@ -20,7 +20,7 @@ from omegaconf import DictConfig
 from PIL import Image
 
 from characterization.domains.ad.scenario_types import AgentTrajectoryMasker, AgentType
-from characterization.schemas import DynamicMapData, Scenario, Score, StaticMapData
+from characterization.domains.ad.schemas import DynamicMapData, Scenario, Score, StaticMapData
 from characterization.utils.common import (
     STATIONARY_SPEED_THRESHOLD,
     SUPPORTED_SCENARIO_TYPES,
@@ -68,7 +68,21 @@ class ADBaseVisualizer(ABC):
             AssertionError: If ``scenario_type`` is not in ``SUPPORTED_SCENARIO_TYPES``.
             FileNotFoundError: If ``plot_categorical=True`` and the categories file is missing.
         """
-        super().__init__(config)
+        super().__init__()
+
+        panes_cfg = config.get("panes_to_plot", ["HIGHLIGHT_RELEVANT_AGENTS"])
+        self.panes_to_plot: list[SupportedPanes] = [SupportedPanes[p] for p in panes_cfg]
+        self.num_panes_to_plot: int = len(self.panes_to_plot)
+        self.add_title: bool = config.get("add_title", False)
+        self.title_fontsize: int = config.get("title_fontsize", 12)
+        self.update_limits: bool = config.get("update_limits", True)
+        self.buffer_distance: float = config.get("buffer_distance", 5.0)
+        self.distance_to_ego_zoom_in: float = config.get("distance_to_ego_zoom_in", 100.0)
+        self.num_workers: int = config.get("num_workers", 10)
+        self.fps: int = config.get("fps", 10)
+        self.time_scale_factor: float = config.get("time_scale_factor", 1.0)
+        self.display_time: bool = config.get("display_time", True)
+        self.show_relevant: bool = config.get("show_relevant", False)
 
         self.scenario_type: str = config.scenario_type
         if self.scenario_type not in SUPPORTED_SCENARIO_TYPES:

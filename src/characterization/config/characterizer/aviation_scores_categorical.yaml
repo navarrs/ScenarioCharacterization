@@ -1,0 +1,50 @@
+# @package _global_
+defaults:
+  - aviation_features.yaml
+
+processor:
+  _target_: characterization.processors.scores_processor.ScoresProcessor
+  config:
+    output_path: ${paths.output_paths.scores_cache_path}
+
+characterizer:
+  _target_: characterization.domains.aviation.scorer.aviation_scorer.AviationScorer
+  config:
+    individual_score_function: simple
+    interaction_score_function: simple
+
+    score_clip:
+      min: 0.0
+      max: 16.0
+
+    # NOTE: if weights are not specified here, will use default values from FeatureWeights in schemas/scenario_features.py.
+    weights:
+      # Individual features
+      speed: 1.0
+      acceleration: 1.0
+      deceleration: 1.0
+      waiting_period: 1.0
+      trajectory_type: 0.1
+      kalman_difficulty: 1.0
+
+      # Interaction features (aviation uses loss_of_separation instead of collision)
+      loss_of_separation: 4.0
+      mttcp: 2.0
+      thw: 2.0
+      ttc: 2.0
+      drac: 2.0
+
+    # Detections here are in percentile categories
+    # 1: 0, 10: 1, 25: 2, 50: 3, 75: 4, 90: 5, 95: 6, 99: 7, 100: 8
+    detections:
+      speed: 8
+      acceleration: 8
+      deceleration: 8
+      waiting_period: 8
+      kalman_difficulty: 8
+
+      loss_of_separation: 1
+      mttcp: 8
+      thw: 8
+      ttc: 8
+      drac: 8

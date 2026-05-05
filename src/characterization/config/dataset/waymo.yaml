@@ -1,4 +1,4 @@
-_target_: characterization.datasets.waymo.WaymoData
+_target_: characterization.domains.ad.datasets.waymo.WaymoData
 config:
   load: true
   create_metadata: ${create_metadata}

@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import Any
 from warnings import warn
 
+from characterization.domains.aviation.schemas import model_outputs as output_data
 from characterization.domains.aviation.schemas.scenario import MapData, Scenario
 from characterization.domains.aviation.utils.scenario_characterization_utils import load_map
 from characterization.utils.constants import LARGE_FLOAT
 from characterization.utils.logging_utils import get_pylogger
-from safeair.schemas import model_outputs as output_data  # pyright: ignore[reportAttributeAccessIssue]
 
 _LOGGER = get_pylogger(__name__)
 

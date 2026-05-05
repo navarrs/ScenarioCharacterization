@@ -7,7 +7,7 @@ from tqdm import tqdm
 from characterization.features import SUPPORTED_FEATURES
 from characterization.features.base_feature import BaseFeature
 from characterization.processors.base_processor import BaseProcessor
-from characterization.schemas import ScenarioFeatures, ScenarioScores
+from characterization.schemas.scenario_scores import ScenarioScores
 from characterization.scorer import BaseScorer
 from characterization.utils.io_utils import from_pickle, to_pickle
 from characterization.utils.logging_utils import get_pylogger
@@ -91,7 +91,7 @@ class ScoresProcessor(BaseProcessor):
                     continue
 
                 # TODO: pre-check that features have been computed
-                scenario_features = ScenarioFeatures.model_validate(scenario_features)
+                scenario_features = self.characterizer.parse_scenario_features(scenario_features)  # pyright: ignore[reportAttributeAccessIssue]
 
                 scores: ScenarioScores = self.characterizer.compute(
                     scenario=scenario,

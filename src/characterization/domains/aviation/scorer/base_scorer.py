@@ -9,7 +9,13 @@ from pydantic import Field
 
 from characterization.domains.aviation.scenario_types import AgentTrajectory
 from characterization.domains.aviation.schemas.scenario import Scenario
-from characterization.domains.aviation.schemas.scenario_features import FeatureDetections, FeatureWeights
+from characterization.domains.aviation.schemas.scenario_features import (
+    FeatureDetections,
+    FeatureWeights,
+)
+from characterization.domains.aviation.schemas.scenario_features import (
+    ScenarioFeatures as AviationScenarioFeatures,
+)
 from characterization.scorer.base_scorer import BaseScorer, BaseScorerConfig, ScoreWeightingMethod
 from characterization.utils.common import ValueClipper
 from characterization.utils.constants import EPSILON, SCALE_FACTOR_TO_M
@@ -90,6 +96,17 @@ class AviationBaseScorer(BaseScorer):
             self.config = AviationScorerConfig()
         else:
             self.config = config
+
+    def parse_scenario_features(self, data: dict[str, object]) -> object:
+        """Parse and validate a feature dict using the aviation ScenarioFeatures schema.
+
+        Args:
+            data: Raw dict produced by aviation ``ScenarioFeatures.model_dump()``.
+
+        Returns:
+            A validated aviation ``ScenarioFeatures`` instance.
+        """
+        return AviationScenarioFeatures.model_validate(data)
 
     def _compute_agent_weights(self, scenario: Scenario) -> NDArray[np.float32]:
         """Compute per-agent weights based on the configured weighting method.

@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - ad_default.yaml
+  - ad_interaction_features.yaml
+
+processor:
+  _target_: characterization.processors.scores_processor.ScoresProcessor
+  config:
+    output_path: ${paths.output_paths.scores_cache_path}
+
+characterizer:
+  _target_: characterization.domains.ad.scorer.interaction_scorer.InteractionScorer
+  config:
+    interaction_score_function: simple

@@ -79,6 +79,49 @@ def raw_to_agent_type(raw_type: str) -> AgentType:
     return STRING_TO_AGENT_TYPE.get(raw_type, AgentType.UNKNOWN)
 
 
+class AgentPairType(Enum):
+    """Agent pair types for aviation scenarios.
+
+    Attributes:
+        OTHER: Default / unrecognised combination.
+        AIRCRAFT_AIRCRAFT: Two aircraft-like agents.
+        AIRCRAFT_VEHICLE: One aircraft-like agent and one ground vehicle.
+        VEHICLE_VEHICLE: Two ground vehicles.
+    """
+
+    OTHER = 0
+    AIRCRAFT_AIRCRAFT = 1
+    AIRCRAFT_VEHICLE = 2
+    VEHICLE_VEHICLE = 3
+
+
+_AIRCRAFT_LIKE: frozenset[AgentType] = frozenset({AgentType.AIRCRAFT, AgentType.EGO_AGENT, AgentType.TO_PREDICT})
+
+
+def get_agent_pair_type(type_a: AgentType, type_b: AgentType) -> AgentPairType:
+    """Determine the :class:`AgentPairType` for two aviation agents.
+
+    Args:
+        type_a: Type of the first agent.
+        type_b: Type of the second agent.
+
+    Returns:
+        The :class:`AgentPairType` for the pair.
+    """
+    is_aircraft_a = type_a in _AIRCRAFT_LIKE
+    is_aircraft_b = type_b in _AIRCRAFT_LIKE
+    is_vehicle_a = type_a == AgentType.VEHICLE
+    is_vehicle_b = type_b == AgentType.VEHICLE
+
+    if is_aircraft_a and is_aircraft_b:
+        return AgentPairType.AIRCRAFT_AIRCRAFT
+    if (is_aircraft_a and is_vehicle_b) or (is_vehicle_a and is_aircraft_b):
+        return AgentPairType.AIRCRAFT_VEHICLE
+    if is_vehicle_a and is_vehicle_b:
+        return AgentPairType.VEHICLE_VEHICLE
+    return AgentPairType.OTHER
+
+
 RAW_STATE_SIZE_NO_AIRCRAFT_TYPE = 13
 RAW_STATE_SIZE_WITH_AIRCRAFT_TYPE = 14
 

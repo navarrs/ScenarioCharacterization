@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - default.yaml
+  - ad_default.yaml
 
 processor:
   _target_: characterization.processors.scores_processor.ScoresProcessor
@@ -8,7 +8,7 @@ processor:
     output_path: ${paths.output_paths.scores_cache_path}
 
 characterizer:
-  _target_: characterization.scorer.safeshift_scorer.SafeShiftScorer
+  _target_: characterization.domains.ad.scorer.safeshift_scorer.SafeShiftScorer
   config:
     individual_score_function: simple
     interaction_score_function: simple

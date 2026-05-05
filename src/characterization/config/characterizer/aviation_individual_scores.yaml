@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - default.yaml
+  - aviation_individual_features.yaml
 
 processor:
   _target_: characterization.processors.scores_processor.ScoresProcessor
@@ -8,7 +8,6 @@ processor:
     output_path: ${paths.output_paths.scores_cache_path}
 
 characterizer:
-  _target_: characterization.scorer.safeshift_scorer.SafeShiftScorer
+  _target_: characterization.domains.aviation.scorer.individual_scorer.IndividualScorer
   config:
     individual_score_function: simple
-    interaction_score_function: simple

@@ -1,4 +1,4 @@
-"""Pairwise interaction feature extractor for SafeAir scenarios."""
+"""Pairwise interaction feature extractor for aviation scenarios."""
 
 import itertools
 
@@ -8,20 +8,20 @@ from joblib import Parallel, delayed
 from characterization.domains.aviation.features import interaction_utils
 from characterization.domains.aviation.features.base_feature import AviationBaseFeature
 from characterization.domains.aviation.scenario_types import AgentTrajectory
+from characterization.domains.aviation.scenario_types.agent_types import (
+    AgentPairType,
+    get_agent_pair_type,
+    raw_to_agent_type,
+)
 from characterization.domains.aviation.schemas.scenario import Scenario
 from characterization.domains.aviation.schemas.scenario_features import (
     CharacterizationParameters,
     InteractionPairFeatures,
     ScenarioFeatures,
 )
+from characterization.domains.aviation.utils.scenario_characterization_utils import get_conflict_points_from_scenario
+from characterization.utils.common import ReturnCriterion
 from characterization.utils.constants import EPSILON
-from safeair.scenario_characterization.common import (
-    AgentPairType,
-    ReturnCriterion,
-    get_agent_pair_type,
-    get_conflict_points_from_scenario,
-    raw_to_agent_type,
-)
 
 _MIN_AGENTS_FOR_PAIRS = 2
 _DEFAULT_CHARACTERIZATION = CharacterizationParameters()
@@ -46,7 +46,7 @@ class InteractionFeatures(AviationBaseFeature):
     Args:
         return_criterion: Aggregation strategy.
         characterization: Thresholds controlling pair filtering and feature computation. Defaults to the standard
-            SafeAir values.
+            aviation values.
         n_jobs: Number of parallel jobs for ``joblib.Parallel``. ``-1`` uses all CPUs.
     """
 

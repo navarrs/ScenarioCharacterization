@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - default.yaml
+  - aviation_default.yaml
 
 processor:
   _target_: characterization.processors.feature_processor.FeatureProcessor

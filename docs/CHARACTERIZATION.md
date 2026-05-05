@@ -14,15 +14,18 @@ uv run -m characterization.run_processor characterizer=[feature_type]
 ```
 
 Available feature groups (see `config/characterizer`):
-- **`individual_features`**: Computes descriptors for individual agents.
-- **`interaction_features`**: Computes descriptors for agent interactions.
-- **`safeshift_features`**: Combines individual and interaction features.
+- **`ad_individual_features`**: Computes descriptors for individual agents (AD domain).
+- **`ad_interaction_features`**: Computes descriptors for agent interactions (AD domain).
+- **`ad_safeshift_features`**: Combines individual and interaction features (AD domain).
+- **`aviation_individual_features`**: Computes descriptors for individual agents (aviation domain).
+- **`aviation_interaction_features`**: Computes descriptors for agent interactions (aviation domain).
+- **`aviation_features`**: Combines individual and interaction features (aviation domain).
 
 ### Individual Features
 
 To run the individual features characterizer:
 ```bash
-uv run -m characterization.run_processor characterizer=individual_features
+uv run -m characterization.run_processor characterizer=ad_individual_features
 ```
 
 Currently supported features:
@@ -40,7 +43,7 @@ Currently supported features:
 
 To run the interaction features characterizer:
 ```bash
-uv run -m characterization.run_processor characterizer=interaction_features
+uv run -m characterization.run_processor characterizer=ad_interaction_features
 ```
 
 Currently supported features:
@@ -63,9 +66,9 @@ uv run -m characterization.run_processor characterizer=[score_type]
 ```
 
 Available score groups (see `config/characterizer`):
-- **`individual_scores`**: Computes agent and scenario scores from individual agent descriptors.
-- **`interaction_scores`**: Computes agent and scenario scores from interaction descriptors.
-- **`safeshift_scores`**: Combines individual and interaction scores.
+- **`ad_individual_scores`**: Computes agent and scenario scores from individual agent descriptors (AD domain).
+- **`ad_interaction_scores`**: Computes agent and scenario scores from interaction descriptors (AD domain).
+- **`ad_safeshift_scores`**: Combines individual and interaction scores (AD domain).
 
 
 ## Categorical Profiling

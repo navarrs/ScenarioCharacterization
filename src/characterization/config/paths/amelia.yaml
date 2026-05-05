@@ -2,6 +2,8 @@ defaults:
   - default.yaml
 
 base_path: data/aviation/amelia
-maps_dir: ${paths.base_path}/graph_data
+maps_dir: ${paths.base_path}/graph_data_a42v01
+viz_dir: ${paths.base_path}
+scenario_to_score_mapping_filepath: ${paths.base_path}/meta/scene_to_scores_mapping.csv
 
 scenario_base_path: ${paths.base_path}/scenarios

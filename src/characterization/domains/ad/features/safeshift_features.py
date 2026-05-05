@@ -4,7 +4,7 @@ from characterization.domains.ad.features.base_feature import ADBaseFeature
 from characterization.domains.ad.features.individual_features import IndividualFeatures
 from characterization.domains.ad.features.interaction_features import InteractionFeatures
 from characterization.domains.ad.scenario_types import AgentTrajectoryMasker
-from characterization.schemas import Scenario, ScenarioFeatures
+from characterization.domains.ad.schemas import Scenario, ScenarioFeatures
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.logging_utils import get_pylogger
 

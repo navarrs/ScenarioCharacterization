@@ -3,10 +3,10 @@
 import numpy as np
 from omegaconf import DictConfig
 
+from characterization.domains.ad.schemas import Scenario, ScenarioFeatures
 from characterization.domains.ad.scorer.base_scorer import ADBaseScorer, ADScorerConfig
 from characterization.domains.ad.scorer.individual_scorer import IndividualScorer
 from characterization.domains.ad.scorer.interaction_scorer import InteractionScorer
-from characterization.schemas import Scenario, ScenarioFeatures
 from characterization.schemas.scenario_scores import AgentScore, ScenarioScores
 from characterization.utils.logging_utils import get_pylogger
 

@@ -6,8 +6,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 
+from characterization.domains.ad.schemas import Scenario, Score
 from characterization.domains.ad.utils.scenario_visualizer.base_visualizer import ADBaseVisualizer, SupportedPanes
-from characterization.schemas import Scenario, Score
 from characterization.utils.logging_utils import get_pylogger
 
 logger = get_pylogger(__name__)

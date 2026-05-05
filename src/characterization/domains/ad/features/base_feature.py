@@ -2,8 +2,8 @@ from abc import abstractmethod
 
 from omegaconf import DictConfig
 
+from characterization.domains.ad.schemas import Scenario, ScenarioFeatures
 from characterization.features.base_feature import BaseFeature
-from characterization.schemas import Scenario, ScenarioFeatures
 from characterization.utils.common import ReturnCriterion
 from characterization.utils.logging_utils import get_pylogger
 

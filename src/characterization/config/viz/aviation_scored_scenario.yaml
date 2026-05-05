@@ -1,5 +1,5 @@
 defaults:
-  - scenario.yaml
+  - aviation_scenario.yaml
 
 name: scored_scenario
 add_title: true

@@ -1,5 +1,5 @@
 root_path: "."
-log_path: ${paths.root_path}/logs
+log_dir: ${paths.root_path}/logs
 
 base_path: /data/
 

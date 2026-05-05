@@ -1,3 +1,15 @@
+"""Scenario score visualization pipeline.
+
+Visualizations are saved to data/<domain>/<dataset>/
+in a subfolder named <date>_<viz_name>[_<score_type>].
+
+Usage — AD (Waymo), outputs to data/ad/waymo/:
+    uv run python -m characterization.run_scenario_viz domain_name=ad paths=waymo dataset=waymo viz=ad_scenario
+
+Usage — Aviation (Amelia), outputs to data/aviation/amelia/:
+    uv run python -m characterization.run_scenario_viz domain_name=aviation paths=amelia dataset=amelia viz=aviation_scenario
+"""
+
 import copy
 import random
 from datetime import UTC, datetime
@@ -9,8 +21,10 @@ import pandas as pd
 from omegaconf import DictConfig
 
 from characterization.domains.ad.schemas.scenario_scores import Score
-from characterization.domains.ad.utils.scenario_visualizer.base_visualizer import ADBaseVisualizer as BaseVisualizer
-from characterization.schemas import AgentScore, ScenarioScores
+from characterization.domains.aviation.schemas.scenario import MapData
+from characterization.domains.aviation.utils.file_io_utils import load_scenario as load_aviation_scenario
+from characterization.domains.aviation.utils.scenario_visualizer.base_visualizer import AviationBaseVisualizer
+from characterization.schemas.scenario_scores import AgentScore, ScenarioScores
 from characterization.utils.io_utils import from_pickle
 from characterization.utils.logging_utils import get_pylogger
 
@@ -82,8 +96,10 @@ def run(cfg: DictConfig) -> None:
         ValueError: If unsupported scorers are specified in the configuration.
     """
     random.seed(cfg.seed)
-    date = datetime.now(UTC).strftime("%Y%m%d_%H%M%S_")
-    scenario_viz_dir = Path(cfg.scenario_viz_dir) / f"{date}_{cfg.scores_tag}_{cfg.score_to_visualize}"
+    date = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    viz_name = cfg.viz.get("name") or cfg.viz.get("config", {}).get("name", "viz")
+    score_suffix = f"_{cfg.score_to_visualize}" if cfg.viz_scored_scenarios else ""
+    scenario_viz_dir = Path(cfg.scenario_viz_dir) / f"{date}_{viz_name}{score_suffix}"
     scenario_viz_dir.mkdir(parents=True, exist_ok=True)
 
     # Instantiate dataset and visualizer
@@ -93,16 +109,18 @@ def run(cfg: DictConfig) -> None:
 
     logger.info("Instatiating visualizer: %s", cfg.viz._target_)
     viz_config = copy.deepcopy(cfg.viz)
-    match cfg.score_to_visualize:
-        case "individual":
-            viz_config.config.categories_file = "./meta/gt_critical_categorical_individual.json"
-        case "interaction":
-            viz_config.config.categories_file = "./meta/gt_critical_categorical_interaction.json"
-        case "safeshift":
-            viz_config.config.categories_file = "./meta/gt_critical_categorical_safeshift_2.json"
-        case _:
-            pass
-    visualizer: BaseVisualizer = hydra.utils.instantiate(viz_config)
+    _ad_viz = None
+    if cfg.domain_name == "ad":
+        match cfg.score_to_visualize:
+            case "individual":
+                viz_config.config.categories_file = "./meta/gt_critical_categorical_individual.json"
+            case "interaction":
+                viz_config.config.categories_file = "./meta/gt_critical_categorical_interaction.json"
+            case "safeshift":
+                viz_config.config.categories_file = "./meta/gt_critical_categorical_safeshift_2.json"
+            case _:
+                pass
+        _ad_viz = hydra.utils.instantiate(viz_config)
 
     scenario_base_path = Path(cfg.paths.scenario_base_path)
     scenario_filepaths = list(scenario_base_path.rglob("*.pkl"))
@@ -117,7 +135,8 @@ def run(cfg: DictConfig) -> None:
         else [scenario_viz_dir] * len(scenario_filepaths)
     )
 
-    scores = None
+    aviation_map_cache: dict[str, MapData | None] = {}
+    aviation_viz_cache: dict[str, AviationBaseVisualizer] = {}
     total_scenarios = (
         min(cfg.total_scenarios, len(scenario_filepaths)) if cfg.total_scenarios else len(scenario_filepaths)
     )
@@ -126,24 +145,41 @@ def run(cfg: DictConfig) -> None:
             break
 
         logger.info("Visualizing scenario %s", scenario_filepath)
-        scenario_data = from_pickle(str(scenario_filepath))  # nosec B301
-        scenario = dataset.transform_scenario_data(scenario_data)
-
-        if cfg.viz_scored_scenarios:
-            score_filepath = scores_path / scenario_filepath.name
-            scenario_scores = from_pickle(str(score_filepath))  # nosec B301
-            scenario_scores = ScenarioScores.model_validate(scenario_scores)
-            match cfg.score_to_visualize:
-                case "individual":
-                    scores = _to_score(scenario_scores.individual_scores)
-                case "interaction":
-                    scores = _to_score(scenario_scores.interaction_scores)
-                case "safeshift":
-                    scores = _to_score(scenario_scores.individual_scores)
-                case _:
-                    scores = None
-
-        _ = visualizer.visualize_scenario(scenario, scores=scores, output_dir=output_dir)
+        if cfg.domain_name == "aviation":
+            airport_id = scenario_filepath.parent.name
+            maps_dir = Path(cfg.paths.maps_dir) if cfg.paths.get("maps_dir") else None
+            scenario = load_aviation_scenario(scenario_filepath, maps_dir, airport_id, aviation_map_cache)
+            if scenario is None:
+                logger.warning("Skipping %s — could not load aviation scenario.", scenario_filepath)
+                continue
+            if airport_id not in aviation_viz_cache:
+                airport_viz_cfg = copy.deepcopy(viz_config)
+                airport_viz_cfg.airport = airport_id
+                viz_class = hydra.utils.get_class(airport_viz_cfg._target_)
+                aviation_viz_cache[airport_id] = viz_class(airport_viz_cfg)
+            avi_viz = aviation_viz_cache[airport_id]
+            avi_scores: ScenarioScores | None = None
+            if cfg.viz_scored_scenarios:
+                score_filepath = scores_path / scenario_filepath.name
+                avi_scores = ScenarioScores.model_validate(from_pickle(str(score_filepath)))  # nosec B301
+            _ = avi_viz.visualize_scenario(scenario, scores=avi_scores, output_dir=output_dir)
+        elif _ad_viz is not None:
+            scenario_data = from_pickle(str(scenario_filepath))  # nosec B301
+            scenario = dataset.transform_scenario_data(scenario_data)
+            ad_scores: Score | None = None
+            if cfg.viz_scored_scenarios:
+                score_filepath = scores_path / scenario_filepath.name
+                scenario_scores = ScenarioScores.model_validate(from_pickle(str(score_filepath)))  # nosec B301
+                match cfg.score_to_visualize:
+                    case "individual":
+                        ad_scores = _to_score(scenario_scores.individual_scores)
+                    case "interaction":
+                        ad_scores = _to_score(scenario_scores.interaction_scores)
+                    case "safeshift":
+                        ad_scores = _to_score(scenario_scores.individual_scores)
+                    case _:
+                        ad_scores = None
+            _ = _ad_viz.visualize_scenario(scenario, scores=ad_scores, output_dir=output_dir)
 
     # agent_scores_df = pd.DataFrame(agent_scores)
     logger.info("Visualizing scenarios based on scores")

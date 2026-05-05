@@ -8,8 +8,8 @@ from omegaconf import DictConfig
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
+from characterization.domains.ad.schemas import Scenario
 from characterization.domains.ad.utils.geometric_utils import find_closest_lanes, find_conflict_points
-from characterization.schemas import Scenario
 from characterization.utils.common import SUPPORTED_SCENARIO_TYPES
 from characterization.utils.logging_utils import get_pylogger
 

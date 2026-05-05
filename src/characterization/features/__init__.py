@@ -1,7 +1,3 @@
-from characterization.domains.ad.features.individual_features import IndividualFeatures
-from characterization.domains.ad.features.interaction_features import InteractionFeatures
-from characterization.domains.ad.features.safeshift_features import SafeShiftFeatures
-
 from .base_feature import BaseFeature
 
 SUPPORTED_FEATURES = [
@@ -29,7 +25,4 @@ SUPPORTED_FEATURES = [
 __all__ = [
     "SUPPORTED_FEATURES",
     "BaseFeature",
-    "IndividualFeatures",
-    "InteractionFeatures",
-    "SafeShiftFeatures",
 ]

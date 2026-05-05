@@ -6,10 +6,12 @@ from .agent_types import (
     RAW_STATE_SIZE_WITH_AIRCRAFT_TYPE,
     STRING_TO_AGENT_TYPE,
     VALID_STATE_VALUE,
+    AgentPairType,
     AgentStateValidity,
     AgentTrajectory,
     AgentType,
     RawAgentTrajectory,
+    get_agent_pair_type,
     raw_to_agent_type,
 )
 from .map_types import (
@@ -31,11 +33,13 @@ __all__ = [
     "RAW_STATE_SIZE_WITH_AIRCRAFT_TYPE",
     "STRING_TO_AGENT_TYPE",
     "VALID_STATE_VALUE",
+    "AgentPairType",
     "AgentStateValidity",
     "AgentTrajectory",
     "AgentType",
     "MapInfo",
     "MapType",
     "RawAgentTrajectory",
+    "get_agent_pair_type",
     "raw_to_agent_type",
 ]

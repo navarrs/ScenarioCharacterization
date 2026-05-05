@@ -87,8 +87,8 @@ uv sync
 
 
 ```bash
-uv run -m characterization.run_processor characterizer=individual_features paths=test
-uv run -m characterization.run_processor characterizer=interaction_features paths=test
+uv run -m characterization.run_processor characterizer=ad_individual_features paths=test
+uv run -m characterization.run_processor characterizer=ad_interaction_features paths=test
 ```
 
 This step creates a `./cache` directory with temporary feature data:
@@ -100,9 +100,9 @@ This step creates a `./cache` directory with temporary feature data:
 ### 3. Compute Scores
 
 ```bash
-uv run -m characterization.run_processor characterizer=individual_scores paths=test
-uv run -m characterization.run_processor characterizer=interaction_scores paths=test
-uv run -m characterization.run_processor characterizer=safeshift_scores paths=test
+uv run -m characterization.run_processor characterizer=ad_individual_scores paths=test
+uv run -m characterization.run_processor characterizer=ad_interaction_scores paths=test
+uv run -m characterization.run_processor characterizer=ad_safeshift_scores paths=test
 ```
 
 This uses the computed features to generate per-agent and per-scenario scores, saved in `./cache/scores/gt_critical`.
