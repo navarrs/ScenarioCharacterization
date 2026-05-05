@@ -1,3 +1,14 @@
+"""Entrypoint for analyzing and visualizing precomputed scenario features.
+
+Loads individual and interaction features, regroups them by agent type and agent-pair type, and plots feature
+distributions. Configuration is loaded from ``config/run_analysis.yaml`` by default.
+
+Example usage::
+
+    uv run python -m characterization.run_feature_analysis
+    uv run python -m characterization.run_feature_analysis features_path=/path/to/features output_dir=/path/to/output
+"""
+
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -12,18 +23,16 @@ logger = get_logger(__name__)
 
 @hydra.main(config_path="config", config_name="run_analysis", version_base="1.3")
 def run(cfg: DictConfig) -> None:
-    """Runs the scenario score visualization pipeline using the provided configuration.
+    """Runs the scenario feature analysis pipeline using the provided configuration.
 
-    This function loads scenario scores, generates density plots for each scoring method, and visualizes example
-    scenarios across score percentiles. It supports multiple scoring criteria and flexible dataset/visualizer
-    instantiation via Hydra.
+    Loads precomputed individual and interaction features, regroups them by agent type and agent-pair type, and plots
+    their distributions.
 
     Args:
-        cfg (DictConfig): Configuration dictionary specifying dataset, visualizer, scoring methods, paths, and output
-            options.
+        cfg (DictConfig): Configuration dictionary specifying feature paths, output options, and plot settings.
 
     Raises:
-        ValueError: If unsupported scorers are specified in the configuration.
+        ValueError: If unsupported scenario types are specified in the configuration.
     """
     subdir = ""
     if cfg.add_timestamp:
