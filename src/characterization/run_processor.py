@@ -1,3 +1,15 @@
+"""Entrypoint for running the scenario characterization processor over a dataset.
+
+Instantiates the dataset, characterizer (feature extractor or scorer), and processor via Hydra, then dispatches
+to the processor's ``run()`` method. Configuration is loaded from ``config/run_processor.yaml`` by default.
+
+Example usage::
+
+    uv run python -m characterization.run_processor
+    uv run python -m characterization.run_processor characterizer=individual_features scenario_type=gt
+    uv run python -m characterization.run_processor num_scenarios=100 shard_index=0 num_shards=4
+"""
+
 import hydra
 from omegaconf import DictConfig
 
@@ -45,6 +57,4 @@ def run(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    """Entry point for running the scenario characterization processor."""
-    # The run function is decorated with @hydra.main, which allows it to be executed
     run()
