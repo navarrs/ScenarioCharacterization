@@ -6,7 +6,8 @@ from omegaconf import DictConfig
 
 import characterization.features.individual_utils as individual
 from characterization.features.base_feature import BaseFeature
-from characterization.schemas import Individual, Scenario, ScenarioFeatures
+from characterization.schemas.scenario import Scenario
+from characterization.schemas.scenario_features import Individual, ScenarioFeatures
 from characterization.utils.common import (
     MIN_VALID_POINTS,
     AgentTrajectoryMasker,

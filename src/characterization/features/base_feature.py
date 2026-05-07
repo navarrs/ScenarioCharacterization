@@ -3,7 +3,8 @@ from abc import ABC, abstractmethod
 
 from omegaconf import DictConfig
 
-from characterization.schemas import Scenario, ScenarioFeatures
+from characterization.schemas.scenario import Scenario
+from characterization.schemas.scenario_features import ScenarioFeatures
 from characterization.utils.common import ReturnCriterion
 from characterization.utils.io_utils import get_logger
 

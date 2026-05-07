@@ -13,7 +13,8 @@ from tqdm import tqdm
 
 import characterization.features.interaction_utils as interaction
 from characterization.features.base_feature import BaseFeature
-from characterization.schemas import Interaction, Scenario, ScenarioFeatures
+from characterization.schemas.scenario import Scenario
+from characterization.schemas.scenario_features import Interaction, ScenarioFeatures
 from characterization.utils.common import (
     EPSILON,
     MIN_VALID_POINTS,
