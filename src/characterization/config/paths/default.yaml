@@ -1,6 +1,7 @@
 root_path: "."
 log_path: ${paths.root_path}/logs
 
+dataset_name: default
 base_path: /data/
 
 cache_path: ${paths.base_path}/cache

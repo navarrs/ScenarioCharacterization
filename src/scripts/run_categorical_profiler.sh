@@ -9,8 +9,11 @@ usage() {
 Usage: $0 [options]
 
 Options:
-  -p <paths_config>     Specifies the configuration containing the data paths to be used
-  -d <meta_dir>         Meta directory where analysis JSON files are copied (default: ./meta)
+  -D <dataset>          Dataset name (default: waymo). Determines the default paths config and meta directory.
+                        "waymo" uses paths config "waymo_sample" and meta directory "./meta/waymo".
+                        Other datasets use paths config "<dataset>" and meta directory "./meta/<dataset>".
+  -p <paths_config>     Specifies the configuration containing the data paths to be used (overrides -D default)
+  -d <meta_dir>         Meta directory where analysis JSON files are copied (overrides -D default)
   -u <output_dir>       Output directory for categorical profiling analyses (default: outputs/categorical_profiler)
   -o                    Overwrite existing results
   -c                    Create metadata for the features
@@ -21,8 +24,11 @@ Options:
   -h                    Show this help message
 
 Examples:
-  # Run with all defaults
+  # Run with all defaults (waymo dataset)
   $0
+
+  # Run for a specific dataset
+  $0 -D waymo
 
   # Create metadata (c) and/or overwrite (o) existing results
   $0 -c
@@ -32,8 +38,8 @@ Examples:
   # Dry run to preview commands
   $0 -n
 
-  # Use custom meta and output directories
-  $0 -d ./my_meta -u outputs/my_categorical_profiler
+  # Use a custom paths config, meta directory, or output directory
+  $0 -p waymo_sample -d ./my_meta -u outputs/my_categorical_profiler
 
   # Resume from the last completed step (default)
   $0 -m resume
@@ -48,12 +54,11 @@ EOF
 ############################
 # Defaults
 ############################
-DEFAULT_PATHS_CONFIG="labeling_set"
+DEFAULT_DATASET="waymo"
 DEFAULT_RUN_MODE="resume"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROGRESS_FILE="$SCRIPT_DIR/categorical_profiler.progress"
 
-DEFAULT_META_DIR="./meta"
 DEFAULT_OUTPUT_DIR="outputs/categorical_profiler"
 RAW_FEATURES_ANALYSIS_EXPERIMENT_TAG="raw_features_distribution_analysis"
 CAT_FEATURES_ANALYSIS_EXPERIMENT_TAG="cat_features_distribution_analysis"
@@ -67,16 +72,18 @@ dry_run=false
 list_steps=false
 run_mode="$DEFAULT_RUN_MODE"
 repeat_step=""
-meta_dir="$DEFAULT_META_DIR"
-output_dir="$DEFAULT_OUTPUT_DIR"
-paths_config="$DEFAULT_PATHS_CONFIG"
+dataset=""
+meta_dir=""
+output_dir=""
+paths_config=""
 
 ############################
 # Parse arguments
 ############################
 
-while getopts ":p:d:u:m:s:conlh" opt; do
+while getopts ":D:p:d:u:m:s:conlh" opt; do
     case $opt in
+        D) dataset="$OPTARG" ;;
         p) paths_config="$OPTARG" ;;
         d) meta_dir="$OPTARG" ;;
         u) output_dir="$OPTARG" ;;
@@ -99,6 +106,18 @@ if [ "$run_mode" != "scratch" ] && [ "$run_mode" != "resume" ]; then
     echo "Invalid mode: $run_mode. Use 'scratch' or 'resume'." >&2
     usage
 fi
+
+[ -z "$dataset" ] && dataset="$DEFAULT_DATASET"
+
+if [ -z "$paths_config" ]; then
+    case "$dataset" in
+        waymo) paths_config="waymo_sample" ;;
+        *) paths_config="$dataset" ;;
+    esac
+fi
+
+[ -z "$meta_dir" ] && meta_dir="./meta/$dataset"
+[ -z "$output_dir" ] && output_dir="$DEFAULT_OUTPUT_DIR/$dataset"
 
 RAW_FEATURE_ANALYSIS_OUTPUT_DIR="$output_dir/$RAW_FEATURES_ANALYSIS_EXPERIMENT_TAG"
 RAW_SCORES_FROM_CAT_FEATURES_ANALYSIS_OUTPUT_DIR="$output_dir/$RAW_SCORES_FROM_CAT_FEATURES_ANALYSIS_EXPERIMENT_TAG"
@@ -265,6 +284,10 @@ if [ -n "$repeat_step" ]; then
         fi
     fi
     exit 0
+fi
+
+if ! $dry_run; then
+    mkdir -p "$meta_dir"
 fi
 
 last_completed_step=0

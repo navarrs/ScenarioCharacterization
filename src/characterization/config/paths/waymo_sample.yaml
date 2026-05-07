@@ -1,0 +1,6 @@
+defaults:
+ - default.yaml
+
+dataset_name: waymo
+base_path: /data/driving/scenario_characterization/waymo
+scenario_base_path: ${paths.base_path}/scenarios

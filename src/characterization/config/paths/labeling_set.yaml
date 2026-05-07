@@ -1,5 +1,0 @@
-defaults:
- - default.yaml
-
-base_path: /data/driving/scenario_characterization
-scenario_base_path: ${paths.base_path}/samples/scenarios
