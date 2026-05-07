@@ -1,6 +1,7 @@
 defaults:
  - default.yaml
 
+dataset_name: waymo
 base_path: /data/driving/waymo/processed/mini_causal
 
 # scenario_base_path: ${paths.base_path}/validation

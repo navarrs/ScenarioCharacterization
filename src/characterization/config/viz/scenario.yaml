@@ -7,7 +7,7 @@ config:
   # Parameters for categorical visualization
   plot_categorical: false
   categorical_color_map: Spectral_r
-  categories_file: ./meta/gt_critical_categorical_safeshift.json
+  categories_file: ./meta/${paths.dataset_name}/gt_critical_categorical_safeshift.json
 
   panes_to_plot:
     # - ALL_AGENTS
