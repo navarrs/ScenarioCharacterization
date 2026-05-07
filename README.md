@@ -35,14 +35,19 @@ cd ScenarioCharacterization
 uv run pip install -e .
 ```
 
-To install with Waymo dependencies (required for running the [example](#example)), use:
+To install with dataset-specific dependencies, use the appropriate optional extra:
+
 ```bash
+# Waymo Open Motion Dataset (requires Python 3.10)
 uv run pip install -e ".[waymo]"
+
+# nuScenes dataset (requires Python 3.12)
+uv run pip install -e ".[nuscenes]"
 ```
 
 If installing with development dependencies, run:
 ```bash
-uv run pip install -e . ".[dev]"
+uv run pip install -e ".[dev]"
 uv run pre-commit install
 ```
 
@@ -52,7 +57,8 @@ uv run pre-commit install
 - [Schemas](./docs/SCHEMAS.md): Guidelines for creating dataset adapters and processors that comply with the required input/output schemas.
 - [Characterization](./docs/CHARACTERIZATION.md): Details on supported scenario characterization and visualization tools, and how to use them.
 - [Analysis](./docs/ANALYSIS.md): Shows how to run feature and score analyses.
-- [Example](./docs/EXAMPLE.md): Step-by-step usage example using the [Waymo Open Motion Dataset](https://waymo.com/open).
+- [Waymo Example](./docs/WAYMO_EXAMPLE.md): Step-by-step usage example using the [Waymo Open Motion Dataset](https://waymo.com/open).
+- [nuScenes Example](./docs/NUSCENES_EXAMPLE.md): Step-by-step usage example using the [nuScenes dataset](https://www.nuscenes.org/).
 
 ## Citing
 

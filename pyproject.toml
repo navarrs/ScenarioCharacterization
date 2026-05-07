@@ -32,6 +32,7 @@ dependencies = [
    "numpy>=1.21.5",
    "omegaconf>=2.3.0",
    "pandas>=1.5.3",
+   "pre-commit>=4.2.0",
    "pydantic>=2.9.5",
    "rich>=13.9.4",
    "scipy>=1.9.1",
@@ -54,6 +55,11 @@ dev = [
 waymo = [
     "tensorflow==2.11; python_version=='3.10'",
     "waymo-open-dataset-tf-2-11-0>=1.6.1; python_version=='3.10'",
+]
+# Optional dependency 'nuscenes' — requires Python 3.12+ (nuscenes-devkit pins numpy<2.0,
+# which conflicts with waymo's numpy==1.21.5 on Python 3.10)
+nuscenes = [
+    "nuscenes-devkit>=1.2.0; python_version>='3.12'",
 ]
 
 [project.urls]
@@ -123,6 +129,8 @@ exclude = [
     "src/characterization/examples",
     # File borrowed from original MTR (https://arxiv.org/abs/2209.13508), will keep unmodified.
     "src/characterization/datasets/waymo_preprocess.py",
+    # Reference implementation for design comparison; not part of the AD package.
+    "meta",
 ]
 line-length = 120
 target-version = "py312"
@@ -165,6 +173,8 @@ exclude = [
     "**/__pycache__",
     # File borrowed from original MTR (https://arxiv.org/abs/2209.13508), will keep unmodified.
     "src/characterization/datasets/waymo_preprocess.py",
+    # Reference implementation for design comparison; not part of the AD package.
+    "meta",
 ]
 ignore = ["tmp/**"]
 typeCheckingMode = "strict"
@@ -182,7 +192,7 @@ reportUnusedCallResult = false             # Disable check for call statements w
 
 # Set to "error"
 # keep-sorted start
-enableTypeIgnoreComments = "error"         # Disable support for '# type: ignore' in favor of '# pyright: ignore'
+enableTypeIgnoreComments = false            # Disable support for '# type: ignore' in favor of '# pyright: ignore'
 reportArgumentType = "error"               # Function call arg type mismatch
 reportAttributeAccessIssue = "error"       # Attribute access issue
 reportCallIssue = "error"                  # Wrong number of args / invalid call

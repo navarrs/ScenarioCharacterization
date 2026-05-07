@@ -11,6 +11,7 @@ Usage: $0 [options]
 Options:
   -D <dataset>          Dataset name (default: waymo). Determines the default paths config and meta directory.
                         "waymo" uses paths config "waymo_sample" and meta directory "./meta/waymo".
+                        "nuscenes" uses paths config "nuscenes_sample" and meta directory "./meta/nuscenes".
                         Other datasets use paths config "<dataset>" and meta directory "./meta/<dataset>".
   -p <paths_config>     Specifies the configuration containing the data paths to be used (overrides -D default)
   -d <meta_dir>         Meta directory where analysis JSON files are copied (overrides -D default)
@@ -29,6 +30,7 @@ Examples:
 
   # Run for a specific dataset
   $0 -D waymo
+  $0 -D nuscenes
 
   # Create metadata (c) and/or overwrite (o) existing results
   $0 -c
@@ -112,6 +114,7 @@ fi
 if [ -z "$paths_config" ]; then
     case "$dataset" in
         waymo) paths_config="waymo_sample" ;;
+        nuscenes) paths_config="nuscenes_sample" ;;
         *) paths_config="$dataset" ;;
     esac
 fi
@@ -129,6 +132,7 @@ RAW_SCORES_FROM_CAT_FEATURES_ANALYSIS_OUTPUT_DIR="$output_dir/$RAW_SCORES_FROM_C
 raw_features_cmd=(
     uv run -m characterization.run_processor
     paths="$paths_config"
+    dataset="$dataset"
     characterizer=safeshift_features
     feature_type=continuous
     create_metadata="$create_metadata"
@@ -151,6 +155,7 @@ cp_raw_feature_analysis_to_meta_cmd=(
 cat_features_cmd=(
     uv run -m characterization.run_processor
     paths="$paths_config"
+    dataset="$dataset"
     characterizer=safeshift_features
     feature_type=categorical
     overwrite="$overwrite"
@@ -168,6 +173,7 @@ cat_feature_distribution_analysis_cmd=(
 raw_scores_cmd=(
     uv run -m characterization.run_processor
     paths="$paths_config"
+    dataset="$dataset"
     characterizer=safeshift_scores
     feature_type=continuous
     score_weighting_method="distance_to_ego_agent"
@@ -186,6 +192,7 @@ raw_scores_distribution_analysis_cmd=(
 raw_scores_from_cat_features_cmd=(
     uv run -m characterization.run_processor
     paths="$paths_config"
+    dataset="$dataset"
     characterizer=safeshift_scores_categorical
     feature_type=categorical
     score_weighting_method="distance_to_ego_agent"
@@ -208,6 +215,7 @@ cp_raw_scores_from_cat_features_analysis_to_meta_cmd=(
 cat_scores_cmd=(
     uv run -m characterization.run_processor
     paths="$paths_config"
+    dataset="$dataset"
     characterizer=safeshift_scores_categorical
     feature_type=categorical
     score_weighting_method="distance_to_ego_agent"
@@ -264,6 +272,10 @@ if $list_steps; then
     exit 0
 fi
 
+if ! $dry_run; then
+    mkdir -p "$meta_dir"
+fi
+
 # Run a single step and exit, bypassing the progress file entirely.
 if [ -n "$repeat_step" ]; then
     if ! [[ "$repeat_step" =~ ^[0-9]+$ ]] || [ "$repeat_step" -lt 1 ] || [ "$repeat_step" -gt "$total_steps" ]; then
@@ -284,10 +296,6 @@ if [ -n "$repeat_step" ]; then
         fi
     fi
     exit 0
-fi
-
-if ! $dry_run; then
-    mkdir -p "$meta_dir"
 fi
 
 last_completed_step=0

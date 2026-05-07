@@ -527,7 +527,7 @@ def get_scenario_splits(
     return scenario_splits
 
 
-def _compute_category_thresholds(data: np.ndarray, categories: list[dict[str, Any]]) -> dict[str, float]:
+def _compute_category_thresholds(data: NDArray[np.float64], categories: list[dict[str, Any]]) -> dict[str, float]:
     """Computes unique boundary thresholds between consecutive semantic categories.
 
     For each boundary, the nominal threshold is the upper-end percentile of the lower category. If that value equals the
