@@ -255,7 +255,7 @@ def decode_annotations_to_trajectories(
 def _build_lane_polyline(nusc_map: NuScenesMap, token: str) -> NDArray[np.float32] | None:
     """Discretizes a lane or lane_connector arcline into a (P, 7) polyline array."""
     try:
-        poses = arcline_path_utils.discretize_lane(nusc_map, token, resolution_meters=_LANE_RESOLUTION_M)
+        poses = arcline_path_utils.discretize_lane(nusc_map, token, _LANE_RESOLUTION_M)
     except Exception:  # noqa: BLE001
         logger.debug("Skipping lane %s: discretize_lane failed", token)
         return None
@@ -267,7 +267,9 @@ def _build_lane_polyline(nusc_map: NuScenesMap, token: str) -> NDArray[np.float3
     return np.concatenate([points, dirs, type_col], axis=1)
 
 
-def _build_line_polyline(nusc_map: NuScenesMap, layer_name: str, token: str, type_id: int) -> np.ndarray | None:
+def _build_line_polyline(
+    nusc_map: NuScenesMap, layer_name: str, token: str, type_id: int
+) -> NDArray[np.float32] | None:
     """Extracts a line layer record (road_divider or lane_divider) as a (P, 7) polyline array."""
     record = nusc_map.get(layer_name, token)
     line = nusc_map.get("line", record["line_token"])
@@ -280,7 +282,9 @@ def _build_line_polyline(nusc_map: NuScenesMap, layer_name: str, token: str, typ
     return np.concatenate([points, dirs, type_col], axis=1)
 
 
-def _build_polygon_polyline(nusc_map: NuScenesMap, layer_name: str, token: str, type_id: int) -> np.ndarray | None:
+def _build_polygon_polyline(
+    nusc_map: NuScenesMap, layer_name: str, token: str, type_id: int
+) -> NDArray[np.float32] | None:
     """Extracts a polygon layer record's exterior boundary as a (P, 7) polyline array."""
     record = nusc_map.get(layer_name, token)
     try:
@@ -323,11 +327,11 @@ def decode_map_features(
     records = nusc_map.get_records_in_patch(patch_box, layer_names=layer_names)
 
     map_infos: dict[str, Any] = {"lane": [], "road_line": [], "road_edge": [], "crosswalk": [], "stop_sign": []}
-    polylines_list: list[np.ndarray] = []
+    polylines_list: list[NDArray[np.float32]] = []
     point_cnt = 0
     feature_id = 0
 
-    def _append(category: str, polyline: np.ndarray, extra: dict[str, Any] | None = None) -> None:
+    def _append(category: str, polyline: NDArray[np.float32], extra: dict[str, Any] | None = None) -> None:
         nonlocal point_cnt, feature_id
         entry: dict[str, Any] = {"id": feature_id, "polyline_index": (point_cnt, point_cnt + len(polyline))}
         if extra:
