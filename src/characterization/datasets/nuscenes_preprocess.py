@@ -255,7 +255,8 @@ def decode_annotations_to_trajectories(
 def _build_lane_polyline(nusc_map: NuScenesMap, token: str) -> NDArray[np.float32] | None:
     """Discretizes a lane or lane_connector arcline into a (P, 7) polyline array."""
     try:
-        poses = arcline_path_utils.discretize_lane(nusc_map, token, _LANE_RESOLUTION_M)
+        lane = nusc_map.get_arcline_path(token)
+        poses = arcline_path_utils.discretize_lane(lane, _LANE_RESOLUTION_M)
     except Exception:  # noqa: BLE001
         logger.debug("Skipping lane %s: discretize_lane failed", token)
         return None
