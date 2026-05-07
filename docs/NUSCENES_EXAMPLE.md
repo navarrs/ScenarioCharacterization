@@ -37,7 +37,13 @@ uv pip install -e ".[nuscenes]"
    ```
    The extracted directory should contain `v1.0-mini/` with `maps/`, `samples/`, and `sweeps/` subdirectories.
 
-3. **Pre-process the data:**
+3. **Download the Map Expansion pack** from the nuScenes website (listed as "Map expansion pack (v1.3)" on the download page) and extract it into the same directory:
+   ```bash
+   unzip nuScenes-map-expansion-v1.3.zip -d samples/nuscenes/raw/
+   ```
+   This adds `maps/expansion/*.json` files containing the vector lane and road geometry required for polyline extraction.
+
+4. **Pre-process the data:**
    ```bash
    uv run python -m characterization.datasets.nuscenes_preprocess \
        ./samples/nuscenes/raw ./samples/nuscenes/ v1.0-mini

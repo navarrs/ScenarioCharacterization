@@ -2,6 +2,14 @@
 # Published at NeurIPS 2022
 # Written by Shaoshuai Shi
 # All Rights Reserved
+"""Preprocessing script for Waymo Open Dataset scenario protos.
+
+Reads raw Waymo `.tfrecord` files, extracts scenario data, and writes pickle files and a metadata index to disk.
+
+Example usage::
+
+    uv run python -m characterization.datasets.waymo_preprocess <raw_data_path> <output_path>
+"""
 
 import glob
 import multiprocessing
@@ -409,9 +417,4 @@ def create_infos_from_protos(raw_data_path, output_path, num_workers=8):
 
 
 if __name__ == "__main__":
-    """Entry point for preprocessing Waymo scenario protos.
-
-    Usage:
-        python waymo_preprocess.py <raw_data_path> <output_path>
-    """
     create_infos_from_protos(raw_data_path=sys.argv[1], output_path=sys.argv[2], num_workers=8)

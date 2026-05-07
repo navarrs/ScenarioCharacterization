@@ -2,9 +2,11 @@ root_path: "."
 log_path: ${paths.root_path}/logs
 
 dataset_name: default
-base_path: /data/
+base_path: /data/driving/scenario_characterization/${paths.dataset_name}
 
+scenario_base_path: ${paths.base_path}/scenarios
 cache_path: ${paths.base_path}/cache
+
 output_paths:
   feature_cache_path: ${paths.cache_path}/features/${scenario_type}_${return_criterion}_${feature_type}
   scores_cache_path: ${paths.cache_path}/scores/${scenario_type}_${return_criterion}_${feature_type}

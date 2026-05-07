@@ -1,5 +1,4 @@
 defaults:
  - default.yaml
 
-dataset_name: waymo
-
+dataset_name: nuscenes
