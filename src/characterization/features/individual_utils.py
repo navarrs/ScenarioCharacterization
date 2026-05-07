@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray
 
-from characterization.schemas import ScenarioMetadata
+from characterization.schemas.scenario import ScenarioMetadata
 from characterization.utils import geometric_utils
 from characterization.utils.common import EPSILON, MIN_VALID_POINTS, LaneMasker, TrajectoryType, mph_to_ms
 from characterization.utils.io_utils import get_logger

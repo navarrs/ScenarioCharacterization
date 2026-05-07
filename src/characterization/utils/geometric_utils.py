@@ -5,7 +5,7 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.signal import resample
 
-from characterization.schemas import Scenario
+from characterization.schemas.scenario import Scenario
 from characterization.utils.common import EPSILON, AgentTrajectoryMasker
 
 

@@ -3,7 +3,8 @@ from omegaconf import DictConfig
 from characterization.features.base_feature import BaseFeature
 from characterization.features.individual_features import IndividualFeatures
 from characterization.features.interaction_features import InteractionFeatures
-from characterization.schemas import Scenario, ScenarioFeatures
+from characterization.schemas.scenario import Scenario
+from characterization.schemas.scenario_features import ScenarioFeatures
 from characterization.utils.common import AgentTrajectoryMasker
 from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
 from characterization.utils.io_utils import get_logger
