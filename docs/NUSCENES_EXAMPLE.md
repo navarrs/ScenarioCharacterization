@@ -84,7 +84,7 @@ uv run python -m characterization.run_processor \
 
 ---
 
-### 4. Visualize Scores and Scenarios
+### 4. Analyze and Visualize Scores
 
 To visualize the scenarios the viz dependencies are required. Install them with:
 
@@ -92,9 +92,23 @@ To visualize the scenarios the viz dependencies are required. Install them with:
 uv pip install -e ".[viz]"
 ```
 
+**Score analysis** — generates score density plots, a `scene_to_scores_mapping.csv`, and OOD split files:
+
 ```bash
-uv run python -m characterization.viz_scores_pdf paths=nuscenes_sample dataset=nuscenes scenario_type=gt
+uv run python -m characterization.run_score_analysis \
+    paths=nuscenes_sample dataset=nuscenes scenario_type=gt
 ```
+
+Outputs are written to a timestamped folder under `./cache/analysis/`.
+
+**Scenario visualization** (optional) — renders per-scenario visual outputs:
+
+```bash
+uv run python -m characterization.run_scenario_viz \
+    paths=nuscenes_sample dataset=nuscenes scenario_type=gt
+```
+
+Outputs are written to `./cache/analysis/scenario_viz/`.
 
 ---
 

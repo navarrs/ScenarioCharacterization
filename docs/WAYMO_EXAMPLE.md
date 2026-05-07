@@ -107,7 +107,7 @@ This uses the computed features to generate per-agent and per-scenario scores, s
 
 ---
 
-### 4. Visualize Scores and Scenarios
+### 4. Analyze and Visualize Scores
 
 To visualize the scenarios the viz dependencies are required. Install them with:
 
@@ -115,16 +115,21 @@ To visualize the scenarios the viz dependencies are required. Install them with:
 uv pip install -e ".[viz]"
 ```
 
+**Score analysis** — generates score density plots, a `scene_to_scores_mapping.csv`, and OOD split files:
+
 ```bash
-uv run python -m characterization.viz_scores_pdf paths=waymo_sample
+uv run python -m characterization.run_score_analysis paths=waymo_sample
 ```
 
-This generates and saves a density plot of scenario scores to:
-- `./cache/visualization/gt_critical/score_density_plot.png`
+Outputs are written to a timestamped folder under `./cache/analysis/`.
 
-It also creates scenario visualizations in:
-- `./cache/visualization/gt_critical/individual_scores`
-- `./cache/visualization/gt_critical/interaction_scores`
+**Scenario visualization** (optional) — renders per-scenario visual outputs:
+
+```bash
+uv run python -m characterization.run_scenario_viz paths=waymo_sample
+```
+
+Outputs are written to `./cache/analysis/scenario_viz/`.
 
 <div align="center">
   <img src="../assets/example_pdf.png" alt="Density Plot (PDF)">
