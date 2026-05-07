@@ -12,7 +12,7 @@ This guide demonstrates how to process and analyze scenarios from the Waymo Open
 
 ### Prerequisite: Install Waymo Dependencies
 
-To process the waymo dataset `python 3.10` is required, it can be pinned with `uv`.
+To process the Waymo dataset `python 3.10` is required, it can be pinned with `uv`.
 
 ```bash
 uv python pin 3.10
@@ -20,7 +20,7 @@ uv venv
 uv pip install -e ".[waymo]"
 ```
 
-If conda is installed and active in order to make `uv` work the environment has to be sourced.
+If conda is installed and active, in order to make `uv` work the environment has to be sourced.
 
 ```bash
 uv python pin 3.10
@@ -29,7 +29,7 @@ source .venv/bin/activate
 uv pip install -e ".[waymo]"
 ```
 
-Or deactivate conda.
+Or deactivate conda first.
 
 ```bash
 conda deactivate
@@ -41,26 +41,25 @@ Sample files are available in the `samples` directory for quick testing.
 
 1. **Install the [gcloud CLI](https://cloud.google.com/sdk/docs/install).**
 
-2. **Register and accept Waymo’s terms of use**
+2. **Register and accept Waymo's terms of use** at the [Waymo Dataset Site](https://waymo.com/open/) using the same Google account you registered for Google Cloud.
 
-With the same account you registered for Google Cloud you accept the terms of use in [Waymo Dataset Site](https://waymo.com/open/).
+3. **Give your Google Cloud user Cloud Storage permissions.**
 
-4. **Give your Google Cloud user Cloud Storage permissions**
-
-5. **Download a sample scenario:**
+4. **Download a sample scenario:**
    ```bash
    mkdir -p samples/raw
    cd samples/raw
    gcloud init
    gsutil -m cp -r "gs://waymo_open_dataset_motion_v_1_3_0/uncompressed/scenario/training/training.tfrecord-00000-of-01000" .
    ```
-6. **Pre-process the data:**
+
+5. **Pre-process the data:**
    (Script adapted from [SafeShift](https://github.com/cmubig/SafeShift?tab=readme-ov-file#waymo-dataset-preparation))
 
    ```bash
-   uv run -m characterization.utils.datasets.waymo_preprocess ./samples/raw ./samples/
+   uv run python -m characterization.datasets.waymo_preprocess ./samples/raw ./samples/
    ```
-   This will generate temporary scenario files in `samples/scenarios` for use in the pipeline. A sample config file (`test.yaml`) is provided under `config/paths` with local paths to the sample data.
+   This will generate temporary scenario files in `samples/scenarios` for use in the pipeline. A sample config file (`waymo_sample.yaml`) is provided under `config/paths` with local paths to the sample data.
 
    The test setup uses ground truth data (`scenario_type: gt`) and computes critical features (`return_criterion: critical`).
 
@@ -68,14 +67,14 @@ With the same account you registered for Google Cloud you accept the terms of us
 
 ### 2. Compute Features
 
-For this section it is necesary `python3.12`, pin it with `uv`. Also make sure to have the the base dependencies installed.
+For this section `python 3.12` is required, pin it with `uv`. Make sure to have the base dependencies installed.
 
 ```bash
 uv python pin 3.12
 uv sync
 ```
 
-If conda is installed and active in order to make `uv` work the environment has to be sourced.
+If conda is installed and active, source the environment first.
 
 ```bash
 deactivate # if the uv environment is active
@@ -85,10 +84,9 @@ source .venv/bin/activate
 uv sync
 ```
 
-
 ```bash
-uv run -m characterization.run_processor characterizer=individual_features paths=test
-uv run -m characterization.run_processor characterizer=interaction_features paths=test
+uv run python -m characterization.run_processor characterizer=individual_features paths=waymo_sample
+uv run python -m characterization.run_processor characterizer=interaction_features paths=waymo_sample
 ```
 
 This step creates a `./cache` directory with temporary feature data:
@@ -100,9 +98,9 @@ This step creates a `./cache` directory with temporary feature data:
 ### 3. Compute Scores
 
 ```bash
-uv run -m characterization.run_processor characterizer=individual_scores paths=test
-uv run -m characterization.run_processor characterizer=interaction_scores paths=test
-uv run -m characterization.run_processor characterizer=safeshift_scores paths=test
+uv run python -m characterization.run_processor characterizer=individual_scores paths=waymo_sample
+uv run python -m characterization.run_processor characterizer=interaction_scores paths=waymo_sample
+uv run python -m characterization.run_processor characterizer=safeshift_scores paths=waymo_sample
 ```
 
 This uses the computed features to generate per-agent and per-scenario scores, saved in `./cache/scores/gt_critical`.
@@ -118,7 +116,7 @@ uv pip install -e ".[viz]"
 ```
 
 ```bash
-uv run -m characterization.viz_scores_pdf paths=test
+uv run python -m characterization.viz_scores_pdf paths=waymo_sample
 ```
 
 This generates and saves a density plot of scenario scores to:
@@ -141,5 +139,5 @@ A reference script to compute features and scores for a single scenario is provi
 Run the script as follows:
 
 ```bash
-uv run -m characterization.examples.run_single_scenario
+uv run python -m characterization.examples.run_single_scenario
 ```

@@ -1,0 +1,6 @@
+defaults:
+ - default.yaml
+
+base_path: /data/driving/nuscenes/processed
+
+scenario_base_path: ${paths.base_path}/scenarios
