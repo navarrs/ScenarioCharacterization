@@ -17,6 +17,7 @@ import sys
 from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 from nuscenes.map_expansion import arcline_path_utils
 from nuscenes.map_expansion.map_api import NuScenesMap
 from nuscenes.nuscenes import NuScenes
@@ -94,7 +95,7 @@ def get_agent_type(category_name: str) -> str:
     return "TYPE_OTHER"
 
 
-def get_polyline_dir(polyline: np.ndarray) -> np.ndarray:
+def get_polyline_dir(polyline: NDArray[np.float32]) -> NDArray[np.float32]:
     """Computes unit direction vectors for each point of a polyline."""
     polyline_pre = np.roll(polyline, shift=1, axis=0)
     polyline_pre[0] = polyline[0]
@@ -113,10 +114,10 @@ def get_sample_tokens(nusc: NuScenes, scene: dict[str, Any], max_tokens: int) ->
 
 
 def interpolate_to_10hz(
-    traj_2hz: np.ndarray,
-    ts_2hz: np.ndarray,
-    ts_10hz: np.ndarray,
-) -> np.ndarray:
+    traj_2hz: NDArray[np.float32],
+    ts_2hz: NDArray[np.float64],
+    ts_10hz: NDArray[np.float64],
+) -> NDArray[np.float32]:
     """Linearly interpolates a 2Hz trajectory to 10Hz.
 
     Args:
@@ -172,9 +173,9 @@ def interpolate_to_10hz(
 def decode_ego_trajectory(
     nusc: NuScenes,
     sample_tokens: list[str],
-    ts_2hz: np.ndarray,
-    ts_10hz: np.ndarray,
-) -> np.ndarray:
+    ts_2hz: NDArray[np.float64],
+    ts_10hz: NDArray[np.float64],
+) -> NDArray[np.float32]:
     """Extracts the ego vehicle trajectory from ego_pose records and interpolates to 10Hz.
 
     Returns:
@@ -197,8 +198,8 @@ def decode_ego_trajectory(
 def decode_annotations_to_trajectories(
     nusc: NuScenes,
     sample_tokens: list[str],
-    ts_2hz: np.ndarray,
-    ts_10hz: np.ndarray,
+    ts_2hz: NDArray[np.float64],
+    ts_10hz: NDArray[np.float64],
 ) -> dict[str, Any]:
     """Builds per-agent trajectories from nuScenes sample annotations and interpolates to 10Hz.
 
@@ -221,7 +222,7 @@ def decode_annotations_to_trajectories(
 
     object_ids: list[int] = []
     object_types: list[str] = []
-    trajs_list: list[np.ndarray] = []
+    trajs_list: list[NDArray[np.float32]] = []
     instance_tokens: list[str] = []
 
     for inst_id, (inst_token, ann_map) in enumerate(instance_ann_map.items(), start=1):
@@ -251,7 +252,7 @@ def decode_annotations_to_trajectories(
     return {"object_id": object_ids, "object_type": object_types, "trajs": trajs, "instance_tokens": instance_tokens}
 
 
-def _build_lane_polyline(nusc_map: NuScenesMap, token: str) -> np.ndarray | None:
+def _build_lane_polyline(nusc_map: NuScenesMap, token: str) -> NDArray[np.float32] | None:
     """Discretizes a lane or lane_connector arcline into a (P, 7) polyline array."""
     try:
         poses = arcline_path_utils.discretize_lane(nusc_map, token, resolution_meters=_LANE_RESOLUTION_M)

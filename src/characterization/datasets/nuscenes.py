@@ -20,6 +20,8 @@ from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
 
+_MIN_TIMESTAMPS_FOR_DT = 2
+
 
 class NuScenesData(BaseDataset):
     """Dataset adapter for the nuScenes dataset.
@@ -85,7 +87,7 @@ class NuScenesData(BaseDataset):
         return AgentData(
             agent_ids=agent_data["object_id"],
             agent_types=object_types,
-            agent_trajectories=trajectories,
+            agent_trajectories=trajectories.astype(np.float32),
         )
 
     @staticmethod
@@ -196,7 +198,7 @@ class NuScenesData(BaseDataset):
 
         timestamps = scenario_data["timestamps_seconds"]
         if len(timestamps) < self.total_steps:
-            dt = float(timestamps[-1] - timestamps[-2]) if len(timestamps) >= 2 else 1.0 / 10.0
+            dt = float(timestamps[-1] - timestamps[-2]) if len(timestamps) >= _MIN_TIMESTAMPS_FOR_DT else 1.0 / 10.0
             extra = timestamps[-1] + dt * np.arange(1, self.total_steps - len(timestamps) + 1)
             timestamps = np.concatenate([timestamps, extra])
         timestamps = timestamps[: self.total_steps]

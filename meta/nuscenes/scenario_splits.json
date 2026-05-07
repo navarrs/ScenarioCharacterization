@@ -1,0 +1,61 @@
+{
+    "gt_critical_categorical_individual": {
+        "in_distribution": [
+            "d25718445d89453381c659b9c8734939.pkl",
+            "de7d80a1f5fb4c3e82ce8a4f213b450a.pkl",
+            "fcbccedd61424f1b85dcbf8f897f9754.pkl",
+            "e233467e827140efa4b42d2b4c435855.pkl",
+            "6f83169d067343658251f72e1dd17dbc.pkl",
+            "c5224b9b454b4ded9b5d2d2634bbda8a.pkl",
+            "cc8c0bf57f984915a77078b10eb33198.pkl",
+            "325cef682f064c55a255f2625c533b75.pkl"
+        ],
+        "out_of_distribution": [
+            "bebf5f5b2a674631ab5c88fd1aa9e87a.pkl",
+            "2fc3753772e241f2ab2cd16a784cc680.pkl"
+        ],
+        "num_in_distribution": 8,
+        "num_out_of_distribution": 2
+    },
+    "gt_critical_categorical_interaction": {
+        "in_distribution": [
+            "d25718445d89453381c659b9c8734939.pkl",
+            "de7d80a1f5fb4c3e82ce8a4f213b450a.pkl",
+            "fcbccedd61424f1b85dcbf8f897f9754.pkl",
+            "e233467e827140efa4b42d2b4c435855.pkl",
+            "6f83169d067343658251f72e1dd17dbc.pkl",
+            "c5224b9b454b4ded9b5d2d2634bbda8a.pkl",
+            "cc8c0bf57f984915a77078b10eb33198.pkl",
+            "2fc3753772e241f2ab2cd16a784cc680.pkl"
+        ],
+        "out_of_distribution": [
+            "bebf5f5b2a674631ab5c88fd1aa9e87a.pkl",
+            "325cef682f064c55a255f2625c533b75.pkl"
+        ],
+        "num_in_distribution": 8,
+        "num_out_of_distribution": 2
+    },
+    "gt_critical_categorical_safeshift": {
+        "in_distribution": [
+            "d25718445d89453381c659b9c8734939.pkl",
+            "de7d80a1f5fb4c3e82ce8a4f213b450a.pkl",
+            "fcbccedd61424f1b85dcbf8f897f9754.pkl",
+            "e233467e827140efa4b42d2b4c435855.pkl",
+            "6f83169d067343658251f72e1dd17dbc.pkl",
+            "c5224b9b454b4ded9b5d2d2634bbda8a.pkl",
+            "cc8c0bf57f984915a77078b10eb33198.pkl",
+            "325cef682f064c55a255f2625c533b75.pkl"
+        ],
+        "out_of_distribution": [
+            "bebf5f5b2a674631ab5c88fd1aa9e87a.pkl",
+            "2fc3753772e241f2ab2cd16a784cc680.pkl"
+        ],
+        "num_in_distribution": 8,
+        "num_out_of_distribution": 2
+    },
+    "jaccard_indices": {
+        "gt_critical_categorical_individual_gt_critical_categorical_interaction_ood": 0.3333333333333333,
+        "gt_critical_categorical_individual_gt_critical_categorical_safeshift_ood": 1.0,
+        "gt_critical_categorical_interaction_gt_critical_categorical_safeshift_ood": 0.3333333333333333
+    }
+}
