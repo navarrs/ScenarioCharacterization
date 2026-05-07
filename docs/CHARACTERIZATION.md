@@ -10,7 +10,7 @@ The feature processor uses a feature class specified in the `characterizer` conf
 
 **Example usage:**
 ```bash
-uv run -m characterization.run_processor characterizer=[feature_type]
+uv run python -m characterization.run_processor characterizer=[feature_type]
 ```
 
 Available feature groups (see `config/characterizer`):
@@ -22,7 +22,7 @@ Available feature groups (see `config/characterizer`):
 
 To run the individual features characterizer:
 ```bash
-uv run -m characterization.run_processor characterizer=individual_features
+uv run python -m characterization.run_processor characterizer=individual_features
 ```
 
 Currently supported features:
@@ -30,6 +30,7 @@ Currently supported features:
   - Agent speed
   - Agent speed limit difference (difference between agent speed and speed limit)
   - Agent acceleration
+  - Agent deceleration
   - Agent jerk
   - Agent waiting period (interval an agent waits near a conflict point)
 - Derived from [UniTraj](https://github.com/vita-epfl/UniTraj/tree/main):
@@ -40,11 +41,13 @@ Currently supported features:
 
 To run the interaction features characterizer:
 ```bash
-uv run -m characterization.run_processor characterizer=interaction_features
+uv run python -m characterization.run_processor characterizer=interaction_features
 ```
 
 Currently supported features:
 - Derived from [SafeShift](https://github.com/cmubig/SafeShift/tree/master):
+  - Agent-pair separation distance
+  - Agent-pair intersection area
   - Collisions
   - Minimum Time to Conflict Point (mTTCP)
   - Time headway
@@ -59,13 +62,14 @@ The score processor uses a list of features specified in the `characterizer` con
 
 **Example usage:**
 ```bash
-uv run -m characterization.run_processor characterizer=[score_type]
+uv run python -m characterization.run_processor characterizer=[score_type]
 ```
 
 Available score groups (see `config/characterizer`):
 - **`individual_scores`**: Computes agent and scenario scores from individual agent descriptors.
 - **`interaction_scores`**: Computes agent and scenario scores from interaction descriptors.
 - **`safeshift_scores`**: Combines individual and interaction scores.
+- **`individual_scores_categorical`**, **`interaction_scores_categorical`**, **`safeshift_scores_categorical`**: Categorical variants that discretize scores into buckets. Use these with `feature_type=categorical` or when running the full categorical profiling pipeline.
 
 
 ## Categorical Profiling
@@ -78,10 +82,13 @@ bash src/scripts/run_categorical_profiler.sh [options]
 
 ### Options
 
-- `-p <paths_config>`: Paths configuration to use (default: `labeling_set`)
-- `-d <meta_dir>`: Meta directory where analysis JSON files are copied (default: `./meta`)
+- `-D <dataset>`: Dataset name (default: `waymo`). Sets the default paths config and meta directory. Use `waymo` or `nuscenes`.
+- `-p <paths_config>`: Paths configuration to use (overrides the `-D` default)
+- `-d <meta_dir>`: Meta directory where analysis JSON files are copied (overrides the `-D` default)
 - `-u <output_dir>`: Output directory for categorical profiling analyses (default: `outputs/categorical_profiler`)
 - `-m <mode>`: Run mode, either `resume` (default) or `scratch`
+- `-s <step>`: Repeat a specific step by number (see `-l` for the step list); ignores the progress file
+- `-l`: List all steps with their numbers and exit
 - `-c`: Create metadata for feature computation
 - `-o`: Overwrite existing outputs
 - `-n`: Dry run (print commands without executing)
@@ -117,5 +124,18 @@ Preview commands without running:
 ```bash
 bash src/scripts/run_categorical_profiler.sh -n
 ```
+
+## Switching Datasets and Characterizers
+
+All `run_processor` commands accept Hydra overrides for `dataset=`, `characterizer=`, and `paths=`. For example, to run individual features on nuScenes:
+
+```bash
+uv run python -m characterization.run_processor \
+    dataset=nuscenes characterizer=individual_features paths=nuscenes_sample
+```
+
+See [ORGANIZATION.md](ORGANIZATION.md) for the full list of available values for each config group.
+
+---
 
 ## ![TO-DO](https://img.shields.io/badge/status-TODO-red) Scenario Probing

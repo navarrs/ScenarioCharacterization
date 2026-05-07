@@ -1,6 +1,6 @@
 # Input/Output Schemas
 
-Input and output schemas are defined in [`./characterization/utils/schemas.py`](./characterization/utils/schemas.py) using [Pydantic](https://docs.pydantic.dev/latest/).
+Input and output schemas are defined in [`src/characterization/schemas/`](../src/characterization/schemas/) using [Pydantic](https://docs.pydantic.dev/latest/).
 This repository currently uses the following schemas:
 - [Scenario](#scenario-schema)
 - [ScenarioFeatures](#scenario-features-schema)
@@ -72,4 +72,4 @@ See the [[schema](../src/characterization/schemas/detections.py)] for details.
 
 The `FeatureWeights` schema defines the relative importance (weights) assigned to each feature when aggregating or scoring scenario features. Each weight corresponds to a specific feature (e.g., speed, acceleration, collision) and can be tuned to emphasize or de-emphasize certain aspects of agent or interaction behavior in downstream metrics or composite scores. Default values are provided, but these can be customized to suit different evaluation criteria or application needs.
 
-See the [[schema](../src/characterization/schemas/detections.py)] for details.
+`FeatureWeights` is co-located with `FeatureDetections` in [`detections.py`](../src/characterization/schemas/detections.py).
