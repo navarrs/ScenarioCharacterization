@@ -1,11 +1,21 @@
+"""Example script demonstrating end-to-end characterization of a single scenario.
+
+Loads a scenario pickle file, transforms it into the internal schema, computes individual features, and then computes
+individual scores. Prints intermediate and final outputs to stdout.
+
+Example usage::
+
+    uv run python src/characterization/examples/run_single_scenario.py
+"""
+
 import pickle  # nosec B403
 import warnings
 
 from omegaconf import DictConfig
 
+from characterization.datasets.waymo import WaymoData
 from characterization.features.individual_features import IndividualFeatures
 from characterization.scorer.individual_scorer import IndividualScorer
-from characterization.datasets.waymo import WaymoData
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 

@@ -1,3 +1,16 @@
+"""Entrypoint for visualizing scenarios, optionally organized by score percentile.
+
+Loads scenario pickle files, optionally filters to those with precomputed scores, groups them into score-percentile
+subdirectories, and renders visualizations using the configured dataset and visualizer. Configuration is loaded from
+``config/run_analysis.yaml`` by default.
+
+Example usage::
+
+    uv run python -m characterization.run_scenario_viz
+    uv run python -m characterization.run_scenario_viz score_to_visualize=individual total_scenarios=50
+    uv run python -m characterization.run_scenario_viz organize_by_percentile=true viz_scored_scenarios=true
+"""
+
 import copy
 import random
 from datetime import UTC, datetime
@@ -20,6 +33,19 @@ def _organize_scenarios_by_percentile(
     scenario_filepaths: list[Path],
     scenario_viz_dir: Path,
 ) -> list[Path]:
+    """Map each scenario filepath to an output subdirectory based on its score percentile bucket.
+
+    Reads the scene-to-scores CSV specified in ``cfg.scenario_to_score_mapping_filepath``, computes percentile
+    boundaries from ``cfg.percentiles``, and returns one output directory per scenario filepath.
+
+    Args:
+        cfg (DictConfig): Configuration containing score mapping path, percentile thresholds, and scoring column info.
+        scenario_filepaths: Ordered list of scenario pickle file paths to organize.
+        scenario_viz_dir: Root output directory under which percentile subdirectories are created.
+
+    Returns:
+        List of output directories, one per entry in ``scenario_filepaths``.
+    """
     # Load scenario to score mapping file
     scenario_to_score_mapping_filepath = Path(cfg.scenario_to_score_mapping_filepath)
     assert scenario_to_score_mapping_filepath.exists(), (
@@ -61,18 +87,14 @@ def _organize_scenarios_by_percentile(
 
 @hydra.main(config_path="config", config_name="run_analysis", version_base="1.3")
 def run(cfg: DictConfig) -> None:
-    """Runs the scenario score visualization pipeline using the provided configuration.
+    """Runs the scenario visualization pipeline using the provided configuration.
 
-    This function loads scenario scores, generates density plots for each scoring method, and visualizes example
-    scenarios across score percentiles. It supports multiple scoring criteria and flexible dataset/visualizer
-    instantiation via Hydra.
+    Loads scenario pickle files, optionally filters to those with precomputed scores, and renders visualizations via
+    the configured dataset and visualizer. When ``organize_by_percentile`` is enabled, scenarios are grouped into
+    subdirectories corresponding to their score percentile bucket.
 
     Args:
-        cfg (DictConfig): Configuration dictionary specifying dataset, visualizer, scoring methods, paths, and output
-            options.
-
-    Raises:
-        ValueError: If unsupported scorers are specified in the configuration.
+        cfg (DictConfig): Configuration dictionary specifying dataset, visualizer, scenario paths, and output options.
     """
     random.seed(cfg.seed)
     date = datetime.now(UTC).strftime("%Y%m%d_%H%M%S_")
