@@ -1,0 +1,18 @@
+_target_: characterization.utils.viz.scenario.ScenarioVisualizer
+config:
+  scenario_type: ${scenario_type}
+  add_title: true
+  update_limits: true
+  plot_categorical: false
+
+  # Probe-specific rendering options
+  probe_color: "black"
+  show_probe_metadata: true
+  show_criticality_label: true
+  probe_halo_size: 80
+  probe_ring_size: 120
+  probe_criticality_marker_size: 50
+
+  panes_to_plot:
+    - ALL_AGENTS
+    - COUNTERFACTUAL_PROBE
