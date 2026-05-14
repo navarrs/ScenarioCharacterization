@@ -1,0 +1,18 @@
+# Counterfactual probing parameters (common defaults for all probe types).
+
+# Minimum interaction pair-score increase required for a probe to be considered impactful.
+min_score_delta: 0.2
+
+# Feature aggregation strategy used when computing pair features: "critical" or "average".
+return_criterion: critical
+
+# Number of parallel workers for pair-level computation inside the prober. Set to 1 when running multiple scenarios in
+# parallel (num_workers > 1 in the entrypoint) to avoid nested processes.
+n_jobs: 1
+
+# Agent types to exclude from probing (list of AgentType enum names, e.g. ["TYPE_UNSET"]).
+skip_agent_types: []
+
+# When true, keep only the single most-critical affected agent in the returned CriticalProbe (TTC beats DRAC; among
+# equal metrics, earliest timestamp wins).
+single_affected_agent: true

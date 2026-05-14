@@ -1,0 +1,5 @@
+defaults:
+  - default
+
+# Probe type to apply; must match a ProbeType enum name.
+probe_type: CONSTANT_VELOCITY
