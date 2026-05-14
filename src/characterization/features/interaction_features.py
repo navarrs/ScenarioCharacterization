@@ -652,6 +652,88 @@ class InteractionFeatures(BaseFeature):
             interaction_agent_types=scenario_agents_pair_types,
         )
 
+    def compute_pairs(
+        self,
+        scenario: Scenario,
+        pairs: list[tuple[int, int]],
+    ) -> list[tuple[tuple[int, int], InteractionStatus, dict[str, float] | None]]:
+        """Compute interaction features for a specific subset of agent-index pairs.
+
+        Runs the same per-pair feature extraction as :meth:`compute_interaction_features` but only for the ``(i, j)``
+        pairs listed in ``pairs``, always in single-threaded mode. This is used by
+        :class:`~characterization.probing.prober.CounterfactualProber` to efficiently re-evaluate only the pairs
+        affected by a counterfactual trajectory perturbation.
+
+        Args:
+            scenario: Scenario whose agent data is used for feature extraction (may contain a perturbed trajectory for
+                the probed agent).
+            pairs: List of ``(agent_index_i, agent_index_j)`` pairs to compute. The indices refer to positions in
+                ``scenario.agent_data.agent_trajectories``.
+
+        Returns:
+            List of ``((i, j), status, feature_dict)`` tuples in the same order as ``pairs``. ``feature_dict`` is
+            ``None`` when the pair does not yield valid interaction features (e.g. the agents are too far apart, both
+            stationary, or have insufficient valid frames).
+        """
+        if not pairs:
+            return []
+
+        metadata = scenario.metadata
+        agent_data = scenario.agent_data
+        map_data = scenario.static_map_data
+
+        agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
+        agent_types = agent_data.agent_types
+        agent_masks = agent_trajectories.agent_valid.squeeze(-1).astype(bool)
+        agent_positions = agent_trajectories.agent_xyz_pos
+        agent_lengths = agent_trajectories.agent_lengths.squeeze(-1)
+        agent_widths = agent_trajectories.agent_widths.squeeze(-1)
+        agent_heights = agent_trajectories.agent_heights.squeeze(-1)
+        agent_velocities = np.linalg.norm(agent_trajectories.agent_xy_vel, axis=-1) + EPSILON
+        agent_headings = np.rad2deg(agent_trajectories.agent_headings)
+        conflict_points = map_data.map_conflict_points if map_data is not None else None
+        dists_to_conflict_points = map_data.agent_distances_to_conflict_points if map_data is not None else None
+
+        categorization_dicts = None
+        if self.categorize_features:
+            categorization_dicts = {
+                "vehicle_vehicle": self.vehicle_vehicle_categories,
+                "vehicle_pedestrian": self.vehicle_pedestrian_categories,
+                "vehicle_cyclist": self.vehicle_cyclist_categories,
+                "pedestrian_pedestrian": self.pedestrian_pedestrian_categories,
+                "pedestrian_cyclist": self.pedestrian_cyclist_categories,
+                "cyclist_cyclist": self.cyclist_cyclist_categories,
+            }
+
+        _init_worker_context(
+            agent_masks,
+            agent_positions,
+            agent_velocities,
+            agent_headings,
+            agent_lengths,
+            agent_widths,
+            agent_heights,
+            agent_types,
+            conflict_points,
+            dists_to_conflict_points,
+            metadata.max_stationary_speed,
+            metadata.agent_to_agent_max_distance,
+            metadata.agent_to_conflict_point_max_distance,
+            metadata.agent_to_agent_distance_breach,
+            metadata.heading_threshold,
+            metadata.agent_max_deceleration,
+            self.return_criterion,
+            self.categorize_features,
+            categorization_dicts,
+            self.inv_stability_cap,
+        )
+
+        results: list[tuple[tuple[int, int], InteractionStatus, dict[str, float] | None]] = []
+        for local_n, (i, j) in enumerate(pairs):
+            _, status, feature_dict = _process_agent_pair_worker(local_n, i, j)
+            results.append(((i, j), status, feature_dict))
+        return results
+
     def compute(
         self,
         scenario: Scenario,
@@ -663,8 +745,8 @@ class InteractionFeatures(BaseFeature):
         Args:
             scenario (Scenario): Complete scenario data containing:
                 - agent_data: Agent trajectories, dimensions, headings, and validity information
-                - metadata: Scenario parameters including distance thresholds, speed limits,
-                  and interaction-specific configuration values
+                - metadata: Scenario parameters including distance thresholds, speed limits, and interaction-specific
+                    configuration values
                 - static_map_data: Map conflict points and precomputed distances for mTTCP analysis
             max_workers (int | None): Maximum number of worker processes for parallel computation.
                 Defaults to None, which uses the number of processors on the machine.
