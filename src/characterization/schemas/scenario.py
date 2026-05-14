@@ -1,7 +1,12 @@
-from typing import Any, TypeVar
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import numpy as np
 from pydantic import BaseModel, NonNegativeInt, computed_field
+
+if TYPE_CHECKING:
+    from characterization.schemas.critical_probe import CriticalProbe
 
 from characterization.utils.common import (
     Float32NDArray1D,
@@ -250,6 +255,8 @@ class Scenario(BaseModel):
         tracks_to_predict (TracksToPredict | None): Optional data for tracks to predict in the scenario.
         static_map_data (StaticMapData | None): Optional static map data for the scenario.
         dynamic_map_data (DynamicMapData | None): Optional dynamic map data for the scenario.
+        critical_probe (CriticalProbe | None): Optional result of counterfactual probing. Populated by
+            ``run_scenario_probing`` after identifying the most-impactful counterfactual trajectory.
     """
 
     metadata: ScenarioMetadata
@@ -257,6 +264,7 @@ class Scenario(BaseModel):
     tracks_to_predict: TracksToPredict | None = None
     static_map_data: StaticMapData | None = None
     dynamic_map_data: DynamicMapData | None = None
+    critical_probe: CriticalProbe | None = None
 
     # To allow numpy and other arbitrary types in the model
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}
