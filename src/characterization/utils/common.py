@@ -192,6 +192,11 @@ class AgentTrajectoryMasker:
         """Mask for the heading feature."""
         return self._TRAJECTORY_HEADING
 
+    @property
+    def valid_mask(self) -> list[bool]:
+        """Mask for the valid flag feature."""
+        return self._TRAJECTORY_VALID
+
     # Trajectory accessors
     @property
     def agent_trajectories(self) -> NDArray[np.float32]:
