@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - paths: waymo
+  - paths: waymo_sample
   - dataset: waymo
   - characterizer: individual_features
   - debug: null
