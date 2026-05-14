@@ -1,0 +1,29 @@
+defaults:
+  - _self_
+  - run_processor.yaml
+  - probing: cvm
+  - viz: probe_scenario
+
+# Base directory for all probe outputs. Subdirectories are created per probing strategy:
+#   <probe_dir>/<strategy>/probed_scenarios/  — pickled Scenario objects
+#   <probe_dir>/<strategy>/probe_summaries/   — JSON probe summaries
+#   <probe_dir>/<strategy>/scenario_viz/      — visualisations
+#   <probe_dir>/<strategy>/probe_summary.csv  — CSV summary
+probe_dir: ${paths.cache_path}/analysis/probes
+
+# Number of scenarios to process (null = all).
+num_scenarios: null
+
+# Dataset parallelism — set > 1 to load scenarios faster; the prober itself is always serial.
+num_workers: 1
+batch_size: 1
+shuffle: false
+scenario_type: 'gt'
+return_criterion: 'critical'
+feature_type: 'continuous' # 'categorical' or 'continuous'
+ego_only: false
+score_weighting_method: "distance_to_ego_agent" # "uniform" or "distance_to_ego_agent" or "distance_to_relevant_agents"
+reduce_distance_penalty: true
+aggregated_score_weight: 0.5
+categorize_scores: false
+vru_priority_weight: 1.0
