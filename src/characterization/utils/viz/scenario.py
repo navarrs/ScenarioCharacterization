@@ -78,9 +78,19 @@ class ScenarioVisualizer(BaseVisualizer):
                             show_relevant=True,
                             title="Highlighted Relevant and SDC Agent Trajectories",
                         )
+                case SupportedPanes.COUNTERFACTUAL_PROBE:
+                    self.plot_sequences_with_probe(
+                        axs[i] if self.num_panes_to_plot > 1 else axs,
+                        scenario,
+                    )
 
         # Prepare and save plot
         self.set_axes(axs, scenario, self.num_panes_to_plot)
+        if self.update_limits:
+            for i, pane in enumerate(self.panes_to_plot):
+                if pane == SupportedPanes.COUNTERFACTUAL_PROBE:
+                    probe_ax = axs[i] if self.num_panes_to_plot > 1 else axs
+                    self._set_probe_axes(probe_ax, scenario)
         if self.add_title:
             plt.suptitle(f"Scenario: {scenario_id}")
         plt.subplots_adjust(wspace=0.05)

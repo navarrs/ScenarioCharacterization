@@ -19,7 +19,7 @@ from numpy.typing import NDArray
 from omegaconf import DictConfig
 from PIL import Image
 
-from characterization.schemas import DynamicMapData, Scenario, Score, StaticMapData
+from characterization.schemas import AgentData, CriticalProbe, DynamicMapData, Scenario, Score, StaticMapData
 from characterization.utils.common import (
     MIN_VALID_POINTS,
     STATIONARY_SPEED_THRESHOLD,
@@ -38,6 +38,7 @@ class SupportedPanes(Enum):
 
     ALL_AGENTS = 0
     HIGHLIGHT_RELEVANT_AGENTS = 1
+    COUNTERFACTUAL_PROBE = 2
 
 
 class BaseVisualizer(ABC):
@@ -685,6 +686,254 @@ class BaseVisualizer(ABC):
                 a.set_xlim(last_ego_position[0] - distance, last_ego_position[0] + distance)
                 a.set_ylim(last_ego_position[1] - distance, last_ego_position[1] + distance)
 
+    def _render_probe_agent_icons(
+        self,
+        ax: Axes,
+        all_pos: NDArray[np.float32],
+        all_valid: NDArray[np.bool_],
+        all_headings: NDArray[np.float32],
+        all_lengths: NDArray[np.float32],
+        all_widths: NDArray[np.float32],
+        agent_data: AgentData,
+        agent_ids: list[int],
+        current_t: int,
+        ego_idx: int,
+        probed_idx: int,
+        affected_id_set: set[int],
+        show_probe_metadata: bool,  # noqa: FBT001
+    ) -> None:
+        for i, (atype, amask) in enumerate(zip(agent_data.agent_types, all_valid, strict=False)):
+            past_valid = np.where(amask[: current_t + 1])[0]  # pyright: ignore[reportIndexIssue]
+            if len(past_valid) == 0:
+                continue
+            ref_t = past_valid[-1]
+            x, y = float(all_pos[i, ref_t, 0]), float(all_pos[i, ref_t, 1])
+            heading = float(all_headings[i, ref_t])
+            length = float(all_lengths[i, ref_t])
+            width = float(all_widths[i, ref_t])
+            color = self.agent_colors.get(atype, self.agent_colors[AgentType.TYPE_UNSET])
+            is_probed_or_affected = i == probed_idx or agent_ids[i] in affected_id_set
+            is_relevant = i == ego_idx or is_probed_or_affected
+            alpha = 1.0 if is_relevant else 0.15
+            edgecolor = "#E05050" if is_probed_or_affected else "black"
+            linewidth = 2.0 if is_probed_or_affected else 0.5
+            self.plot_agent(
+                ax,
+                x,
+                y,
+                heading,
+                length,
+                width,
+                alpha,
+                color,
+                plot_rectangle=True,
+                zorder=163,
+                edgecolor=edgecolor,
+                linewidth=linewidth,
+            )
+            if show_probe_metadata and is_probed_or_affected:
+                ax.annotate(f"id={agent_ids[i]}", (x, y), fontsize=6, zorder=175, ha="center", va="bottom")
+
+    def _render_criticality_markers(
+        self,
+        ax: Axes,
+        probe: CriticalProbe,
+        agent_ids: list[int],
+        all_pos: NDArray[np.float32],
+        all_valid: NDArray[np.bool_],
+        show_criticality_label: bool,  # noqa: FBT001
+        probe_criticality_marker_size: int,
+    ) -> None:
+        for aid_str, crit_result in probe.criticality_results.items():
+            aid = int(aid_str)
+            ts = crit_result.timestamp
+            if aid not in agent_ids:
+                continue
+            a_idx = agent_ids.index(aid)
+            if not all_valid[a_idx, ts]:
+                continue
+            cx, cy = float(all_pos[a_idx, ts, 0]), float(all_pos[a_idx, ts, 1])
+            ax.scatter(
+                [cx],
+                [cy],
+                marker="*",
+                s=probe_criticality_marker_size,
+                color="#FF8C00",
+                zorder=170,
+                label=f"Criticality (t={ts})",
+            )
+            if show_criticality_label:
+                ax.annotate(crit_result.metric.value, (cx, cy), fontsize=6, zorder=175, color="#FF8C00")
+
+    def _set_probe_axes(self, ax: Axes, scenario: Scenario) -> None:
+        """Set axis limits to zoom tightly around the relevant interaction agents.
+
+        Centers on the centroid of ego, probed, and affected agents at current_time_index and sets a bounding-box zoom
+        with an additional buffer configured by ``probe_zoom_buffer`` (default 40 m).
+        """
+        probe = scenario.critical_probe
+        if probe is None:
+            return
+        agent_data = scenario.agent_data
+        agent_ids = list(agent_data.agent_ids)
+        ego_idx = scenario.metadata.ego_vehicle_index
+        current_t = scenario.metadata.current_time_index
+        probed_idx = agent_ids.index(probe.probed_agent_id) if probe.probed_agent_id in agent_ids else -1
+        affected_id_set = set(probe.affected_agent_ids)
+        agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
+        all_pos = agent_trajectories.agent_xy_pos
+        all_valid = agent_trajectories.agent_valid.squeeze(-1).astype(bool)
+
+        relevant_positions = []
+        for i in range(len(agent_ids)):
+            is_relevant = i in (ego_idx, probed_idx) or agent_ids[i] in affected_id_set
+            if is_relevant and all_valid[i, current_t]:
+                relevant_positions.append(all_pos[i, current_t])
+        if not relevant_positions:
+            return
+
+        pos = np.array(relevant_positions)
+        cx, cy = float(pos[:, 0].mean()), float(pos[:, 1].mean())
+        probe_zoom_buffer: float = float(self.config.get("probe_zoom_buffer", 40.0))
+        half_span = (
+            max(
+                (pos[:, 0].max() - pos[:, 0].min()) / 2,
+                (pos[:, 1].max() - pos[:, 1].min()) / 2,
+                10.0,
+            )
+            + probe_zoom_buffer
+        )
+        ax.set_xlim(cx - half_span, cx + half_span)
+        ax.set_ylim(cy - half_span, cy + half_span)
+
+    def plot_sequences_with_probe(
+        self,
+        ax: Axes,
+        scenario: Scenario,
+        *,
+        title: str = "Counterfactual Probe",
+    ) -> None:
+        """Overlay the counterfactual probe on the scenario trajectories.
+
+        Renders the ground-truth trajectories for all agents (with reduced alpha for bystanders), then adds three layers
+        specific to the probe:
+        * **Original future** of the probed agent as a dotted line.
+        * **Counterfactual future** as a dashed line in ``probe_color``.
+        * **Criticality markers** (stars) at the frame of peak TTC or DRAC for each affected agent.
+
+        Requires ``scenario.critical_probe`` to be set. Has no effect (with a warning) if the probe is missing.
+
+        Args:
+            ax: Matplotlib axes to draw on.
+            scenario: Scenario with ``critical_probe`` populated.
+            title: Axes title. Defaults to ``"Counterfactual Probe"``.
+        """
+        probe = scenario.critical_probe
+        if probe is None:
+            logger.warning("plot_sequences_with_probe called but scenario.critical_probe is None; skipping.")
+            return
+
+        probe_color: str = self.config.get("probe_color", "black")
+        show_probe_metadata: bool = bool(self.config.get("show_probe_metadata", True))
+        show_criticality_label: bool = bool(self.config.get("show_criticality_label", True))
+        probe_criticality_marker_size: int = int(self.config.get("probe_criticality_marker_size", 50))
+
+        agent_data = scenario.agent_data
+        agent_ids = list(agent_data.agent_ids)
+        ego_idx = scenario.metadata.ego_vehicle_index
+        current_t = scenario.metadata.current_time_index
+
+        probed_idx = agent_ids.index(probe.probed_agent_id) if probe.probed_agent_id in agent_ids else -1
+        affected_id_set = set(probe.affected_agent_ids)
+
+        agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
+        all_pos = agent_trajectories.agent_xy_pos  # (N, T, 2)
+        all_valid = agent_trajectories.agent_valid.squeeze(-1).astype(bool)  # (N, T)
+
+        # Ground-truth trajectories
+        for i, (apos, amask, atype) in enumerate(zip(all_pos, all_valid, agent_data.agent_types, strict=False)):
+            is_ego = i == ego_idx
+            is_probed = i == probed_idx
+            is_affected = agent_ids[i] in affected_id_set
+            alpha = 1.0 if (is_ego or is_probed or is_affected) else 0.15
+            color = self.agent_colors.get(atype, self.agent_colors[AgentType.TYPE_UNSET])
+            valid_pos = apos[amask]  # pyright: ignore[reportIndexIssue]
+            if len(valid_pos) >= MIN_VALID_POINTS:
+                ax.scatter(valid_pos[:, 0], valid_pos[:, 1], color=color, s=2, alpha=alpha, zorder=130)
+
+        # Agent icons at current_time_index
+        agent_dim_masker = AgentTrajectoryMasker(agent_data.agent_trajectories)
+        all_lengths = agent_dim_masker.agent_lengths.squeeze(-1)  # (N, T)
+        all_widths = agent_dim_masker.agent_widths.squeeze(-1)
+        all_headings = agent_dim_masker.agent_headings  # (N, T)
+
+        self._render_probe_agent_icons(
+            ax,
+            all_pos,
+            all_valid,
+            all_headings,
+            all_lengths,
+            all_widths,
+            agent_data,
+            agent_ids,
+            current_t,
+            ego_idx,
+            probed_idx,
+            affected_id_set,
+            show_probe_metadata,
+        )
+
+        #  Original future of probed agent
+        if probed_idx >= 0:
+            obs_pos = all_pos[probed_idx]
+            obs_mask = all_valid[probed_idx]
+            future_mask = np.zeros(len(obs_mask), dtype=bool)
+            future_mask[current_t + 1 :] = True
+            fut_valid = future_mask & obs_mask
+            if fut_valid.any():
+                fut_pos = obs_pos[fut_valid]
+                color = self.agent_colors.get(
+                    agent_data.agent_types[probed_idx], self.agent_colors[AgentType.TYPE_UNSET]
+                )
+                ax.plot(
+                    fut_pos[:, 0],
+                    fut_pos[:, 1],
+                    color=color,
+                    linestyle=":",
+                    linewidth=1.5,
+                    zorder=135,
+                    label="Original future",
+                )
+
+        #  Counterfactual future
+        cf_traj = probe.probed_agent_trajectory  # (T, 10)
+        cf_valid = cf_traj[:, 9] > 0
+        future_mask_cf = np.zeros(len(cf_valid), dtype=bool)
+        future_mask_cf[current_t + 1 :] = True
+        cf_fut_valid = future_mask_cf & cf_valid
+        if cf_fut_valid.any():
+            cf_pos = cf_traj[cf_fut_valid, :2]
+            ax.plot(
+                cf_pos[:, 0],
+                cf_pos[:, 1],
+                color=probe_color,
+                linestyle="--",
+                linewidth=2,
+                zorder=140,
+                label=f"Counterfactual ({probe.probe_type.value})",
+            )
+
+        #  Criticality markers
+        self._render_criticality_markers(
+            ax, probe, agent_ids, all_pos, all_valid, show_criticality_label, probe_criticality_marker_size
+        )
+
+        if self.add_title:
+            delta = probe.score_after - probe.score_before
+            affected_str = ", ".join(str(aid) for aid in probe.affected_agent_ids)
+            subtitle = f"Probed {probe.probed_agent_id} | Affected {affected_str} | Δ{delta:+.3f}"
+            ax.set_title(f"{title}\n{subtitle}", fontsize=self.title_fontsize)
+
     @abstractmethod
     def visualize_scenario(
         self,
@@ -706,3 +955,4 @@ class BaseVisualizer(ABC):
         Returns:
             Path: The path to the saved visualization file.
         """
+        ...
