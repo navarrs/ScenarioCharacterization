@@ -61,6 +61,10 @@ waymo = [
 nuscenes = [
     "nuscenes-devkit>=1.2.0; python_version>='3.12'",
 ]
+# Optional dependency 'argoverse2' — requires Python 3.12+
+argoverse2 = [
+    "av2>=0.2.1; python_version>='3.12'",
+]
 
 [project.urls]
 Homepage = "https://navars.xyz/safeshift/"
@@ -127,8 +131,6 @@ fix = true
 exclude = [
     # TODO: re-nable checks for files below:
     "src/characterization/examples",
-    # File borrowed from original MTR (https://arxiv.org/abs/2209.13508), will keep unmodified.
-    "src/characterization/datasets/waymo_preprocess.py",
     # Reference implementation for design comparison; not part of the AD package.
     "meta",
 ]
@@ -149,6 +151,7 @@ exclude = [
 [tool.deptry.package_module_name_map]
 waymo-open-dataset-tf-2-11-0 = "waymo_open_dataset"
 tensorflow = "tensorflow"
+av2 = "av2"
 
 [tool.deptry.per_rule_ignores]
 DEP002 = [

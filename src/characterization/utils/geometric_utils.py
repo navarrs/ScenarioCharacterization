@@ -6,7 +6,27 @@ from numpy.typing import NDArray
 from scipy.signal import resample
 
 from characterization.schemas.scenario import Scenario
-from characterization.utils.common import EPSILON, AgentTrajectoryMasker
+from characterization.utils.common import EPSILON, MIN_VALID_POINTS, AgentTrajectoryMasker
+
+
+def get_polyline_dir(polyline: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Computes unit direction vectors for each point of a polyline."""
+    polyline_pre = np.roll(polyline, shift=1, axis=0)
+    polyline_pre[0] = polyline[0]
+    diff = polyline - polyline_pre
+    return diff / np.clip(np.linalg.norm(diff, axis=-1)[:, np.newaxis], a_min=EPSILON, a_max=1e9)
+
+
+def build_polyline(points: NDArray[np.float32], type_id: int) -> NDArray[np.float32] | None:
+    """Converts an (P, 3) xyz point array into a (P, 7) polyline with direction and type columns.
+
+    Returns None if the array has fewer than MIN_VALID_POINTS rows.
+    """
+    if len(points) < MIN_VALID_POINTS:
+        return None
+    dirs = get_polyline_dir(points)
+    type_col = np.full((len(points), 1), type_id, dtype=np.float32)
+    return np.concatenate([points, dirs, type_col], axis=1)
 
 
 def compute_moving_average(values: NDArray[np.float32], window_size: int = 5) -> NDArray[np.float32]:
