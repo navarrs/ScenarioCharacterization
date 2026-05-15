@@ -1,8 +1,7 @@
 """Preprocessing script for the nuScenes dataset.
 
-Reads raw nuScenes data using the nuScenes devkit, extracts scenario data, and writes pickle
-files and a metadata index to disk. Trajectories are interpolated from native 2Hz keyframes
-to 10Hz to match the Waymo convention.
+Reads raw nuScenes data using the nuScenes devkit, extracts scenario data, and writes pickle files and a metadata index
+to disk. Trajectories are interpolated from native 2Hz keyframes to 10Hz to match the Waymo convention.
 
 Example usage::
 
@@ -22,6 +21,10 @@ from nuscenes.map_expansion import arcline_path_utils
 from nuscenes.map_expansion.map_api import NuScenesMap
 from nuscenes.nuscenes import NuScenes
 from rich.progress import track
+
+from characterization.utils.common import EPSILON, MIN_VALID_POINTS
+from characterization.utils.geometric_utils import build_polyline
+from characterization.utils.scenario_types import PolylineType
 
 logger = logging.getLogger(__name__)
 
@@ -45,14 +48,6 @@ MAP_LOCATIONS = [
     "singapore-queenstown",
 ]
 
-# Polyline type IDs matching PolylineType enum in scenario_types.py
-POLYLINE_TYPE_LANE = 2
-POLYLINE_TYPE_ROAD_DIVIDER = 6
-POLYLINE_TYPE_LANE_DIVIDER = 9
-POLYLINE_TYPE_ROAD_EDGE = 15
-POLYLINE_TYPE_CROSSWALK = 18
-POLYLINE_TYPE_STOP_LINE = 17
-
 # Fixed ego vehicle dimensions in metres (approximate values for a typical sedan)
 EGO_LENGTH = 4.084
 EGO_WIDTH = 1.730
@@ -70,10 +65,7 @@ NUM_KEYFRAMES = int(SCENARIO_DURATION_S * SOURCE_FREQ_HZ) + 1
 
 # Numerical tolerances and minimum sizes
 _TIMESTAMP_EPS = 1e-6
-_ZERO_EPS = 1e-9
-_MIN_POINTS = 2
 _MIN_SAMPLES = 2
-_MIN_TIMESTEPS = 2
 _MAP_MARGIN_M = 50.0
 _LANE_RESOLUTION_M = 0.5
 
@@ -93,14 +85,6 @@ def get_agent_type(category_name: str) -> str:
     if category_name.startswith("human.pedestrian"):
         return "TYPE_PEDESTRIAN"
     return "TYPE_OTHER"
-
-
-def get_polyline_dir(polyline: NDArray[np.float32]) -> NDArray[np.float32]:
-    """Computes unit direction vectors for each point of a polyline."""
-    polyline_pre = np.roll(polyline, shift=1, axis=0)
-    polyline_pre[0] = polyline[0]
-    diff = polyline - polyline_pre
-    return diff / np.clip(np.linalg.norm(diff, axis=-1)[:, np.newaxis], a_min=_ZERO_EPS, a_max=1e9)
 
 
 def get_sample_tokens(nusc: NuScenes, scene: dict[str, Any], max_tokens: int) -> list[str]:
@@ -150,7 +134,7 @@ def interpolate_to_10hz(
             continue
 
         dt_seg = float(ts_2hz[pos + 1] - ts_2hz[pos])
-        alpha = (t - ts_2hz[pos]) / dt_seg if dt_seg > _ZERO_EPS else 0.0
+        alpha = (t - ts_2hz[pos]) / dt_seg if dt_seg > EPSILON else 0.0
         traj_10hz[out_idx, :7] = (1.0 - alpha) * traj_2hz[pos, :7] + alpha * traj_2hz[pos + 1, :7]
         traj_10hz[out_idx, 9] = 1.0
 
@@ -260,11 +244,11 @@ def _build_lane_polyline(nusc_map: NuScenesMap, token: str) -> NDArray[np.float3
     except Exception:  # noqa: BLE001
         logger.debug("Skipping lane %s: discretize_lane failed", token)
         return None
-    if len(poses) < _MIN_POINTS:
+    if len(poses) < MIN_VALID_POINTS:
         return None
     points = np.array([[p[0], p[1], 0.0] for p in poses], dtype=np.float32)
     dirs = np.array([[np.cos(p[2]), np.sin(p[2]), 0.0] for p in poses], dtype=np.float32)
-    type_col = np.full((len(points), 1), POLYLINE_TYPE_LANE, dtype=np.float32)
+    type_col = np.full((len(points), 1), PolylineType.TYPE_SURFACE_STREET.value, dtype=np.float32)
     return np.concatenate([points, dirs, type_col], axis=1)
 
 
@@ -275,12 +259,8 @@ def _build_line_polyline(
     record = nusc_map.get(layer_name, token)
     line = nusc_map.get("line", record["line_token"])
     nodes = [nusc_map.get("node", n_token) for n_token in line["node_tokens"]]
-    if len(nodes) < _MIN_POINTS:
-        return None
     points = np.array([[n["x"], n["y"], 0.0] for n in nodes], dtype=np.float32)
-    dirs = get_polyline_dir(points)
-    type_col = np.full((len(points), 1), type_id, dtype=np.float32)
-    return np.concatenate([points, dirs, type_col], axis=1)
+    return build_polyline(points, type_id)
 
 
 def _build_polygon_polyline(
@@ -294,12 +274,8 @@ def _build_polygon_polyline(
         logger.debug("Skipping %s %s: extract_polygon failed", layer_name, token)
         return None
     coords = list(polygon.exterior.coords)[:-1]
-    if len(coords) < _MIN_POINTS:
-        return None
     points = np.array([[c[0], c[1], 0.0] for c in coords], dtype=np.float32)
-    dirs = get_polyline_dir(points)
-    type_col = np.full((len(points), 1), type_id, dtype=np.float32)
-    return np.concatenate([points, dirs, type_col], axis=1)
+    return build_polyline(points, type_id)
 
 
 def decode_map_features(
@@ -349,8 +325,8 @@ def decode_map_features(
                 _append("lane", polyline, {"speed_limit_mph": 0.0})
 
     for layer_name, type_id in [
-        ("road_divider", POLYLINE_TYPE_ROAD_DIVIDER),
-        ("lane_divider", POLYLINE_TYPE_LANE_DIVIDER),
+        ("road_divider", PolylineType.TYPE_BROKEN_SINGLE_WHITE.value),
+        ("lane_divider", PolylineType.TYPE_BROKEN_SINGLE_YELLOW.value),
     ]:
         for token in records.get(layer_name, []):
             polyline = _build_line_polyline(nusc_map, layer_name, token, type_id)
@@ -358,17 +334,17 @@ def decode_map_features(
                 _append("road_line", polyline)
 
     for token in records.get("road_segment", []):
-        polyline = _build_polygon_polyline(nusc_map, "road_segment", token, POLYLINE_TYPE_ROAD_EDGE)
+        polyline = _build_polygon_polyline(nusc_map, "road_segment", token, PolylineType.TYPE_ROAD_EDGE_BOUNDARY.value)
         if polyline is not None:
             _append("road_edge", polyline)
 
     for token in records.get("ped_crossing", []):
-        polyline = _build_polygon_polyline(nusc_map, "ped_crossing", token, POLYLINE_TYPE_CROSSWALK)
+        polyline = _build_polygon_polyline(nusc_map, "ped_crossing", token, PolylineType.TYPE_CROSSWALK.value)
         if polyline is not None:
             _append("crosswalk", polyline)
 
     for token in records.get("stop_line", []):
-        polyline = _build_polygon_polyline(nusc_map, "stop_line", token, POLYLINE_TYPE_STOP_LINE)
+        polyline = _build_polygon_polyline(nusc_map, "stop_line", token, PolylineType.TYPE_STOP_SIGN.value)
         if polyline is not None:
             # lane_ids is empty since nuScenes stop_line records don't reference lane IDs
             _append("stop_sign", polyline, {"lane_ids": []})
