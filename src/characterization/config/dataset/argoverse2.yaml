@@ -1,0 +1,37 @@
+_target_: characterization.datasets.argoverse2.Argoverse2Data
+config:
+  load: true
+  create_metadata: ${create_metadata}
+
+  # AV2 Motion Forecasting: 110 timesteps at 10 Hz = 11 seconds total.
+  # History: timesteps 0-49 (5 s observed), Future: timesteps 50-109 (6 s predicted).
+  last_timestep: 110
+  hist_timestep: 50
+
+  ego_only: ${ego_only}
+  seed: ${seed}
+  scenario_type: ${scenario_type}
+
+  parallel: ${parallel}
+  batch_size: ${batch_size}
+  num_scenarios: ${num_scenarios}
+  num_workers: ${num_workers}
+  num_shards: ${num_shards}
+  shard_index: ${shard_index}
+  step: ${step}
+
+  scenario_base_path: ${paths.scenario_base_path}
+
+  conflict_points_path: ${paths.output_paths.conflict_points_cache_path}
+  conflict_points:
+    intersection_threshold: 0.1 # meters
+    resample_factor: 1
+    return_static_conflict_points: false
+    return_dynamic_conflict_points: false
+    return_lane_conflict_points: false
+
+  closest_lanes_path: ${paths.output_paths.closest_lanes_cache_path}
+  closest_lanes:
+    num_lanes: 16
+    threshold_distance: 10 # meters
+    subsample_factor: 2
