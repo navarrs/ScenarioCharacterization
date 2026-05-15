@@ -573,6 +573,7 @@ def plot_feature_distributions(
     show_kde: bool = True,
     show_percentiles: bool = True,
     show_colored_by_agent_type: bool = True,
+    include_pairs_with_no_vehicles: bool = False,
 ) -> None:
     """Plots the distribution of a feature using a histogram and density curve.
 
@@ -588,6 +589,7 @@ def plot_feature_distributions(
         show_kde (bool): Whether to show the kernel density estimate on the plot.
         show_percentiles (bool): Whether to display percentile lines on the plot.
         show_colored_by_agent_type (bool): Whether to color the histograms by agent type.
+        include_pairs_with_no_vehicles (bool): Whether to include interaction pairs that do not involve any vehicles.
     """
     if categories is None:
         categories = DEFAULT_FEATURE_CATEGORIES
@@ -607,7 +609,7 @@ def plot_feature_distributions(
         if agent_type == AgentPairType.TYPE_OTHER:
             continue
 
-        if agent_type in [
+        if not include_pairs_with_no_vehicles and agent_type in [
             AgentPairType.TYPE_CYCLIST_CYCLIST,
             AgentPairType.TYPE_PEDESTRIAN_PEDESTRIAN,
             AgentPairType.TYPE_PEDESTRIAN_CYCLIST,
