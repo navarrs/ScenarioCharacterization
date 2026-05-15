@@ -98,7 +98,7 @@ def run(cfg: DictConfig) -> None:
     """
     random.seed(cfg.seed)
     date = datetime.now(UTC).strftime("%Y%m%d_%H%M%S_")
-    scenario_viz_dir = Path(cfg.scenario_viz_dir) / f"{date}_{cfg.scores_tag}_{cfg.score_to_visualize}"
+    scenario_viz_dir = Path(cfg.scenario_viz_dir) / f"{date}{cfg.scores_tag}_{cfg.score_to_visualize}"
     scenario_viz_dir.mkdir(parents=True, exist_ok=True)
 
     # Instantiate dataset and visualizer
@@ -106,26 +106,28 @@ def run(cfg: DictConfig) -> None:
     logger.info("Instatiating dataset: %s", cfg.dataset._target_)
     dataset = hydra.utils.instantiate(cfg.dataset)
 
-    logger.info("Instatiating visualizer: %s", cfg.viz._target_)
-    viz_config = copy.deepcopy(cfg.viz)
-    match cfg.score_to_visualize:
-        case "individual":
-            viz_config.config.categories_file = "./meta/gt_critical_categorical_individual.json"
-        case "interaction":
-            viz_config.config.categories_file = "./meta/gt_critical_categorical_interaction.json"
-        case "safeshift":
-            viz_config.config.categories_file = "./meta/gt_critical_categorical_safeshift_2.json"
-        case _:
-            pass
-    visualizer: BaseVisualizer = hydra.utils.instantiate(viz_config)
-
     scenario_base_path = Path(cfg.paths.scenario_base_path)
     scenario_filepaths = list(scenario_base_path.rglob("*.pkl"))
     scores_path = Path(cfg.scores_path) / cfg.scores_tag
+
+    logger.info("Instatiating visualizer: %s", cfg.viz._target_)
+    viz_config = copy.deepcopy(cfg.viz)
     if cfg.viz_scored_scenarios:
         valid_scenario_ids = [file.name for file in scores_path.glob("*.pkl")]
         scenario_filepaths = [fp for fp in scenario_filepaths if Path(fp).name in valid_scenario_ids]
 
+        base_meta_path = Path(cfg.meta_path)
+        match cfg.score_to_visualize:
+            case "individual":
+                viz_config.config.categories_file = base_meta_path / "gt_critical_categorical_individual.json"
+            case "interaction":
+                viz_config.config.categories_file = base_meta_path / "gt_critical_categorical_interaction.json"
+            case "safeshift":
+                viz_config.config.categories_file = base_meta_path / "gt_critical_categorical_safeshift.json"
+            case _:
+                pass
+
+    visualizer: BaseVisualizer = hydra.utils.instantiate(viz_config)
     scenario_output_dirs = (
         _organize_scenarios_by_percentile(cfg, scenario_filepaths, scenario_viz_dir)
         if cfg.organize_by_percentile
