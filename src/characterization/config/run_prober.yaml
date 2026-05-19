@@ -14,8 +14,11 @@ probe_dir: ${paths.cache_path}/analysis/probes
 # Number of scenarios to process (null = all).
 num_scenarios: null
 
+# Single scenario ID to probe (null = all scenarios).
+scenario_id: null
+
 # Dataset parallelism — set > 1 to load scenarios faster; the prober itself is always serial.
-num_workers: 1
+num_workers: 8
 batch_size: 1
 shuffle: false
 scenario_type: 'gt'

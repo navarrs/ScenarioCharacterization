@@ -12,7 +12,8 @@ config:
   probe_halo_size: 80
   probe_ring_size: 120
   probe_criticality_marker_size: 50
-
+  probe_zoom_buffer: 50.0
   panes_to_plot:
     - ALL_AGENTS
+    - HIGHLIGHT_RELEVANT_AGENTS
     - COUNTERFACTUAL_PROBE
