@@ -57,7 +57,7 @@ class ScenarioVisualizer(BaseVisualizer):
             match pane:
                 case SupportedPanes.ALL_AGENTS:
                     self.plot_sequences(
-                        axs[i] if self.num_panes_to_plot > 1 else axs, scenario, scores, title="All Agents Trajectories"
+                        axs[i] if self.num_panes_to_plot > 1 else axs, scenario, scores, title="All Agents"
                     )
                 case SupportedPanes.HIGHLIGHT_RELEVANT_AGENTS:
                     if self.plot_categorical:
@@ -76,7 +76,7 @@ class ScenarioVisualizer(BaseVisualizer):
                             scenario,
                             scores,
                             show_relevant=True,
-                            title="Highlighted Relevant and SDC Agent Trajectories",
+                            title="Relevant Agents Highlighted",
                         )
                 case SupportedPanes.COUNTERFACTUAL_PROBE:
                     self.plot_sequences_with_probe(

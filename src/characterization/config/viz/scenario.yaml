@@ -10,5 +10,5 @@ config:
   categories_file: ./meta/${paths.dataset_name}/gt_critical_categorical_safeshift.json
 
   panes_to_plot:
-    # - ALL_AGENTS
-    - HIGHLIGHT_RELEVANT_AGENTS
+    - ALL_AGENTS
+    # - HIGHLIGHT_RELEVANT_AGENTS

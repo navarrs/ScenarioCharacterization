@@ -142,6 +142,8 @@ def run(cfg: DictConfig) -> None:
             n_total += 1
 
             scenario_id = scenario.metadata.scenario_id
+            if cfg.get("scenario_id") is not None and scenario_id != str(cfg.scenario_id):
+                continue
             try:
                 probe = prober.probe_scenario(scenario)
             except Exception:
