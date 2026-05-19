@@ -1,12 +1,33 @@
-"""Interaction-based criticality assessment for counterfactual probing."""
+"""Probe selection and interaction-based criticality scoring for counterfactual probing."""
 
 import numpy as np
 
 from characterization.features import interaction_utils
-from characterization.probing.common import CriticalityMetric
+from characterization.probing.common import CandidateProbeResult, CriticalityMetric
 from characterization.schemas.critical_probe import CriticalityResult
 from characterization.schemas.scenario import ScenarioMetadata
 from characterization.utils.common import EPSILON, MIN_VALID_POINTS, AgentTrajectoryMasker, InteractionAgent
+
+
+def max_score_delta_validator(candidates: list[CandidateProbeResult]) -> int | None:
+    """Return the index of the candidate with the highest ``pair_delta``.
+
+    All candidates are assumed to have non-empty ``affected_ids`` (the prober filters before building the candidate
+    list). Ties are broken in favour of the last-seen candidate, matching the original greedy-max loop semantics.
+
+    Args:
+        candidates: All valid per-agent probe candidates for a scenario.
+
+    Returns:
+        Index of the selected candidate, or ``None`` if the list is empty.
+    """
+    best_idx: int | None = None
+    best_delta = -float("inf")
+    for i, c in enumerate(candidates):
+        if c.pair_delta >= best_delta:
+            best_delta = c.pair_delta
+            best_idx = i
+    return best_idx
 
 
 def find_criticality_timestamp(

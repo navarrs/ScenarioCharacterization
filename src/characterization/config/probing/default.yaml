@@ -16,3 +16,6 @@ skip_agent_types: []
 # When true, keep only the single most-critical affected agent in the returned CriticalProbe (TTC beats DRAC; among
 # equal metrics, earliest timestamp wins).
 single_affected_agent: true
+
+# Validator strategy used to select the best probe candidate across all agents. Must match a ValidatorType enum value.
+validator_type: MAX_SCORE_DELTA

@@ -1,5 +1,6 @@
 """Counterfactual probing orchestrator for autonomous driving scenarios."""
 
+from collections.abc import Callable
 from typing import NamedTuple
 
 import numpy as np
@@ -7,9 +8,15 @@ from numpy.typing import NDArray
 from omegaconf import DictConfig, OmegaConf
 
 from characterization.features.interaction_features import InteractionFeatures, InteractionStatus
-from characterization.probing.common import CriticalityMetric, ProbeType, ProbeValidity
-from characterization.probing.counterfactual_probes import constant_velocity_probe
-from characterization.probing.criticality import find_criticality_timestamp
+from characterization.probing.common import (
+    CandidateProbeResult,
+    CriticalityMetric,
+    ProbeType,
+    ProbeValidity,
+    ValidatorType,
+)
+from characterization.probing.probes import constant_velocity_probe
+from characterization.probing.validators import find_criticality_timestamp, max_score_delta_validator
 from characterization.schemas.critical_probe import CriticalityResult, CriticalProbe
 from characterization.schemas.detections import FeatureDetections, FeatureWeights
 from characterization.schemas.scenario import Scenario, ScenarioMetadata
@@ -21,10 +28,15 @@ from characterization.utils.scenario_types import AgentType
 
 _LOGGER = get_logger(__name__)
 
-ProbeFn = type[constant_velocity_probe]  # typing alias
+ProbeFn = Callable[[AgentTrajectoryMasker, int, float], tuple[NDArray[np.float32], ProbeValidity]]
+ValidatorFn = Callable[[list[CandidateProbeResult]], int | None]
 
-_PROBE_REGISTRY = {
+_PROBE_REGISTRY: dict[ProbeType, ProbeFn] = {
     ProbeType.CONSTANT_VELOCITY: constant_velocity_probe,
+}
+
+_VALIDATOR_REGISTRY: dict[ValidatorType, ValidatorFn] = {
+    ValidatorType.MAX_SCORE_DELTA: max_score_delta_validator,
 }
 
 
@@ -66,6 +78,10 @@ class CounterfactualProber:
         """Initialize the prober from a Hydra config."""
         self._probe_type = ProbeType[config.probe_type]
         self._probe_fn = _PROBE_REGISTRY[self._probe_type]
+
+        self._validator_type = ValidatorType[config.validator_type]
+        self._validator_fn = _VALIDATOR_REGISTRY[self._validator_type]
+
         self._min_score_delta: float = float(config.min_score_delta)
         self._skip_agent_types: set[AgentType] = {AgentType[t] for t in config.get("skip_agent_types", [])}
         self._single_affected_agent: bool = bool(config.get("single_affected_agent", True))
@@ -340,14 +356,8 @@ class CounterfactualProber:
         agent_ids = scenario.agent_data.agent_ids
         trajs = scenario.agent_data.agent_trajectories
 
-        best_pair_delta: float = 0.0
-        best_agent_id: int = -1
-        best_is_ego: bool = False
-        best_perturbed_traj: NDArray[np.float32] | None = None
-        best_affected_pair_results: list[tuple[tuple[int, int], InteractionStatus, dict[str, float] | None]] = []
-        best_affected_ids: list[int] = []
-        best_pair_scores_before: dict[str, float] = {}
-        best_pair_scores_after: dict[str, float] = {}
+        candidates: list[CandidateProbeResult] = []
+        candidate_pair_results: list[list[tuple[tuple[int, int], InteractionStatus, dict[str, float] | None]]] = []
 
         for i in range(scenario.agent_data.num_agents):
             agent_id = int(agent_ids[i])
@@ -383,27 +393,32 @@ class CounterfactualProber:
             if not affected_ids:
                 continue
 
-            if pair_delta >= best_pair_delta:
-                best_pair_delta = pair_delta
-                best_agent_id = agent_id
-                best_is_ego = is_ego
-                best_perturbed_traj = perturbed_traj
-                best_affected_pair_results = pair_results
-                best_affected_ids = affected_ids
-                best_pair_scores_before = scores_before
-                best_pair_scores_after = scores_after
+            candidates.append(
+                CandidateProbeResult(
+                    agent_id=agent_id,
+                    is_ego=is_ego,
+                    perturbed_traj=perturbed_traj,
+                    pair_delta=pair_delta,
+                    affected_ids=affected_ids,
+                    scores_before=scores_before,
+                    scores_after=scores_after,
+                )
+            )
+            candidate_pair_results.append(pair_results)
 
-        if best_perturbed_traj is None:
+        best_idx = self._validator_fn(candidates)
+        if best_idx is None:
             return None
 
+        best = candidates[best_idx]
         return self._build_probe_result(
             scenario,
             baseline,
-            best_agent_id,
-            best_is_ego,
-            best_perturbed_traj,
-            best_affected_pair_results,
-            best_affected_ids,
-            best_pair_scores_before,
-            best_pair_scores_after,
+            best.agent_id,
+            best.is_ego,
+            best.perturbed_traj,
+            candidate_pair_results[best_idx],
+            best.affected_ids,
+            best.scores_before,
+            best.scores_after,
         )

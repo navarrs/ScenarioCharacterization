@@ -1,3 +1,3 @@
-from .common import CriticalityMetric, ProbeType, ProbeValidity
+from .common import CandidateProbeResult, CriticalityMetric, ProbeType, ProbeValidity, ValidatorType
 
-__all__ = ["CriticalityMetric", "ProbeType", "ProbeValidity"]
+__all__ = ["CandidateProbeResult", "CriticalityMetric", "ProbeType", "ProbeValidity", "ValidatorType"]
