@@ -3,6 +3,9 @@ defaults:
   - run_processor.yaml
   - viz: scenario
 
+# Path to probe_summary.csv produced by run_scenario_probing; used by run_probe_analysis.
+probe_csv: ${paths.cache_path}/probes/probe_summary.csv
+
 scores_path: ${paths.cache_path}/scores
 features_path: ${paths.cache_path}/features
 meta_path: ./meta/${paths.dataset_name}
