@@ -17,7 +17,7 @@ import hydra
 import pandas as pd
 from omegaconf import DictConfig
 
-from characterization.utils import analysis_utils, common
+from characterization.utils import analysis, common
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -57,7 +57,7 @@ def run(cfg: DictConfig) -> None:
         raise ValueError(msg)
 
     scores_path = Path(cfg.scores_path)
-    scenario_ids = analysis_utils.get_valid_scenario_ids(cfg.scenario_types, cfg.criteria, scores_path)
+    scenario_ids = analysis.get_valid_scenario_ids(cfg.scenario_types, cfg.criteria, scores_path)
     scenario_ids = (
         scenario_ids[: cfg.total_scenarios]
         if cfg.total_scenarios is not None and cfg.total_scenarios > 0
@@ -70,7 +70,7 @@ def run(cfg: DictConfig) -> None:
     # Generate score histogram and density plot
     logger.info("Loading agent types")
     features_path = Path(cfg.features_path)
-    _, _, agent_types = analysis_utils.load_scenario_features(
+    _, _, agent_types = analysis.load_scenario_features(
         scenario_ids,
         cfg.scenario_types,
         cfg.criteria,
@@ -78,8 +78,8 @@ def run(cfg: DictConfig) -> None:
     )
 
     logger.info("Loading the scores")
-    scenario_scores = analysis_utils.load_scenario_scores(scenario_ids, cfg.scenario_types, cfg.criteria, scores_path)
-    scene_scores, agent_scores, agent_scores_valid = analysis_utils.regroup_scenario_scores(
+    scenario_scores = analysis.load_scenario_scores(scenario_ids, cfg.scenario_types, cfg.criteria, scores_path)
+    scene_scores, agent_scores, agent_scores_valid = analysis.regroup_scenario_scores(
         scenario_scores, scenario_ids, cfg.scenario_types, cfg.scores, cfg.criteria
     )
 
@@ -91,14 +91,14 @@ def run(cfg: DictConfig) -> None:
     logger.info("Saving scene to scores mapping to %s", output_filepath)
 
     output_filepath = output_dir / f"{cfg.tag}_score_density_plot.png"
-    analysis_utils.plot_histograms_from_dataframe(scene_scores_df, output_filepath, cfg.dpi)
+    analysis.plot_histograms_from_dataframe(scene_scores_df, output_filepath, cfg.dpi)
     logger.info("Visualizing density function for scores: %s to %s", cfg.scores, output_filepath)
 
     output_filepath = output_dir / "scenario_splits.json"
     logger.info("Generating score split files to %s", output_filepath)
-    analysis_utils.get_scenario_splits(scene_scores_df, cfg.test_percentile, output_filepath, add_jaccard_index=True)
+    analysis.get_scenario_splits(scene_scores_df, cfg.test_percentile, output_filepath, add_jaccard_index=True)
 
-    analysis_utils.plot_agent_scores_distributions(agent_scores, agent_scores_valid, output_dir, cfg.dpi)
+    analysis.plot_agent_scores_distributions(agent_scores, agent_scores_valid, output_dir, cfg.dpi)
     logger.info("Visualized agent score distributions to %s", output_dir)
 
     for scenario_type, criterion in product(cfg.scenario_types, cfg.criteria):
@@ -106,12 +106,12 @@ def run(cfg: DictConfig) -> None:
             continue
 
         # Plots the individual and interaction scores as a 2D heatmap
-        analysis_utils.plot_agent_scores_heatmap(
+        analysis.plot_agent_scores_heatmap(
             agent_scores, agent_scores_valid, scenario_type, criterion, output_dir, cfg.dpi
         )
 
         # Plots the (individual, interaction, safeshift) scores as a 3D voxel plot
-        analysis_utils.plot_agent_scores_voxel(
+        analysis.plot_agent_scores_voxel(
             agent_scores,
             agent_scores_valid,
             scenario_type,
@@ -121,7 +121,7 @@ def run(cfg: DictConfig) -> None:
         )
 
         # Plots the (individual, interaction, safeshift) scores as a 3D voxel plot separated by agent type
-        analysis_utils.plot_agent_scores_voxel_by_agent_type(
+        analysis.plot_agent_scores_voxel_by_agent_type(
             agent_scores,
             agent_scores_valid,
             scenario_type,
