@@ -5,18 +5,18 @@
 The main configuration files are:
 
 1. **`run_processor.yaml`**
-   Used for computing scenario features and scores.
+   Used for computing scenario features, scores, and counterfactual probes.
 
 2. **`run_analysis.yaml`**
    Used for analyzing features and scores distributions, and for scenario visualization.
 
 Both configuration files are built hierarchically from the following components:
 
-- **`characterizer`**: Specifies the type of characterization to run (e.g., features, scores).
+- **`characterizer`**: Specifies the type of characterization to run (e.g., features, scores, probing).
 - **`dataset`**: Defines which dataset adapter to use.
 - **`paths`**: Sets the input and output data paths.
-- **`processor`**: Determines the type of processor to run. Currently, `feature` and `score` processors are supported.
-- **`viz`**: Configures scenario visualization settings.
+- **`processor`**: Determines the type of processor to run. `feature`, `score`, and `probe` processors are supported.
+- **`viz`**: Configures scenario visualization settings. Optional for the probe processor (pass `viz=probe_scenario` to enable).
 
 ---
 
@@ -44,6 +44,7 @@ All scripts accept Hydra overrides on the command line. The key groups and their
 | `individual_scores_categorical` | Categorical variant of individual scores |
 | `interaction_scores_categorical` | Categorical variant of interaction scores |
 | `safeshift_scores_categorical` | Categorical variant of safeshift scores |
+| `cvm_probe` | Constant-velocity counterfactual probing |
 
 ### Paths (`paths=`)
 

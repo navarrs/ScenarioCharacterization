@@ -72,6 +72,58 @@ Available score groups (see `config/characterizer`):
 - **`individual_scores_categorical`**, **`interaction_scores_categorical`**, **`safeshift_scores_categorical`**: Categorical variants that discretize scores into buckets. Use these with `feature_type=categorical` or when running the full categorical profiling pipeline.
 
 
+## Probe Processor
+
+The probe processor applies a counterfactual perturbation to each agent's future trajectory and measures how much the scenario's interaction score changes. The agent whose perturbation causes the largest increase in score (above a configurable threshold) is recorded as the **critical probe** and attached to the `Scenario.critical_probe` field.
+
+**Example usage:**
+```bash
+uv run python -m characterization.run_processor characterizer=cvm_probe
+```
+
+Available probing characterizers (see `config/characterizer`):
+- **`cvm_probe`**: Constant-velocity model — replaces each agent's future trajectory with a constant-velocity extrapolation from the last observed frame.
+
+### Output structure
+
+All outputs land under `output_path/` (configured via `processor.config.output_path`, defaulting to `${paths.cache_path}/probes/constant_velocity`):
+
+| Path | Contents |
+|---|---|
+| `probed_scenarios/<id>.pkl` | Full `Scenario` object with `critical_probe` attached |
+| `probe_summaries/<id>.json` | Probe metadata (scores, affected agents) — no trajectory array |
+| `scenario_viz/` | Optional per-scenario visualisations |
+| `probe_summary.csv` | One row per scenario (found / not found), aggregated across the run |
+
+### Common examples
+
+Run probing with visualisation:
+```bash
+uv run python -m characterization.run_processor characterizer=cvm_probe viz=probe_scenario
+```
+
+Process only the first 50 scenarios:
+```bash
+uv run python -m characterization.run_processor characterizer=cvm_probe num_scenarios=50
+```
+
+Probe a single scenario by ID (useful for debugging):
+```bash
+uv run python -m characterization.run_processor characterizer=cvm_probe 'processor.config.scenario_id=<id>'
+```
+
+### Key configuration knobs
+
+| Parameter | Default | Description |
+|---|---|---|
+| `processor.config.output_path` | `${paths.cache_path}/probes/constant_velocity` | Root directory for all outputs |
+| `processor.config.num_scenarios` | `null` (all) | Stop early after *N* scenarios |
+| `processor.config.scenario_id` | `null` (all) | Probe only this scenario ID |
+| `characterizer.config.min_score_delta` | `0.2` | Minimum pair-score increase to count as impactful |
+| `characterizer.config.single_affected_agent` | `true` | Keep only the single most-critical affected agent |
+
+---
+
 ## Categorical Profiling
 
 Use the categorical profiling runner script to execute the full profiling pipeline (features, scores, and distribution analyses):
@@ -135,7 +187,3 @@ uv run python -m characterization.run_processor \
 ```
 
 See [ORGANIZATION.md](ORGANIZATION.md) for the full list of available values for each config group.
-
----
-
-## ![TO-DO](https://img.shields.io/badge/status-TODO-red) Scenario Probing
