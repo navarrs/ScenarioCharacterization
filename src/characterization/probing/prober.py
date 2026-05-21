@@ -8,6 +8,7 @@ from numpy.typing import NDArray
 from omegaconf import DictConfig, OmegaConf
 
 from characterization.features.interaction_features import InteractionFeatures, InteractionStatus
+from characterization.probing.base_prober import BaseProber
 from characterization.probing.common import (
     CandidateProbeResult,
     CriticalityMetric,
@@ -63,7 +64,7 @@ class _ProbingBaseline(NamedTuple):
     id_to_type: dict[int, AgentType]
 
 
-class CounterfactualProber:
+class CounterfactualProber(BaseProber):
     """Runs counterfactual probing for ego-vs-others and others-vs-ego agent pairs.
 
     For each agent, the probe function replaces its future trajectory with a counterfactual. The probe with the greatest
@@ -73,6 +74,15 @@ class CounterfactualProber:
     Args:
         config: Probing configuration. See ``config/probing/default.yaml`` for all parameters.
     """
+
+    @property
+    def name(self) -> str:
+        """Returns the name of this prober.
+
+        Returns:
+            str: Human-readable prober name.
+        """
+        return "counterfactual prober"
 
     def __init__(self, config: DictConfig) -> None:
         """Initialize the prober from a Hydra config."""
@@ -98,7 +108,7 @@ class CounterfactualProber:
         self._detections = FeatureDetections()
         self._weights = FeatureWeights()
 
-    def probe_scenario(self, scenario: Scenario) -> CriticalProbe | None:
+    def compute(self, scenario: Scenario) -> CriticalProbe | None:
         """Run all counterfactual probes and return the most impactful result.
 
         Probes the ego agent against all others and each non-ego agent against the ego. Non-ego vs

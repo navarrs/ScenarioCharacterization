@@ -5,37 +5,24 @@ from characterization.datasets import BaseDataset
 from characterization.features import BaseFeature
 from characterization.processors.base_processor import BaseProcessor
 from characterization.schemas import ScenarioFeatures
-from characterization.scorer.base_scorer import BaseScorer
 from characterization.utils.io_utils import get_logger, to_pickle
 
 logger = get_logger(__name__)
 
 
-class FeatureProcessor(BaseProcessor):
+class FeatureProcessor(BaseProcessor[BaseFeature]):
     """Processor for computing and saving features from a dataset using a feature characterizer."""
 
-    def __init__(
-        self,
-        config: DictConfig,
-        dataset: BaseDataset,
-        characterizer: BaseFeature | BaseScorer,
-    ) -> None:
+    def __init__(self, config: DictConfig, dataset: BaseDataset, characterizer: BaseFeature) -> None:
         """Initializes the FeatureProcessor with configuration, dataset, and feature characterizer.
 
         Args:
             config (DictConfig): Configuration for the feature processor, including parameters such as
                 batch size, number of workers, shuffle, save, and output path.
             dataset (Dataset): The dataset to process. Must be a subclass of torch.utils.data.Dataset.
-            characterizer (BaseFeature | BaseScorer): An instance of BaseFeature or BaseScorer that
-                defines the feature computation logic.
-
-        Raises:
-            AssertionError: If the characterizer is not of type 'feature'.
+            characterizer (BaseFeature): The feature extractor to apply across the dataset scenarios.
         """
         super().__init__(config, dataset, characterizer)
-        if self.characterizer.characterizer_type != "feature":
-            error_message = f"Expected characterizer of type 'feature', got {self.characterizer.characterizer_type}."
-            raise AssertionError(error_message)
 
     def run(self) -> None:
         """Runs the feature processing on the dataset.
@@ -53,7 +40,7 @@ class FeatureProcessor(BaseProcessor):
         for scenario_batch in tqdm(self.dataloader, total=len(self.dataloader), desc="Processing features..."):
             for scenario in scenario_batch["scenario"]:
                 scenario_id = scenario.metadata.scenario_id
-                features: ScenarioFeatures = self.characterizer.compute(scenario)  # pyright: ignore[reportCallIssue]
+                features: ScenarioFeatures = self.characterizer.compute(scenario)
 
                 if self.save:
                     to_pickle(

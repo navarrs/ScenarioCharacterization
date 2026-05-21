@@ -1,0 +1,35 @@
+# @package _global_
+# Characterizer config for constant-velocity-model (CVM) counterfactual probing.
+#
+# Usage:
+#   uv run python -m characterization.run_processor characterizer=cvm_probe
+#   uv run python -m characterization.run_processor characterizer=cvm_probe viz=probe_scenario
+#   uv run python -m characterization.run_processor characterizer=cvm_probe num_scenarios=50
+#   uv run python -m characterization.run_processor characterizer=cvm_probe 'processor.config.scenario_id=<id>'
+
+processor:
+  _target_: characterization.processors.probe_processor.ProbeProcessor
+  config:
+    output_path: ${paths.cache_path}/probes/constant_velocity
+    save: true
+    overwrite: false
+    batch_size: 1
+    num_workers: ${num_workers}
+    shuffle: false
+    # Stop after this many scenarios (null = process all).
+    num_scenarios: ${num_scenarios}
+    # Filter to a single scenario ID for debugging (null = process all).
+    scenario_id: null
+    # Visualizer config — resolved from cfg.viz; null when viz=null (the default).
+    viz: ${oc.select:viz,null}
+
+characterizer:
+  _target_: characterization.probing.prober.CounterfactualProber
+  config:
+    probe_type: CONSTANT_VELOCITY
+    min_score_delta: 0.2
+    return_criterion: ${return_criterion}
+    n_jobs: 1
+    skip_agent_types: []
+    single_affected_agent: true
+    validator_type: MAX_SCORE_DELTA

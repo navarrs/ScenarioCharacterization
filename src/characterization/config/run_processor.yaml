@@ -3,6 +3,7 @@ defaults:
   - paths: waymo_sample
   - dataset: waymo
   - characterizer: individual_features
+  - viz: null
   - debug: null
 
 seed: 42

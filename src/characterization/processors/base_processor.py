@@ -4,22 +4,15 @@ from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 
 from characterization.datasets import BaseDataset
-from characterization.features import BaseFeature
-from characterization.scorer import BaseScorer
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
 
 
-class BaseProcessor(ABC):
+class BaseProcessor[CharacterizerT](ABC):
     """Base class for processing datasets with a characterizer."""
 
-    def __init__(
-        self,
-        config: DictConfig,
-        dataset: BaseDataset,
-        characterizer: BaseFeature | BaseScorer,
-    ) -> None:
+    def __init__(self, config: DictConfig, dataset: BaseDataset, characterizer: CharacterizerT) -> None:
         """Initializes the BaseProcessor with configuration, dataset, and characterizer.
 
         Args:
@@ -27,7 +20,7 @@ class BaseProcessor(ABC):
                 number of workers, shuffle, save, output path, and scenario type.
             dataset (BaseDataset): The dataset to process. Must be a subclass of torch.utils.data.Dataset and implement
                 a collate_batch method.
-            characterizer (BaseFeature | BaseScorer): An instance of a feature extractor or scorer to apply across the
+            characterizer (CharacterizerT): An instance of a feature extractor, scorer, or prober to apply across the
                 dataset scenarios.
 
         Raises:
@@ -37,7 +30,7 @@ class BaseProcessor(ABC):
 
         self.scenario_type = config.scenario_type if "scenario_type" in config else "gt"
         self.dataset = dataset
-        self.characterizer = characterizer
+        self.characterizer: CharacterizerT = characterizer
 
         # DataLoader parameters
         self.batch_size = config.get("batch_size", 4)
@@ -52,7 +45,7 @@ class BaseProcessor(ABC):
             if self.output_path is None:
                 error_message = "Output path must be specified in the configuration."
                 raise ValueError(error_message)
-            logger.info("Features %s will be saved to %s", self.characterizer.name, self.output_path)
+            logger.info("Outputs will be saved to %s", self.output_path)
 
         self.dataloader = DataLoader(  # pyright: ignore[reportUnknownMemberType]
             dataset,
