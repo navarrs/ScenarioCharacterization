@@ -1,7 +1,10 @@
 defaults:
   - _self_
   - run_processor.yaml
-  - viz: scenario
+  - override viz: scenario
+
+# Path to probe_summary.csv produced by run_scenario_probing; used by run_probe_analysis.
+probe_csv: ${paths.cache_path}/probes/constant_velocity/probe_summary.csv
 
 scores_path: ${paths.cache_path}/scores
 features_path: ${paths.cache_path}/features

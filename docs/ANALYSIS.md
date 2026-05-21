@@ -155,6 +155,55 @@ Shows the score density over a set of scenarios across either in 2D (individual,
 | <img width="450" height="360" alt="Image" src="https://github.com/user-attachments/assets/91032ac3-de90-40ad-b08b-06beb437c767" /> <!-- pragma: allowlist secret -->  | <img width="450" height="360" alt="Image" src="https://github.com/user-attachments/assets/81a0848c-7716-410d-97f8-a99d18a29500" /> <!-- pragma: allowlist secret -->  |
 | | |
 
+## Probe Analysis
+
+The probe analysis utility ingests the `probe_summary.csv` produced by `run_scenario_probing` and
+generates a suite of statistical plots characterising probe outcomes, score shifts, and affected agent distributions.
+
+### What this produces
+
+Each run writes to `output_dir` (default: `${paths.cache_path}/analysis`) with files such as:
+- `probe_outcome_pie.png` — pie chart: *No probe* / *Ego probe* / *Non-ego probe*
+- `score_distributions.png` — overlapping KDE density curves for `score_before` and `score_after`
+- `score_delta_density.png` — KDE/histogram of `score_delta` with mean and median markers
+- `score_delta_by_agent_type.png` — violin plot of `score_delta` split by ego vs non-ego
+- `score_scatter.png` — scatter of `score_before` vs `score_after` with a y=x reference line
+- `affected_agents_histogram.png` — stacked histogram of affected-agent count per probe
+- `probe_analysis_summary.json` — aggregate stats (probe rate, ego/non-ego counts, score_delta stats)
+
+### Prerequisites
+
+- A `probe_summary.csv` produced by `run_scenario_probing` (default location: `${paths.cache_path}/probes/probe_summary.csv`).
+
+### Example usage
+
+Run with the default `probe_csv` path:
+```bash
+uv run -m characterization.run_probe_analysis
+```
+
+Point to a specific CSV and output directory:
+```bash
+uv run -m characterization.run_probe_analysis \
+    probe_csv=data/probed/constant_velocity/probe_summary.csv \
+    output_dir=data/probe_analysis
+```
+
+Disable the timestamp subfolder and set a custom experiment tag:
+```bash
+uv run -m characterization.run_probe_analysis \
+    probe_csv=data/probed/constant_velocity/probe_summary.csv \
+    add_timestamp=false exp_tag=run1
+```
+
+### Useful config overrides
+
+Commonly overridden keys (from `config/run_analysis.yaml`):
+- `probe_csv` (default: `${paths.cache_path}/probes/probe_summary.csv`)
+- `output_dir` (default: `${paths.cache_path}/analysis`)
+- `dpi` (default: `300`)
+- `add_timestamp`, `exp_tag`
+
 ## Scenario Visualizer
 
 The scenario visualizer renders per-scenario visual outputs and can optionally bucket scenarios by score percentile.
