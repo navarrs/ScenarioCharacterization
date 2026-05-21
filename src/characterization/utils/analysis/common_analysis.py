@@ -101,6 +101,27 @@ def get_valid_scenario_ids(scenario_types: list[str], criteria: list[str], base_
     return list(set.intersection(*[set(scenario_list) for scenario_list in scenario_lists]))
 
 
+def get_scored_scenario_ids(scenario_types: list[str], criteria: list[str], base_path: Path) -> dict[str, list[str]]:
+    """Retrieves the list of scored scenario IDs for each combination of scenario type and criterion.
+
+    Args:
+        scenario_types (list[str]): List of scenario types to consider.
+        criteria (list[str]): List of criteria to consider.
+        base_path (Path): Base path where the scored scenario files are located.
+
+    Returns:
+        dict[str, list[str]]: A dictionary mapping each scenario type and criterion combination to a list of scored
+            scenario IDs (file names).
+    """
+    scenario_lists = {}
+    for scenario_type, criterion in product(scenario_types, criteria):
+        key = f"{scenario_type}_{criterion}"
+        scenario_type_criterion_path = base_path / key
+        scenario_type_scores_files = [file.name for file in scenario_type_criterion_path.glob("*.pkl")]
+        scenario_lists[key] = scenario_type_scores_files
+    return scenario_lists
+
+
 def plot_histograms_from_dataframe(
     df: pd.DataFrame,
     output_filepath: Path = Path("temp.png"),

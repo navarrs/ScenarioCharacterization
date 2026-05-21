@@ -35,7 +35,7 @@ from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
 
-_CSV_FIELDS: tuple[str, ...] = (
+CSV_FIELDS: tuple[str, ...] = (
     "scenario_id",
     "probe_found",
     "probe_type",
@@ -161,7 +161,7 @@ class ProbeProcessor(BaseProcessor[BaseProber]):
         if csv_rows and self.save and self.summary_csv_path is not None:
             self.summary_csv_path.parent.mkdir(parents=True, exist_ok=True)
             with self.summary_csv_path.open("w", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=_CSV_FIELDS)
+                writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
                 writer.writeheader()
                 writer.writerows(csv_rows)
             logger.info("Probe summary CSV -> %s", self.summary_csv_path)
