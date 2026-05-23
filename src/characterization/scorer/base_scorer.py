@@ -30,8 +30,8 @@ class BaseScorer(ABC):
         """Initializes the BaseScorer with a configuration.
 
         Args:
-            config (DictConfig): Configuration for the scorer, including features, detections,
-                weights, and score clipping parameters.
+            config (DictConfig): Configuration for the scorer, including features, detections, weights, and score
+            clipping parameters.
         """
         super().__init__()
         self.config = config
@@ -111,8 +111,8 @@ class BaseScorer(ABC):
     ) -> NDArray[np.float32]:
         """Computes the weights for scoring based on the scenario and features, with respect to the ego agent.
 
-        The agent's contribution (weight) to the score is inversely proportional to the closest
-        distance between the agent and the ego agent.
+        The agent's contribution (weight) to the score is inversely proportional to the closest distance between the
+        agent and the ego agent.
 
         Args:
             scenario (Scenario): Scenario object containing agent relevance information.
@@ -203,11 +203,66 @@ class BaseScorer(ABC):
         weights[scenario.metadata.ego_vehicle_index] = 1.0
         return weights
 
+    @staticmethod
+    def _min_dist_between_trajs(
+        traj_a: NDArray[np.float32],
+        traj_b: NDArray[np.float32],
+    ) -> float:
+        """Return the minimum XYZ distance between two single-agent trajectories over all timesteps.
+
+        Reads the first three columns of each trajectory (x, y, z) directly, matching the layout used by
+        :class:`~characterization.utils.common.AgentTrajectoryMasker`. ``np.nanmin`` silently ignores timesteps where
+        either agent has NaN coordinates (e.g. invalid / out-of-scene frames).
+
+        Args:
+            traj_a: Single-agent trajectory, shape ``(T, D)``. First 3 columns are XYZ position.
+            traj_b: Single-agent trajectory, shape ``(T, D)``. First 3 columns are XYZ position.
+
+        Returns:
+            Minimum Euclidean distance in metres, or ``np.inf`` if no valid timestep exists.
+        """
+        dists = np.linalg.norm(traj_a[:, :3] - traj_b[:, :3], axis=-1)
+        result = np.nanmin(dists)
+        return float(result) if np.isfinite(result) else np.inf
+
+    @staticmethod
+    def _weight_from_dist(
+        dist: float,
+        max_critical_distance: float,
+        vru_priority_weight: float = 1.0,
+        *,
+        is_vru: bool = False,
+        reduce_distance_penalty: bool = False,
+    ) -> float:
+        """Compute a single agent's distance-based weight from a scalar minimum distance.
+
+        Replicates the per-agent weight formula used inside :meth:`_get_weights_wrt_ego` so that
+        :meth:`InteractionScorer.compute_weights_for_probe
+        <characterization.scorer.interaction_scorer.InteractionScorer.compute_weights_for_probe>` can update individual
+        weights without recomputing the full distance matrix.
+
+        Args:
+            dist: Minimum distance (metres) from this agent to the reference agent (ego or relevant).
+            max_critical_distance: Upper cap on the inverse-distance weight.
+            is_vru: Whether this agent is a cyclist or pedestrian (receives the priority multiplier).
+            vru_priority_weight: Multiplier applied when ``is_vru`` is ``True``.
+            reduce_distance_penalty: If ``True``, the square root of the distance is taken before computing the inverse,
+                reducing the penalty for distant agents.
+
+        Returns:
+            Scalar weight in ``(0, 1 / max(max_critical_distance, EPSILON)]``.
+        """
+        min_dist = dist + EPSILON
+        if reduce_distance_penalty:
+            min_dist = float(np.sqrt(min_dist))
+        w = min(1.0 / min_dist, 1.0 / max(max_critical_distance, EPSILON))
+        return w * vru_priority_weight if is_vru else w
+
     def get_weights(self, scenario: Scenario, scenario_features: ScenarioFeatures) -> NDArray[np.float32]:
         """Computes the weights for scoring based on the scenario and features.
 
-        The agent's contribution (weight) to the score is inversely proportional to the closest
-        distance between the agent and the relevant agents.
+        The agent's contribution (weight) to the score is inversely proportional to the closest distance between the
+        agent and the relevant agents.
 
         Args:
             scenario (Scenario): Scenario object containing agent relevance information.
