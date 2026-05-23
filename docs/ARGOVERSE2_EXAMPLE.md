@@ -69,7 +69,7 @@ uv run python -m characterization.run_processor \
 
 This step creates a `./cache` directory with temporary feature data:
 - `./cache/conflict_points`: Conflict region info per scenario.
-- `./cache/features/gt_critical`: Per-agent individual features per scenario.
+- `./cache/features/gt_critical_continuous`: Per-agent individual features per scenario.
 
 ---
 

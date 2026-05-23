@@ -91,7 +91,7 @@ uv run python -m characterization.run_processor characterizer=interaction_featur
 
 This step creates a `./cache` directory with temporary feature data:
 - `./cache/conflict_points`: Conflict region info per scenario.
-- `./cache/features/gt_critical`: Per-agent individual features per scenario.
+- `./cache/features/gt_critical_continuous`: Per-agent individual features per scenario.
 
 ---
 
@@ -103,7 +103,7 @@ uv run python -m characterization.run_processor characterizer=interaction_scores
 uv run python -m characterization.run_processor characterizer=safeshift_scores paths=waymo_sample
 ```
 
-This uses the computed features to generate per-agent and per-scenario scores, saved in `./cache/scores/gt_critical`.
+This uses the computed features to generate per-agent and per-scenario scores, saved in `./cache/scores/gt_critical_continuous`.
 
 ---
 

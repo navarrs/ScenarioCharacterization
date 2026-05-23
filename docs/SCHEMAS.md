@@ -7,6 +7,7 @@ This repository currently uses the following schemas:
 - [ScenarioScores](#scenario-scores-schema)
 - [FeatureDetections](#feature-detections-schema)
 - [FeatureWeights](#feature-weights-schema)
+- [CriticalProbe](#critical-probe-schema)
 
 ## Scenario Schema
 
@@ -73,3 +74,18 @@ See the [[schema](../src/characterization/schemas/detections.py)] for details.
 The `FeatureWeights` schema defines the relative importance (weights) assigned to each feature when aggregating or scoring scenario features. Each weight corresponds to a specific feature (e.g., speed, acceleration, collision) and can be tuned to emphasize or de-emphasize certain aspects of agent or interaction behavior in downstream metrics or composite scores. Default values are provided, but these can be customized to suit different evaluation criteria or application needs.
 
 `FeatureWeights` is co-located with `FeatureDetections` in [`detections.py`](../src/characterization/schemas/detections.py).
+
+## Critical Probe Schema
+
+The probe processor takes a `Scenario` and produces a `CriticalProbe`, which is attached to `Scenario.critical_probe` after probing.
+
+The `CriticalProbe` schema encapsulates:
+* **Probed agent**: The ID and counterfactual trajectory of the agent whose future was replaced.
+* **Probe metadata**: Whether the probed agent is the ego vehicle, and the type of counterfactual applied (e.g., constant-velocity).
+* **Affected agents**: IDs of agents that become critically close to the probed agent under the counterfactual. When `single_affected_agent=True` (default), only the single most-critical agent is retained.
+* **Criticality results**: Per-affected-agent criticality, including the frame index and safety metric (`TTC` or `DRAC`) at peak criticality.
+* **Score shift**: The interaction scene score before and after the counterfactual (`score_before`, `score_after`), plus per-pair score breakdowns.
+
+The `CriticalityResult` helper model records the absolute frame index and the safety metric used to identify the critical frame for a single affected agent.
+
+See the [[schema](../src/characterization/schemas/critical_probe.py)] for more details and descriptions.

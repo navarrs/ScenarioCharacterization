@@ -20,27 +20,27 @@ Each run writes a timestamped folder under `output_dir` (default: `${paths.cache
 
 Run with default config values from `src/characterization/config/run_analysis.yaml`:
 ```bash
-uv run -m characterization.run_feature_analysis
+uv run python -m characterization.run_feature_analysis
 ```
 
 Run GT categorical feature analysis only:
 ```bash
-uv run -m characterization.run_feature_analysis scenario_types="['gt']" criteria="['critical_categorical']"
+uv run python -m characterization.run_feature_analysis scenario_types="['gt']" criteria="['critical_categorical']"
 ```
 
 Run a smaller subset of scenarios for quick iteration:
 ```bash
-uv run -m characterization.run_feature_analysis total_scenarios=200 exp_tag=quick_check
+uv run python -m characterization.run_feature_analysis total_scenarios=200 exp_tag=quick_check
 ```
 
 Run without KDE and percentile overlays:
 ```bash
-uv run -m characterization.run_feature_analysis show_kde=false show_percentiles=false exp_tag=minimal_plots
+uv run python -m characterization.run_feature_analysis show_kde=false show_percentiles=false exp_tag=minimal_plots
 ```
 
 Change output location and DPI:
 ```bash
-uv run -m characterization.run_feature_analysis output_dir=./outputs/feature_analysis_test dpi=200 exp_tag=feature_debug
+uv run python -m characterization.run_feature_analysis output_dir=./outputs/feature_analysis_test dpi=200 exp_tag=feature_debug
 ```
 
 ### Useful config overrides
@@ -90,32 +90,32 @@ Each run writes a timestamped folder under `output_dir` (default: `${paths.cache
 
 Run with default config values from `src/characterization/config/run_analysis.yaml`:
 ```bash
-uv run -m characterization.run_score_analysis
+uv run python -m characterization.run_score_analysis
 ```
 
 Run GT categorical analysis only:
 ```bash
-uv run -m characterization.run_score_analysis scenario_types="['gt']" criteria="['critical_categorical']"
+uv run python -m characterization.run_score_analysis scenario_types="['gt']" criteria="['critical_categorical']"
 ```
 
 Run a smaller subset of scenarios for quick iteration, and add an experiment tag to further identify the output folder:
 ```bash
-uv run -m characterization.run_score_analysis total_scenarios=200 exp_tag=quick_check
+uv run python -m characterization.run_score_analysis total_scenarios=200 exp_tag=quick_check
 ```
 
 Run only selected score heads:
 ```bash
-uv run -m characterization.run_score_analysis scores=[individual,interaction] exp_tag=ind_inter
+uv run python -m characterization.run_score_analysis scores=[individual,interaction] exp_tag=ind_inter
 ```
 
 Change output location, split percentile, and plot DPI:
 ```bash
-uv run -m characterization.run_score_analysis output_dir=./outputs/analysis_test test_percentile=90 dpi=200 tag=gt_cat
+uv run python -m characterization.run_score_analysis output_dir=./outputs/analysis_test test_percentile=90 dpi=200 tag=gt_cat
 ```
 
 Change default paths fields:
 ```bash
-uv run -m characterization.run_score_analysis paths=test exp_tag=score_cat criteria="['critical_categorical']" paths.base_path=/data/driving/scenario_characterization
+uv run python -m characterization.run_score_analysis paths=test exp_tag=score_cat criteria="['critical_categorical']" paths.base_path=/data/driving/scenario_characterization
 ```
 
 ### Useful config overrides
@@ -157,7 +157,7 @@ Shows the score density over a set of scenarios across either in 2D (individual,
 
 ## Probe Analysis
 
-The probe analysis utility ingests the `probe_summary.csv` produced by `run_scenario_probing` and
+The probe analysis utility ingests the `probe_summary.csv` produced by `run_processor` with `characterizer=cvm_probe` and
 generates a suite of statistical plots characterising probe outcomes, score shifts, and affected agent distributions.
 
 ### What this produces
@@ -173,25 +173,25 @@ Each run writes to `output_dir` (default: `${paths.cache_path}/analysis`) with f
 
 ### Prerequisites
 
-- A `probe_summary.csv` produced by `run_scenario_probing` (default location: `${paths.cache_path}/probes/probe_summary.csv`).
+- A `probe_summary.csv` produced by `run_processor` with `characterizer=cvm_probe` (default location: `${paths.cache_path}/probes/constant_velocity/probe_summary.csv`).
 
 ### Example usage
 
 Run with the default `probe_csv` path:
 ```bash
-uv run -m characterization.run_probe_analysis
+uv run python -m characterization.run_probe_analysis
 ```
 
 Point to a specific CSV and output directory:
 ```bash
-uv run -m characterization.run_probe_analysis \
+uv run python -m characterization.run_probe_analysis \
     probe_csv=data/probed/constant_velocity/probe_summary.csv \
     output_dir=data/probe_analysis
 ```
 
 Disable the timestamp subfolder and set a custom experiment tag:
 ```bash
-uv run -m characterization.run_probe_analysis \
+uv run python -m characterization.run_probe_analysis \
     probe_csv=data/probed/constant_velocity/probe_summary.csv \
     add_timestamp=false exp_tag=run1
 ```
@@ -199,7 +199,7 @@ uv run -m characterization.run_probe_analysis \
 ### Useful config overrides
 
 Commonly overridden keys (from `config/run_analysis.yaml`):
-- `probe_csv` (default: `${paths.cache_path}/probes/probe_summary.csv`)
+- `probe_csv` (default: `${paths.cache_path}/probes/constant_velocity/probe_summary.csv`)
 - `output_dir` (default: `${paths.cache_path}/analysis`)
 - `dpi` (default: `300`)
 - `add_timestamp`, `exp_tag`
@@ -231,27 +231,27 @@ Each run writes to a timestamped folder under `scenario_viz_dir` (default: `${ou
 
 Run scenario visualization with default config values from `src/characterization/config/run_analysis.yaml`:
 ```bash
-uv run -m characterization.run_scenario_viz
+uv run python -m characterization.run_scenario_viz
 ```
 
 Visualize only scenarios with score files, limited to 200 scenarios:
 ```bash
-uv run -m characterization.run_scenario_viz viz_scored_scenarios=true total_scenarios=200
+uv run python -m characterization.run_scenario_viz viz_scored_scenarios=true total_scenarios=200
 ```
 
 Group outputs by custom percentile bins:
 ```bash
-uv run -m characterization.run_scenario_viz organize_by_percentile=true percentiles=[10,50,80]
+uv run python -m characterization.run_scenario_viz organize_by_percentile=true percentiles=[10,50,80]
 ```
 
 Visualize a different score head using a specific score tag:
 ```bash
-uv run -m characterization.run_scenario_viz scores_tag=gt_critical_categorical score_to_visualize=interaction
+uv run python -m characterization.run_scenario_viz scores_tag=gt_critical_categorical score_to_visualize=interaction
 ```
 
 Write visualizations to a custom location:
 ```bash
-uv run -m characterization.run_scenario_viz scenario_viz_dir=./outputs/scenario_viz_test
+uv run python -m characterization.run_scenario_viz scenario_viz_dir=./outputs/scenario_viz_test
 ```
 
 ### Useful config overrides

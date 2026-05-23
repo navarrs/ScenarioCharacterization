@@ -27,15 +27,12 @@ uv pip install -e ".[nuscenes]"
 
 1. **Register and accept nuScenes' terms of use** at [nuscenes.org](https://www.nuscenes.org/nuscenes#download).
 
-2. **Download the `v1.0-mini` split** (the smallest available split, ~4 GB):
+2. **Download the `v1.0-trainval` metadata** (~2 GB). Only the metadata archive is needed — the preprocessor reads trajectory annotations and map files but does not access raw sensor data, so the large sensor-blob archives (`v1.0-trainval01_blobs.tgz` … `v1.0-trainval10_blobs.tgz`) are **not required**:
    ```bash
    mkdir -p samples/nuscenes/raw
+   tar -xzf v1.0-trainval_meta.tgz -C samples/nuscenes/raw/
    ```
-   Download `v1.0-mini.tgz` from the nuScenes website and extract it:
-   ```bash
-   tar -xzf v1.0-mini.tgz -C samples/nuscenes/raw/
-   ```
-   The extracted directory should contain `v1.0-mini/` with `maps/`, `samples/`, and `sweeps/` subdirectories.
+   The extracted directory should contain `v1.0-trainval/` with the JSON metadata tables.
 
 3. **Download the Map Expansion pack** from the nuScenes website (listed as "Map expansion pack (v1.3)" on the download page) and extract it into the same directory:
    ```bash
@@ -46,9 +43,9 @@ uv pip install -e ".[nuscenes]"
 4. **Pre-process the data:**
    ```bash
    uv run python -m characterization.datasets.nuscenes_preprocess \
-       ./samples/nuscenes/raw ./samples/nuscenes/ v1.0-mini
+       ./samples/nuscenes/raw ./samples/nuscenes/ v1.0-trainval
    ```
-   This reads all 10 scenes from the mini split, interpolates trajectories to 10 Hz, extracts map polylines, and writes one `.pkl` file per scene to `./samples/nuscenes/scenarios/`.
+   This reads all 1,000 scenes from the trainval split (850 train + 150 val), interpolates trajectories to 10 Hz, extracts map polylines, and writes one `.pkl` file per scene to `./samples/nuscenes/scenarios/`.
 
    A sample config file (`nuscenes_sample.yaml`) is provided under `config/paths` with local paths to the sample data.
 
@@ -67,7 +64,7 @@ uv run python -m characterization.run_processor \
 
 This step creates a `./cache` directory with temporary feature data:
 - `./cache/conflict_points`: Conflict region info per scenario.
-- `./cache/features/gt_critical`: Per-agent individual features per scenario.
+- `./cache/features/gt_critical_continuous`: Per-agent individual features per scenario.
 
 ---
 
