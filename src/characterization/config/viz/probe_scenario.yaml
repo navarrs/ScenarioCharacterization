@@ -13,6 +13,21 @@ config:
   probe_ring_size: 120
   probe_criticality_marker_size: 50
   probe_zoom_buffer: 50.0
+
+  # Gap line between probed and affected agent at criticality timestamp.
+  # Draws a diamond on the counterfactual trajectory and a dotted line to the affected agent,
+  # showing exactly how far apart both agents were *at the same moment in time*.
+  show_criticality_gap: true
+  show_gap_distance: true
+  gap_line_color: "crimson"
+  gap_marker_size: 30
+
+  # Temporal coloring: colour both the counterfactual future and affected agent future by
+  # normalised time using a shared colormap. Matching colours at a crossing = simultaneous.
+  # Off by default to preserve the default visual style.
+  show_cf_temporal_coloring: true
+  cf_temporal_colormap: "plasma"
+
   panes_to_plot:
     - ALL_AGENTS
     - HIGHLIGHT_RELEVANT_AGENTS

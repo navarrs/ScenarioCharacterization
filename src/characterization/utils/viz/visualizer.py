@@ -13,6 +13,7 @@ from typing import cast
 import numpy as np
 from matplotlib import cm
 from matplotlib.axes import Axes
+from matplotlib.collections import LineCollection
 from matplotlib.patches import Rectangle
 from natsort import natsorted
 from numpy.typing import NDArray
@@ -765,6 +766,168 @@ class BaseVisualizer(ABC):
             if show_criticality_label:
                 ax.annotate(crit_result.metric.value, (cx, cy), fontsize=6, zorder=175, color="#FF8C00")
 
+    def _render_criticality_gap(
+        self,
+        ax: Axes,
+        probe: CriticalProbe,
+        agent_ids: list[int],
+        all_pos: NDArray[np.float32],
+        all_valid: NDArray[np.bool_],
+        probe_color: str,
+        *,
+        show_gap_distance: bool,
+        gap_line_color: str,
+        gap_marker_size: int,
+    ) -> None:
+        """Draw a gap line between the probed agent's counterfactual position and each affected agent's position.
+
+        Draws at the criticality timestamp, making it possible to tell whether the two agents are spatially close
+        *at the same moment in time*, rather than just having overlapping 2-D paths at different times. A diamond
+        marker is placed on the counterfactual trajectory at the criticality frame (complementing the orange star
+        already drawn on the affected agent), and a dotted line connects the two positions. An optional distance label
+        shows the exact spatial gap in metres.
+
+        Args:
+            ax: Axes to draw on.
+            probe: CriticalProbe with criticality_results and probed_agent_trajectory.
+            agent_ids: Ordered list of agent IDs matching all_pos / all_valid row order.
+            all_pos: Ground-truth positions (N, T, 2).
+            all_valid: Ground-truth validity mask (N, T).
+            probe_color: Color used for the probed-agent diamond marker.
+            show_gap_distance: If True, annotate the gap line with the distance in metres.
+            gap_line_color: Color for the connecting line.
+            gap_marker_size: Scatter marker size for the probed-agent diamond marker.
+        """
+        cf_traj = probe.probed_agent_trajectory  # (T, 10)
+        cf_valid = cf_traj[:, 9] > 0  # (T,) bool
+
+        for aid_str, crit_result in probe.criticality_results.items():
+            aid = int(aid_str)
+            ts = crit_result.timestamp
+            if aid not in agent_ids:
+                continue
+            a_idx = agent_ids.index(aid)
+            if not (all_valid[a_idx, ts] and cf_valid[ts]):
+                continue
+
+            px, py = float(cf_traj[ts, 0]), float(cf_traj[ts, 1])  # probed agent (counterfactual)
+            ax_p, ay_p = float(all_pos[a_idx, ts, 0]), float(all_pos[a_idx, ts, 1])  # affected agent
+
+            # Diamond marker on the counterfactual trajectory at the criticality frame
+            ax.scatter(
+                [px],
+                [py],
+                marker="D",
+                s=gap_marker_size,
+                color=probe_color,
+                edgecolors="#E05050",
+                linewidth=1.2,
+                zorder=171,
+                label=f"Probed pos at t={ts}",
+            )
+
+            # Connecting line between the two simultaneously co-located positions
+            ax.plot([px, ax_p], [py, ay_p], color=gap_line_color, linestyle=":", linewidth=1.0, alpha=0.85, zorder=165)
+
+            if show_gap_distance:
+                gap_m = float(np.hypot(px - ax_p, py - ay_p))
+                mid_x, mid_y = (px + ax_p) / 2.0, (py + ay_p) / 2.0
+                ax.annotate(
+                    f"{gap_m:.1f} m",
+                    (mid_x, mid_y),
+                    fontsize=5,
+                    color=gap_line_color,
+                    ha="center",
+                    va="center",
+                    zorder=176,
+                    bbox={"boxstyle": "round,pad=0.15", "facecolor": "white", "alpha": 0.75, "edgecolor": "none"},
+                )
+
+    def _render_cf_temporal_coloring(
+        self,
+        ax: Axes,
+        probe: CriticalProbe,
+        agent_ids: list[int],
+        all_pos: NDArray[np.float32],
+        all_valid: NDArray[np.bool_],
+        current_t: int,
+        colormap_name: str,
+    ) -> None:
+        """Render the counterfactual future and each affected agent's future with a shared time-indexed colormap.
+
+        Matching colours at a spatial crossing indicate that the agents were at that location *at the same time*;
+        mismatched colours mean they passed through at different times.
+
+        The counterfactual future is drawn as a dashed ``LineCollection`` coloured by normalised time (0 = just after
+        ``current_t``, 1 = last timestep). Affected agents' future scatter points are drawn with the same colourmap on
+        top of the base scatter, so visual colour matches reveal co-temporal proximity.
+
+        Args:
+            ax: Axes to draw on.
+            probe: CriticalProbe with probed_agent_trajectory and affected_agent_ids.
+            agent_ids: Ordered list of agent IDs matching all_pos / all_valid rows.
+            all_pos: Ground-truth positions (N, T, 2).
+            all_valid: Ground-truth validity mask (N, T).
+            current_t: Index of the current (observation) time step.
+            colormap_name: Name of the matplotlib colormap to use (e.g. ``"plasma"``).
+        """
+        cf_traj = probe.probed_agent_trajectory  # (T, 10)
+        cf_valid = cf_traj[:, 9] > 0
+        t_total = len(cf_valid)
+
+        future_mask_cf = np.zeros(t_total, dtype=bool)
+        future_mask_cf[current_t + 1 :] = True
+        cf_fut_valid = future_mask_cf & cf_valid
+        if not cf_fut_valid.any():
+            return
+
+        cf_timesteps = np.where(cf_fut_valid)[0]
+        cf_pos = cf_traj[cf_fut_valid, :2]
+        n_future = max(1, t_total - current_t - 1)
+        t_norm = (cf_timesteps - (current_t + 1)) / n_future  # values in [0, 1]
+
+        # Counterfactual: LineCollection coloured by normalised time
+        points = cf_pos.reshape(-1, 1, 2)
+        if len(points) >= MIN_VALID_POINTS:
+            segments = list(np.concatenate([points[:-1], points[1:]], axis=1))
+            seg_t = (t_norm[:-1] + t_norm[1:]) / 2.0
+            lc = LineCollection(
+                segments,
+                cmap=colormap_name,
+                linewidth=2.0,
+                linestyle="--",
+                zorder=140,
+                label=f"Counterfactual ({probe.probe_type.value})",
+            )
+            lc.set_array(seg_t)
+            lc.set_clim(0.0, 1.0)
+            ax.add_collection(lc)
+
+        # Affected agents: future scatter coloured by the same normalised time scale
+        for aid in probe.affected_agent_ids:
+            if aid not in agent_ids:
+                continue
+            a_idx = agent_ids.index(aid)
+            fut_mask = np.zeros(t_total, dtype=bool)
+            fut_mask[current_t + 1 :] = True
+            fut_valid = fut_mask & all_valid[a_idx]
+            if not fut_valid.any():
+                continue
+            fut_ts = np.where(fut_valid)[0]
+            fut_pos = all_pos[a_idx][fut_valid]
+            fut_t_norm = (fut_ts - (current_t + 1)) / n_future
+            ax.scatter(
+                fut_pos[:, 0],
+                fut_pos[:, 1],
+                c=fut_t_norm,
+                cmap=colormap_name,
+                vmin=0.0,
+                vmax=1.0,
+                s=10,
+                zorder=133,
+                edgecolors="none",
+            )
+
     def _set_probe_axes(self, ax: Axes, scenario: Scenario) -> None:
         """Set axis limits to zoom tightly around the relevant interaction agents.
 
@@ -815,11 +978,16 @@ class BaseVisualizer(ABC):
     ) -> None:
         """Overlay the counterfactual probe on the scenario trajectories.
 
-        Renders the ground-truth trajectories for all agents (with reduced alpha for bystanders), then adds three layers
+        Renders the ground-truth trajectories for all agents (with reduced alpha for bystanders), then adds layers
         specific to the probe:
         * **Original future** of the probed agent as a dotted line.
-        * **Counterfactual future** as a dashed line in ``probe_color``.
+        * **Counterfactual future** as a dashed line in ``probe_color`` (or time-coloured via
+          ``_render_cf_temporal_coloring`` when ``show_cf_temporal_coloring`` is enabled).
         * **Criticality markers** (stars) at the frame of peak TTC or DRAC for each affected agent.
+        * **Criticality gap line** (when ``show_criticality_gap`` is enabled): a diamond on the counterfactual
+          trajectory at the criticality timestamp, connected by a dotted line to the affected agent's position at
+          the same frame, with an optional distance label — making it unambiguous whether the agents were close
+          *simultaneously*.
 
         Requires ``scenario.critical_probe`` to be set. Has no effect (with a warning) if the probe is missing.
 
@@ -837,6 +1005,12 @@ class BaseVisualizer(ABC):
         show_probe_metadata: bool = bool(self.config.get("show_probe_metadata", True))
         show_criticality_label: bool = bool(self.config.get("show_criticality_label", True))
         probe_criticality_marker_size: int = int(self.config.get("probe_criticality_marker_size", 50))
+        show_criticality_gap: bool = bool(self.config.get("show_criticality_gap", True))
+        show_gap_distance: bool = bool(self.config.get("show_gap_distance", True))
+        gap_line_color: str = str(self.config.get("gap_line_color", "crimson"))
+        gap_marker_size: int = int(self.config.get("gap_marker_size", 30))
+        show_cf_temporal_coloring: bool = bool(self.config.get("show_cf_temporal_coloring", False))
+        cf_temporal_colormap: str = str(self.config.get("cf_temporal_colormap", "plasma"))
 
         agent_data = scenario.agent_data
         agent_ids = list(agent_data.agent_ids)
@@ -911,7 +1085,9 @@ class BaseVisualizer(ABC):
         future_mask_cf = np.zeros(len(cf_valid), dtype=bool)
         future_mask_cf[current_t + 1 :] = True
         cf_fut_valid = future_mask_cf & cf_valid
-        if cf_fut_valid.any():
+        if show_cf_temporal_coloring:
+            self._render_cf_temporal_coloring(ax, probe, agent_ids, all_pos, all_valid, current_t, cf_temporal_colormap)
+        elif cf_fut_valid.any():
             cf_pos = cf_traj[cf_fut_valid, :2]
             ax.plot(
                 cf_pos[:, 0],
@@ -927,6 +1103,20 @@ class BaseVisualizer(ABC):
         self._render_criticality_markers(
             ax, probe, agent_ids, all_pos, all_valid, show_criticality_label, probe_criticality_marker_size
         )
+
+        #  Gap line: show where both agents were *at the same moment* (criticality timestamp)
+        if show_criticality_gap:
+            self._render_criticality_gap(
+                ax,
+                probe,
+                agent_ids,
+                all_pos,
+                all_valid,
+                probe_color,
+                show_gap_distance=show_gap_distance,
+                gap_line_color=gap_line_color,
+                gap_marker_size=gap_marker_size,
+            )
 
         if self.add_title:
             delta = probe.score_after - probe.score_before
