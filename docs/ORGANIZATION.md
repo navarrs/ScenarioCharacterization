@@ -30,6 +30,7 @@ All scripts accept Hydra overrides on the command line. The key groups and their
 |---|---|
 | `waymo` | Waymo Open Motion Dataset (default) |
 | `nuscenes` | nuScenes dataset |
+| `argoverse2` | Argoverse 2 Motion Forecasting dataset |
 
 ### Characterizer (`characterizer=`)
 
@@ -53,6 +54,7 @@ All scripts accept Hydra overrides on the command line. The key groups and their
 | `default` | Default local paths |
 | `waymo_sample` | Paths for the Waymo sample data under `samples/` |
 | `nuscenes_sample` | Paths for the nuScenes sample data under `samples/nuscenes/` |
+| `argoverse2_sample` | Paths for the Argoverse 2 sample data under `samples/argoverse2/` |
 
 ### Example
 
