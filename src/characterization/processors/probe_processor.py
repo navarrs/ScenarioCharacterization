@@ -198,6 +198,7 @@ class ProbeProcessor(BaseProcessor[BaseProber]):
         if self.save:
             self._save_scenario_pkl(scenario, scenario_id)
             self._save_probe_json(probe, scenario_id)
+
         if self.visualizer is not None and self.viz_dir is not None:
             try:
                 self.visualizer.visualize_scenario(scenario, output_dir=self.viz_dir)

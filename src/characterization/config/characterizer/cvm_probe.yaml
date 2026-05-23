@@ -7,8 +7,12 @@
 #   uv run python -m characterization.run_processor characterizer=cvm_probe num_scenarios=50
 #   uv run python -m characterization.run_processor characterizer=cvm_probe 'processor.config.scenario_id=<id>'
 
+defaults:
+  - default.yaml
+
 processor:
   _target_: characterization.processors.probe_processor.ProbeProcessor
+  _recursive_: false
   config:
     output_path: ${paths.cache_path}/probes/constant_velocity
     save: true
@@ -24,12 +28,30 @@ processor:
     viz: ${oc.select:viz,null}
 
 characterizer:
-  _target_: characterization.probing.prober.CounterfactualProber
+  _target_: characterization.probing.counterfactual_prober.CounterfactualProber
   config:
     probe_type: CONSTANT_VELOCITY
-    min_score_delta: 0.2
+    min_score_delta: 1.0
     return_criterion: ${return_criterion}
     n_jobs: 1
     skip_agent_types: []
     single_affected_agent: true
     validator_type: MAX_SCORE_DELTA
+
+    weights:
+      collision: 5.0
+      mttcp: 0.0
+      thw: 0.0
+      ttc: 0.0
+      drac: 0.0
+      # mttcp: 2.0
+      # thw: 2.0
+      # ttc: 2.0
+      # drac: 2.0
+
+    detections:
+      collision: 1
+      mttcp: 2
+      thw: 2
+      ttc: 2
+      drac: 5

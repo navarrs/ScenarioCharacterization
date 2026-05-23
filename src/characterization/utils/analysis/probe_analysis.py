@@ -120,7 +120,7 @@ def plot_score_distributions(df_probed: pd.DataFrame, output_dir: Path, dpi: int
     if df_probed.empty:
         logger.warning("No probed scenarios — skipping score distributions plot.")
         return
-    scores_df: pd.DataFrame = df_probed[["score_before", "score_after"]].rename(  # pyright: ignore[reportAssignmentType, reportCallIssue]
+    scores_df: pd.DataFrame = df_probed[["score_after", "score_before"]].rename(  # pyright: ignore[reportAssignmentType, reportCallIssue]
         columns={"score_before": "Score Before", "score_after": "Score After"}
     )
     out = output_dir / "score_distributions.png"
