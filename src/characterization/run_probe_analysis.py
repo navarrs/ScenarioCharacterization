@@ -48,8 +48,8 @@ def run(cfg: DictConfig) -> None:
 
     subdir = ""
     if cfg.add_timestamp:
-        subdir = f"{datetime.now(tz=UTC).strftime('%Y%m%d_%H%M%S')}_"
-    subdir = f"{subdir}{cfg.exp_tag}" if cfg.exp_tag else subdir
+        subdir = f"{datetime.now(tz=UTC).strftime('%Y%m%d_%H%M%S')}_probe_analysis"
+    subdir = f"{subdir}_{cfg.exp_tag}" if cfg.exp_tag else subdir
     output_dir = Path(cfg.output_dir) / subdir if subdir else Path(cfg.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 

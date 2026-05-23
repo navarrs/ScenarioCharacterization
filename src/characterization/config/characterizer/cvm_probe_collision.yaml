@@ -1,0 +1,29 @@
+# @package _global_
+# Characterizer config for constant-velocity-model (CVM) counterfactual probing.
+#
+# Usage:
+#   uv run python -m characterization.run_processor characterizer=cvm_probe_collision
+#   uv run python -m characterization.run_processor characterizer=cvm_probe_collision viz=probe_scenario
+#   uv run python -m characterization.run_processor characterizer=cvm_probe_collision num_scenarios=50
+#   uv run python -m characterization.run_processor characterizer=cvm_probe_collision 'processor.config.scenario_id=<id>'
+
+defaults:
+  - default.yaml
+  - cvm_probe.yaml
+
+characterizer:
+  _target_: characterization.probing.counterfactual_prober.CounterfactualProber
+  config:
+    weights:
+      collision: 5.0
+      mttcp: 0.0
+      thw: 0.0
+      ttc: 0.0
+      drac: 0.0
+
+    detections:
+      collision: 1
+      mttcp: 2
+      thw: 2
+      ttc: 2
+      drac: 5

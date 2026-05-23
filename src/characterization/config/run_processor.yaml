@@ -2,9 +2,9 @@ defaults:
   - _self_
   - paths: waymo_sample
   - dataset: waymo
-  - characterizer: individual_features
   - viz: null
   - debug: null
+  - characterizer: individual_features
 
 seed: 42
 save: true
