@@ -41,7 +41,10 @@ class ScenarioVisualizer(BaseVisualizer):
         scenario_id = scenario.metadata.scenario_id
         suffix = (
             ""
-            if SupportedPanes.HIGHLIGHT_RELEVANT_AGENTS not in self.panes_to_plot
+            if (
+                SupportedPanes.HIGHLIGHT_RELEVANT_AGENTS not in self.panes_to_plot
+                and SupportedPanes.CATEGORICAL_AGENTS not in self.panes_to_plot
+            )
             or scores is None
             or scores.scene_score is None
             else f"_{round(scores.scene_score, 2)}"
@@ -60,28 +63,24 @@ class ScenarioVisualizer(BaseVisualizer):
                         axs[i] if self.num_panes_to_plot > 1 else axs, scenario, scores, title="All Agents"
                     )
                 case SupportedPanes.HIGHLIGHT_RELEVANT_AGENTS:
-                    if self.plot_categorical:
-                        # Plot sequence data with categorical agent scores. By default it uses autumn_r colormap, which
-                        # will show lower scored agents in yellow and higher scored agents in dark red.
-                        self.plot_sequences_categorical(
-                            axs[i] if self.num_panes_to_plot > 1 else axs,
-                            scenario,
-                            scores,
-                            title="Scenario with Agent Categorical Scores",
-                        )
-                    else:
-                        # Plot trajectory data with relevant agents in a different color
-                        self.plot_sequences(
-                            axs[i] if self.num_panes_to_plot > 1 else axs,
-                            scenario,
-                            scores,
-                            show_relevant=True,
-                            title="Relevant Agents Highlighted",
-                        )
+                    self.plot_sequences(
+                        axs[i] if self.num_panes_to_plot > 1 else axs,
+                        scenario,
+                        scores,
+                        show_relevant=True,
+                        title="Relevant Agents Highlighted",
+                    )
                 case SupportedPanes.COUNTERFACTUAL_PROBE:
                     self.plot_sequences_with_probe(
                         axs[i] if self.num_panes_to_plot > 1 else axs,
                         scenario,
+                    )
+                case SupportedPanes.CATEGORICAL_AGENTS:
+                    self.plot_sequences_categorical(
+                        axs[i] if self.num_panes_to_plot > 1 else axs,
+                        scenario,
+                        scores,
+                        title="Agent Categorical Scores",
                     )
 
         # Prepare and save plot

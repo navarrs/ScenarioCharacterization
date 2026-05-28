@@ -40,6 +40,7 @@ class SupportedPanes(Enum):
     ALL_AGENTS = 0
     HIGHLIGHT_RELEVANT_AGENTS = 1
     COUNTERFACTUAL_PROBE = 2
+    CATEGORICAL_AGENTS = 3
 
 
 class BaseVisualizer(ABC):
@@ -107,8 +108,15 @@ class BaseVisualizer(ABC):
             AgentType.TYPE_RELEVANT: "coral",
         }
 
-        # Initialize the color map for risk-based categorical visualization
-        self.plot_categorical = config.get("plot_categorical", False)
+        # Set up panes to plot. It will fail if an invalid pane is provided.
+        panes = config.get("panes_to_plot", ["ALL_AGENTS"])
+        self.panes_to_plot = [SupportedPanes[pane] for pane in panes]
+        self.num_panes_to_plot = len(self.panes_to_plot)
+
+        # Initialize the color map for risk-based categorical visualization.
+        # Categorical mode is activated by including CATEGORICAL_AGENTS in panes_to_plot; it only
+        # affects the CATEGORICAL_AGENTS pane and does not alter any other pane's rendering.
+        self.plot_categorical = SupportedPanes.CATEGORICAL_AGENTS in self.panes_to_plot
         if self.plot_categorical:
             categories_filepath = Path(config.categories_file)
             if not categories_filepath.is_file():
@@ -124,13 +132,8 @@ class BaseVisualizer(ABC):
             colors = [color_map(v) for v in vals]  # RGBA
             # Convert RGBA to hex colors for matplotlib
             hex_colors = [f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}" for r, g, b, _ in colors]
-            self.categorical_color_map = {i: hex_colors[i] for i in range(self.num_categories + 1)}
+            self.categorical_color_map = {i + 1: hex_colors[i] for i in range(self.num_categories)}
             self.categorical_color_map[-1] = "lightgray"  # Color for invalid scores
-
-        # Set up panes to plot. It will fail if an invalid pane is provided.
-        panes = config.get("panes_to_plot", ["ALL_AGENTS"])
-        self.panes_to_plot = [SupportedPanes[pane] for pane in panes]
-        self.num_panes_to_plot = len(self.panes_to_plot)
 
         # Number of workers for processing animations in parallel
         self.num_workers = config.get("num_workers", 10)
@@ -213,8 +216,8 @@ class BaseVisualizer(ABC):
 
         # Get the agent normalized scores
         if scores is None or scores.agent_scores is None:
-            error_message = "Scores with agent_scores are required for categorical visualization."
-            raise ValueError(error_message)
+            logger.warning("plot_sequences_categorical called without agent scores; skipping categorical pane.")
+            return
 
         agent_scores = scores.agent_scores
         agent_scores = BaseVisualizer.convert_to_risk_levels(agent_scores, self.categories_values)
