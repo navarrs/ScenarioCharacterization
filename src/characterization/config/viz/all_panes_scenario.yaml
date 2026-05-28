@@ -1,0 +1,9 @@
+defaults:
+  - probe_scenario.yaml
+
+config:
+  panes_to_plot:
+    - ALL_AGENTS
+    - HIGHLIGHT_RELEVANT_AGENTS
+    - COUNTERFACTUAL_PROBE
+    - CATEGORICAL_AGENTS

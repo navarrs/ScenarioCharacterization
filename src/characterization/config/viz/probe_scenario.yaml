@@ -1,3 +1,6 @@
+defaults:
+ - scenario.yaml
+
 _target_: characterization.utils.viz.scenario.ScenarioVisualizer
 config:
   scenario_type: ${scenario_type}
@@ -17,8 +20,8 @@ config:
   # Gap line between probed and affected agent at criticality timestamp.
   # Draws a diamond on the counterfactual trajectory and a dotted line to the affected agent,
   # showing exactly how far apart both agents were *at the same moment in time*.
-  show_criticality_gap: true
-  show_gap_distance: true
+  show_criticality_gap: false
+  show_gap_distance: false
   gap_line_color: "crimson"
   gap_marker_size: 30
 
