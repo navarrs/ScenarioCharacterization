@@ -1,4 +1,5 @@
 import json
+from collections.abc import Mapping
 from itertools import product
 from pathlib import Path
 from typing import Any
@@ -15,12 +16,23 @@ from characterization.utils.analysis.common_analysis import (
     DEFAULT_FEATURE_CATEGORIES,
     FEATURE_COLOR_MAP,
     compute_category_thresholds,
+    get_dataset_colors,
 )
 from characterization.utils.common import EPSILON, LARGE_VALUE, InteractionStatus
 from characterization.utils.io_utils import from_pickle, get_logger
 from characterization.utils.scenario_types import AgentPairType, AgentType, get_agent_pair_type
 
 logger = get_logger(__name__)
+
+_FEATURE_DISPLAY_NAMES: dict[str, str] = {
+    "drac": "Deceleration Rate to Avoid Collision (DRAC)",
+    "ttc": "Time to Collision (TTC)",
+    "inv_ttc": "Inverse Time to Collision (Inv. TTC)",
+    "thw": "Time Headway (THW)",
+    "inv_thw": "Inverse Time Headway (Inv. THW)",
+    "mttcp": "Minimum Time to Collision Point (mTTCP)",
+    "inv_mttcp": "Inverse Minimum Time to Collision Point (Inv. mTTCP)",
+}
 
 
 def load_features(
@@ -112,7 +124,8 @@ def regroup_individual_features(individual_features: dict[str, Any]) -> dict[Age
         if feature.speed is not None:
             feature_dict[agent_type]["speed"].extend(feature.speed[mask].tolist())
         if feature.speed_limit_diff is not None:
-            feature_dict[agent_type]["speed_limit_diff"].extend(feature.speed_limit_diff[mask].tolist())
+            sld = feature.speed_limit_diff[mask]
+            feature_dict[agent_type]["speed_limit_diff"].extend(sld[~np.isnan(sld)].tolist())
         if feature.acceleration is not None:
             feature_dict[agent_type]["acceleration"].extend(feature.acceleration[mask].tolist())
         if feature.deceleration is not None:
@@ -340,3 +353,102 @@ def plot_feature_distributions(
         output_filepath = output_dir / f"{agent_type.name.lower()}_feature_percentiles.json"
         with open(output_filepath, "w") as f:
             json.dump(feature_percentiles, f, indent=4)
+
+
+def plot_multi_dataset_feature_distributions(
+    feature_data_by_dataset: Mapping[str, dict[AgentType, Any] | dict[AgentPairType, Any]],
+    output_dir: Path,
+    dpi: int = 300,
+    tag: str = "",
+    *,
+    show_kde: bool = True,
+    include_pairs_with_no_vehicles: bool = False,
+) -> None:
+    """Plots overlapping feature distributions for multiple datasets on shared axes.
+
+    Each dataset is rendered as a semi-transparent histogram with a distinct color. One PNG is
+    saved per (agent_type, feature_name) pair. Feature names in ``_FEATURE_DISPLAY_NAMES`` are
+    rendered with their full spelled-out name and abbreviation.
+
+    Args:
+        feature_data_by_dataset (dict[str, dict]): Mapping from dataset label to regrouped feature
+            data (as returned by ``regroup_individual_features`` or ``regroup_interaction_features``).
+        output_dir (Path): Directory to save the output plots.
+        dpi (int): Dots per inch for the saved figure.
+        tag (str): Optional tag to prepend to output filenames.
+        show_kde (bool): Whether to show the kernel density estimate on each histogram.
+        include_pairs_with_no_vehicles (bool): Whether to include interaction pairs that do not
+            involve any vehicles.
+    """
+    sns.set_theme(
+        style="whitegrid",
+        font_scale=0.9,
+        rc={
+            "grid.linestyle": "--",
+            "grid.alpha": 0.3,
+            "font.family": "sans-serif",
+            "font.sans-serif": ["DejaVu Sans"],
+        },
+    )
+    prefix = f"{tag}_" if tag else ""
+    dataset_labels = list(feature_data_by_dataset.keys())
+    dataset_colors = get_dataset_colors(dataset_labels)
+
+    # Use the first dataset's structure as the canonical schema; all datasets share it.
+    first_dataset_features = next(iter(feature_data_by_dataset.values()))
+
+    for agent_type, features_for_first in first_dataset_features.items():
+        if agent_type == AgentPairType.TYPE_OTHER:
+            continue
+        if not include_pairs_with_no_vehicles and agent_type in [
+            AgentPairType.TYPE_CYCLIST_CYCLIST,
+            AgentPairType.TYPE_PEDESTRIAN_PEDESTRIAN,
+            AgentPairType.TYPE_PEDESTRIAN_CYCLIST,
+        ]:
+            continue
+
+        for feature_name in features_for_first:
+            _, ax = plt.subplots(1, 1, figsize=(10, 6))
+            all_values: list[Any] = []
+
+            for label, feature_data in feature_data_by_dataset.items():
+                if agent_type not in feature_data:
+                    continue
+                feature_values = feature_data[agent_type].get(feature_name)  # pyright: ignore[reportArgumentType]
+                if feature_values is None or feature_values.shape[0] == 0:
+                    continue
+                all_values.append(feature_values)
+                logger.info(
+                    "Plotting %s for %s / %s with %d samples",
+                    feature_name,
+                    label,
+                    agent_type.name,
+                    feature_values.shape[0],
+                )
+                sns.histplot(
+                    feature_values,
+                    color=dataset_colors[label],
+                    bins=20,
+                    kde=show_kde,
+                    stat="density",
+                    alpha=0.5,
+                    edgecolor=None,
+                    label=f"{label} (n={feature_values.shape[0]})",
+                    ax=ax,
+                )
+
+            ax.set_yscale("log")
+            sns.despine(top=True, right=True)
+            feature_title = _FEATURE_DISPLAY_NAMES.get(feature_name, feature_name.replace("_", " ").title())
+            ax.set_xlabel(f"{feature_title} values")
+            ax.set_ylabel("Density")
+            ax.set_title(f"{feature_title} Distribution")
+            ax.grid(visible=True, linestyle="--", alpha=0.4)
+            ax.legend(title="Dataset", fontsize=8)
+
+            plt.tight_layout()
+            output_filepath = (
+                output_dir / f"{prefix}{feature_name}_{agent_type.name.lower()}_distributions_combined.png"
+            )
+            plt.savefig(output_filepath, dpi=dpi)
+            plt.close()
