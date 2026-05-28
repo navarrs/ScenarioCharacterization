@@ -81,12 +81,13 @@ class IndividualScorer(BaseScorer):
             # NOTE: this can be improved in the future. Currently, if "self.categorize_scores" is True, we compute the
             # weighted score value first and then categorize it. In this case is because we want to categorize the
             # agent accounting for its relevance to the ego-agent.
+            _sld = float(features.speed_limit_diff[n]) if features.speed_limit_diff is not None else float("nan")
             score_value = weights[valid_idx] * self.score_function(
                 speed=features.speed[n] if features.speed is not None else 0.0,
                 speed_weight=self.weights.speed,
                 speed_detection=self.detections.speed,
-                speed_limit_diff=features.speed_limit_diff[n] if features.speed_limit_diff is not None else 0.0,
-                speed_limit_diff_weight=self.weights.speed_limit_diff,
+                speed_limit_diff=_sld if not np.isnan(_sld) else 0.0,
+                speed_limit_diff_weight=self.weights.speed_limit_diff if not np.isnan(_sld) else 0.0,
                 speed_limit_diff_detection=self.detections.speed_limit_diff,
                 acceleration=features.acceleration[n] if features.acceleration is not None else 0.0,
                 acceleration_weight=self.weights.acceleration,
