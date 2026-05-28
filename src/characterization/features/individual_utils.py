@@ -15,20 +15,21 @@ def compute_speed_meta(
     lane_speed_limits: NDArray[np.float32] | None,
     *,
     apply_smoothing: bool = True,
-) -> tuple[NDArray[np.float32] | None, ...]:
+) -> tuple[NDArray[np.float32] | None, NDArray[np.float32] | None]:
     """Computes the speed profile of an agent.
 
     Args:
         velocities (NDArray[np.float32]): The velocity vectors of the agent over time (shape: [T, D]).
         closest_lanes (NDArray[np.float32] or None): closest lanes information (shape: [T, K, 6]) or None.
         lane_speed_limits (NDArray[np.float32] or None): Speed limits for each lane (shape: [K,]) or None.
+            Values of NaN indicate that speed limit data is not available for that lane.
         apply_smoothing (bool, optional): Whether to apply smoothing to the speed profile. Defaults to True.
 
     Returns:
         tuple:
             speeds (NDArray[np.float32] or None): The speed time series (shape: [T,]), or None if NaN values are
             present. speeds_limit_diff (NDArray[np.float32] or None): The difference between speed and speed limit
-            (currently zeros), or None if NaN values are present.
+            (shape: [T,]), or None if NaN values are present or speed limit data is unavailable.
     """
     speeds = np.linalg.norm(velocities, axis=-1)
     if apply_smoothing:
@@ -36,11 +37,11 @@ def compute_speed_meta(
 
     if np.isnan(speeds).any():
         logger.warning("Nan value in agent speed: %s", speeds)
-        return None, None, None
+        return None, None
 
-    # If lane information is provided, compute the difference between the agent's speed and the speed limit
-    speeds_limit_diff = np.zeros_like(speeds, dtype=np.float32)
-    if closest_lanes is not None and lane_speed_limits is not None:
+    # If lane information and valid speed limits are provided, compute the speed limit diff
+    speeds_limit_diff: NDArray[np.float32] | None = None
+    if closest_lanes is not None and lane_speed_limits is not None and not np.all(np.isnan(lane_speed_limits)):
         # closest_lane_dist_and_idx shape: (T, K)
         k_closest_lane_idx = closest_lanes.lane_idx.squeeze(-1)  # shape: (T, K)
         k_speed_limits = mph_to_ms(

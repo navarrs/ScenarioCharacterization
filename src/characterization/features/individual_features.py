@@ -183,8 +183,9 @@ class IndividualFeatures(BaseFeature):
             # Speed Profile
             closest_lane_n = LaneMasker(closest_lanes[n, mask]) if closest_lanes is not None else None
             speeds, speed_limit_diffs = individual.compute_speed_meta(velocities, closest_lane_n, lane_speed_limits)
-            if speeds is None or speed_limit_diffs is None:
+            if speeds is None:
                 continue
+            # speed_limit_diffs may be None for datasets without speed limit data
 
             # Acceleration/Deceleration Profile
             # NOTE: acc and dec are accumulated abs acceleration and deceleration profiles.
@@ -215,14 +216,14 @@ class IndividualFeatures(BaseFeature):
             match self.return_criterion:
                 case ReturnCriterion.CRITICAL:
                     speed = speeds.max()
-                    speed_limit_diff = speed_limit_diffs.max()
+                    speed_limit_diff: float = speed_limit_diffs.max() if speed_limit_diffs is not None else float("nan")
                     acceleration = accelerations.max()
                     deceleration = decelerations.max()
                     jerk = jerks.max() if jerks is not None else None
                     waiting_period = waiting_periods.max()
                 case ReturnCriterion.AVERAGE:
                     speed = speeds.mean()
-                    speed_limit_diff = speed_limit_diffs.mean()
+                    speed_limit_diff = speed_limit_diffs.mean() if speed_limit_diffs is not None else float("nan")
                     acceleration = accelerations.mean()
                     deceleration = decelerations.mean()
                     jerk = jerks.mean() if jerks is not None else None
@@ -233,7 +234,8 @@ class IndividualFeatures(BaseFeature):
 
             if self.categorize_features:
                 speed = self.categorize(speed, agent_type, "speed")
-                speed_limit_diff = self.categorize(speed_limit_diff, agent_type, "speed_limit_diff")
+                if not np.isnan(speed_limit_diff):
+                    speed_limit_diff = self.categorize(speed_limit_diff, agent_type, "speed_limit_diff")
                 acceleration = self.categorize(acceleration, agent_type, "acceleration")
                 deceleration = self.categorize(deceleration, agent_type, "deceleration")
                 jerk = self.categorize(jerk, agent_type, "jerk") if jerk is not None else 0.0
