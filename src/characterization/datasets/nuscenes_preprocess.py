@@ -242,7 +242,7 @@ def _build_lane_polyline(nusc_map: NuScenesMap, token: str) -> NDArray[np.float3
         lane = nusc_map.get_arcline_path(token)
         poses = arcline_path_utils.discretize_lane(lane, _LANE_RESOLUTION_M)
     except Exception:  # noqa: BLE001
-        logger.debug("Skipping lane %s: discretize_lane failed", token)
+        logger.warning("Skipping lane %s: discretize_lane failed", token)
         return None
     if len(poses) < MIN_VALID_POINTS:
         return None
@@ -271,7 +271,7 @@ def _build_polygon_polyline(
     try:
         polygon = nusc_map.extract_polygon(record["polygon_token"])
     except Exception:  # noqa: BLE001
-        logger.debug("Skipping %s %s: extract_polygon failed", layer_name, token)
+        logger.warning("Skipping %s %s: extract_polygon failed", layer_name, token)
         return None
     coords = list(polygon.exterior.coords)[:-1]
     points = np.array([[c[0], c[1], 0.0] for c in coords], dtype=np.float32)
@@ -322,7 +322,7 @@ def decode_map_features(
         for token in records.get(layer_name, []):
             polyline = _build_lane_polyline(nusc_map, token)
             if polyline is not None:
-                _append("lane", polyline, {"speed_limit_mph": 0.0})
+                _append("lane", polyline, {"speed_limit_mph": float("nan")})
 
     for layer_name, type_id in [
         ("road_divider", PolylineType.TYPE_BROKEN_SINGLE_WHITE.value),

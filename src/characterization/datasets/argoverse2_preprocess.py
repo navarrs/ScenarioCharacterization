@@ -70,19 +70,22 @@ DEFAULT_DIMS: dict[ObjectType, tuple[float, float, float]] = {
 }
 
 # LaneMarkType → polyline type ID; None = skip this boundary entirely.
+# For compound markings (SOLID_DASH, DASH_SOLID), the most restrictive side (solid) is used
+# since no exact PolylineType analog exists. DOUBLE_DASH_WHITE maps to BROKEN_SINGLE_WHITE
+# because TYPE_BROKEN_DOUBLE_WHITE does not exist in the enum.
 LANE_MARK_TO_POLYLINE_TYPE: dict[LaneMarkType, int | None] = {
-    LaneMarkType.SOLID_WHITE: PolylineType.TYPE_BROKEN_SINGLE_WHITE.value,
-    LaneMarkType.SOLID_YELLOW: PolylineType.TYPE_BROKEN_SINGLE_WHITE.value,
-    LaneMarkType.DOUBLE_SOLID_WHITE: PolylineType.TYPE_BROKEN_SINGLE_WHITE.value,
-    LaneMarkType.DOUBLE_SOLID_YELLOW: PolylineType.TYPE_BROKEN_SINGLE_WHITE.value,
-    LaneMarkType.DASHED_WHITE: PolylineType.TYPE_BROKEN_SINGLE_YELLOW.value,
+    LaneMarkType.SOLID_WHITE: PolylineType.TYPE_SOLID_SINGLE_WHITE.value,
+    LaneMarkType.SOLID_YELLOW: PolylineType.TYPE_SOLID_SINGLE_YELLOW.value,
+    LaneMarkType.DOUBLE_SOLID_WHITE: PolylineType.TYPE_SOLID_DOUBLE_WHITE.value,
+    LaneMarkType.DOUBLE_SOLID_YELLOW: PolylineType.TYPE_SOLID_DOUBLE_YELLOW.value,
+    LaneMarkType.DASHED_WHITE: PolylineType.TYPE_BROKEN_SINGLE_WHITE.value,
     LaneMarkType.DASHED_YELLOW: PolylineType.TYPE_BROKEN_SINGLE_YELLOW.value,
-    LaneMarkType.DOUBLE_DASH_WHITE: PolylineType.TYPE_BROKEN_SINGLE_YELLOW.value,
-    LaneMarkType.DOUBLE_DASH_YELLOW: PolylineType.TYPE_BROKEN_SINGLE_YELLOW.value,
-    LaneMarkType.SOLID_DASH_WHITE: PolylineType.TYPE_BROKEN_SINGLE_YELLOW.value,
-    LaneMarkType.SOLID_DASH_YELLOW: PolylineType.TYPE_BROKEN_SINGLE_YELLOW.value,
-    LaneMarkType.DASH_SOLID_WHITE: PolylineType.TYPE_BROKEN_SINGLE_YELLOW.value,
-    LaneMarkType.DASH_SOLID_YELLOW: PolylineType.TYPE_BROKEN_SINGLE_YELLOW.value,
+    LaneMarkType.DOUBLE_DASH_WHITE: PolylineType.TYPE_BROKEN_SINGLE_WHITE.value,
+    LaneMarkType.DOUBLE_DASH_YELLOW: PolylineType.TYPE_BROKEN_DOUBLE_YELLOW.value,
+    LaneMarkType.SOLID_DASH_WHITE: PolylineType.TYPE_SOLID_SINGLE_WHITE.value,
+    LaneMarkType.SOLID_DASH_YELLOW: PolylineType.TYPE_SOLID_SINGLE_YELLOW.value,
+    LaneMarkType.DASH_SOLID_WHITE: PolylineType.TYPE_SOLID_SINGLE_WHITE.value,
+    LaneMarkType.DASH_SOLID_YELLOW: PolylineType.TYPE_SOLID_SINGLE_YELLOW.value,
     LaneMarkType.NONE: None,
     LaneMarkType.UNKNOWN: None,
 }
@@ -205,7 +208,7 @@ def decode_map_features(static_map: ArgoverseStaticMap) -> dict[str, Any]:
         centerline = static_map.get_lane_segment_centerline(ls.id).astype(np.float32)
         pl = build_polyline(centerline, PolylineType.TYPE_SURFACE_STREET.value)
         if pl is not None:
-            _append("lane", pl, {"speed_limit_mph": 0.0})
+            _append("lane", pl, {"speed_limit_mph": float("nan")})
 
         # Left and right lane boundaries → road_line (if mark type is not NONE/UNKNOWN)
         for boundary, mark_type in (
