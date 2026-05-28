@@ -46,6 +46,36 @@ AGENT_COLORS = {
     AgentPairType.TYPE_OTHER: "gray",
 }
 
+# Colors chosen to be visually distinct from all AGENT_COLORS hues (gray, slategray, plum, forestgreen,
+# dodgerblue, coral, lightpink, mediumseagreen, darkgreen).
+DATASET_COLORS: dict[str, str] = {
+    "waymo": "#1B82E2",  # vivid red
+    "nuscenes": "#52E2D1",  # vivid orange
+    "argoverse2": "#EEBC47",  # medium purple
+}
+
+_DATASET_FALLBACK_PALETTE: tuple[str, ...] = (
+    "#8C564B",  # brown
+    "#BCBD22",  # olive/yellow-green
+    "#17BECF",  # cyan
+    "#E377C2",  # magenta-pink
+)
+
+
+def get_dataset_colors(dataset_labels: list[str]) -> dict[str, str]:
+    """Returns a stable label → color mapping for multi-dataset plots.
+
+    Known datasets (waymo, nuscenes, argoverse2) get fixed colors that do not overlap with
+    AGENT_COLORS. Unknown labels cycle through _DATASET_FALLBACK_PALETTE.
+    """
+    result: dict[str, str] = {}
+    fallback_iter = iter(_DATASET_FALLBACK_PALETTE)
+    for label in dataset_labels:
+        label_low = label.lower()
+        result[label] = DATASET_COLORS[label_low] if label_low in DATASET_COLORS else next(fallback_iter, "#AAAAAA")
+    return result
+
+
 DEFAULT_FEATURE_CATEGORIES: list[dict[str, Any]] = [
     {"name": "LOW", "percentile_range": [0, 25]},
     {"name": "MEDIUM", "percentile_range": [25, 75]},

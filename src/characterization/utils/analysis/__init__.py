@@ -14,6 +14,7 @@ from characterization.utils.analysis.feature_analysis import (
     load_features,
     load_scenario_features,
     plot_feature_distributions,
+    plot_multi_dataset_feature_distributions,
     regroup_individual_features,
     regroup_interaction_features,
 )
@@ -63,6 +64,7 @@ __all__ = [
     "plot_agent_scores_voxel_by_agent_type",
     "plot_feature_distributions",
     "plot_histograms_from_dataframe",
+    "plot_multi_dataset_feature_distributions",
     "plot_probe_outcome_pie",
     "plot_score_delta_by_agent_type",
     "plot_score_delta_density",

@@ -3,34 +3,55 @@ defaults:
   - run_processor.yaml
   - override viz: scenario
 
-# Path to probe_summary.csv produced by run_scenario_probing; used by run_probe_analysis.
-probe_csv: ${paths.cache_path}/probes/constant_velocity/probe_summary.csv
+# ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+# Shared Parameters
+# ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
+# Data paths
 scores_path: ${paths.cache_path}/scores
 features_path: ${paths.cache_path}/features
 meta_path: ./meta/${paths.dataset_name}
 
-# General parameters
+# Output
+output_dir: ${paths.cache_path}/analysis
+add_timestamp: true
+exp_tag: ""
+dpi: 300
+
+# Scenario filtering (shared by feature and score analysis scripts)
 scenario_types:
   - gt
   # - ho # NOTE: currently not supported.
 criteria:
-  - critical_categorical
-  # - critical_continuous
+  # - critical_categorical
+  - critical_continuous
 scores:
   - individual
   - interaction
   - safeshift
-dpi: 300
-output_dir: ${paths.cache_path}/analysis
-add_timestamp: true
-exp_tag: ""
 total_scenarios: null
 
-# Feature Analysis Parameters
-show_kde: true
+# Multi-dataset analysis. When set, each entry requires {label, dataset_name}.
+# All datasets use the same top-level scenario_types and criteria.
+# Per-dataset paths (features_path, scores_path) are derived by substituting dataset_name into
+# the existing path templates. Used by both run_feature_analysis.py and run_score_analysis.py.
+# Example:
+#   datasets:
+#     - label: Waymo
+#       dataset_name: waymo
+#     - label: nuScenes
+#       dataset_name: nuscenes
+datasets: null
+
+# ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+# Feature Analysis
+# ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+show_kde: false
 show_percentiles: true
 show_colored_by_agent_type: true # If false, it will color by feature type
+include_pairs_with_no_vehicles: false
+
 feature_categories:
   - name: LOW
     percentile_range: [0, 25]
@@ -41,18 +62,31 @@ feature_categories:
   - name: CRITICAL
     percentile_range: [90, 100]
 
-# Score Analysis Parameters
+# ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+# Score Analysis
+# ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
 tag: 'full'
 test_percentile: 80 # Percentile to use to determine if holding out scenario for testing
 
-# Scenario Visualization Parameters
-percentiles:
+# ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+# Probe Analysis
+# ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+# Path to probe_summary.csv produced by run_processor with characterizer=cvm_probe.
+probe_csv: ${paths.cache_path}/probes/constant_velocity/probe_summary.csv
+
+# ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+# Scenario Visualization
+# ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+scenario_id: null  # If set, only visualize this single scenario (matched by pickle filename stem)
+scenario_viz_dir: ${output_dir}/scenario_viz
+scores_tag: 'gt_critical_continuous' # Either 'gt_critical_continuous' or 'ho_critical_categorical'
+score_to_visualize: 'safeshift'
+organize_by_percentile: false
+percentiles:  # Score percentile bucket boundaries used when organize_by_percentile is true
   - 10
   - 50
   - 80
-scenario_viz_dir: ${output_dir}/scenario_viz
-viz_scored_scenarios: true
-scores_tag: 'gt_critical_categorical' # Either 'gt_critical_continuous' or 'ho_critical_categorical'
-score_to_visualize: 'safeshift'
-organize_by_percentile: false
 scenario_to_score_mapping_filepath: ${meta_path}/scene_to_scores_mapping.csv
+probed_scenarios_path: ${paths.cache_path}/probes/constant_velocity/probed_scenarios
