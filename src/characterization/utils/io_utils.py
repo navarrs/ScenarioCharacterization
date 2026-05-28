@@ -56,6 +56,36 @@ def get_logger(name: str = __name__) -> logging.Logger:
     return logger
 
 
+class _NumpyCompatUnpickler(pickle.Unpickler):
+    """Unpickler that tolerates cross-version numpy pickles.
+
+    NumPy 2.0 moved its internal modules from ``numpy.core`` to ``numpy._core``.
+    Pickle files written with NumPy 2.x therefore reference ``numpy._core.*``,
+    which does not exist in NumPy 1.x environments (and vice-versa).
+
+    This subclass intercepts :py:meth:`find_class` and redirects any such
+    references so that files round-trip correctly regardless of which NumPy
+    major version produced them:
+
+    * ``numpy._core.*``  →  ``numpy.core.*``   (2.x pickle, 1.x runtime)
+    * ``numpy.core.*``   →  ``numpy._core.*``  (1.x pickle, 2.x runtime)
+
+    NumPy 2.x already ships ``numpy.core`` as a compatibility shim, so the
+    second mapping is rarely exercised in practice, but it is included for
+    completeness.
+    """
+
+    def find_class(self, module: str, name: str) -> Any:  # noqa: ANN401
+        if module.startswith("numpy._core"):
+            module = module.replace("numpy._core", "numpy.core", 1)
+        elif module.startswith("numpy.core"):
+            try:
+                return super().find_class(module, name)
+            except (ModuleNotFoundError, AttributeError):
+                module = module.replace("numpy.core", "numpy._core", 1)
+        return super().find_class(module, name)
+
+
 def from_pickle(data_file: str) -> dict[str, Any] | None:
     """Loads data from a pickle file.
 
@@ -74,7 +104,7 @@ def from_pickle(data_file: str) -> dict[str, Any] | None:
         return None
 
     with open(data_file, "rb") as f:
-        return pickle.load(f)  # nosec B301
+        return _NumpyCompatUnpickler(f).load()  # nosec B301
 
 
 def to_pickle(
@@ -102,7 +132,7 @@ def to_pickle(
     # If not overwriting and file exists, load existing data to merge with new data
     if os.path.exists(data_file):
         with open(data_file, "rb") as f:
-            data = pickle.load(f)  # nosec B301
+            data = _NumpyCompatUnpickler(f).load()  # nosec B301
 
     scenario_id_data = data.get("scenario_id", None)
     if scenario_id_data is not None and scenario_id_data != input_data["scenario_id"]:
