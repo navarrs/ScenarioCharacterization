@@ -1,60 +1,57 @@
 {
     "inv_separation": {
-        "10": 0.01,
-        "75": 0.06,
-        "80": 0.07,
-        "90": 0.18,
-        "95": 0.44,
-        "99": 2.49
+        "LOW/MEDIUM": 0.02,
+        "MEDIUM/HIGH": 0.06,
+        "HIGH/CRITICAL": 0.18
     },
     "separation": {
-        "10": 5.68,
-        "75": 56.77,
-        "80": 62.09,
-        "90": 76.45,
-        "95": 85.08,
-        "99": 96.22
+        "LOW/MEDIUM": 17.97,
+        "MEDIUM/HIGH": 56.59,
+        "HIGH/CRITICAL": 76.44
     },
     "intersection": {
-        "10": 0.0
+        "LOW/MEDIUM": 0.0,
+        "MEDIUM/HIGH": 0.0,
+        "HIGH/CRITICAL": 0.0
     },
     "collision": {
-        "10": 0.0
+        "LOW/MEDIUM": 0.0,
+        "MEDIUM/HIGH": 0.0,
+        "HIGH/CRITICAL": 0.0
     },
     "inv_mttcp": {
-        "10": 0.0,
-        "90": 1.06,
-        "95": 10.0
+        "LOW/MEDIUM": 0.0,
+        "MEDIUM/HIGH": 0.0,
+        "HIGH/CRITICAL": 1.25
     },
     "mttcp": {
-        "10": 0.94,
-        "75": 1000000.0
+        "LOW/MEDIUM": 1000000.0,
+        "MEDIUM/HIGH": 1000000.0,
+        "HIGH/CRITICAL": 1000000.0
     },
     "inv_thw": {
-        "10": 0.0,
-        "75": 0.12,
-        "90": 0.69,
-        "95": 1.91,
-        "99": 10.0
+        "LOW/MEDIUM": 0.0,
+        "MEDIUM/HIGH": 0.07,
+        "HIGH/CRITICAL": 0.3
     },
     "thw": {
-        "10": 1.45,
-        "75": 1000000.0
+        "LOW/MEDIUM": 14.34,
+        "MEDIUM/HIGH": 1000000.0,
+        "HIGH/CRITICAL": 1000000.0
     },
     "inv_ttc": {
-        "10": 0.0,
-        "90": 0.46,
-        "95": 1.41,
-        "99": 10.0
+        "LOW/MEDIUM": 0.0,
+        "MEDIUM/HIGH": 0.03,
+        "HIGH/CRITICAL": 0.23
     },
     "ttc": {
-        "10": 2.16,
-        "75": 1000000.0
+        "LOW/MEDIUM": 32.01,
+        "MEDIUM/HIGH": 1000000.0,
+        "HIGH/CRITICAL": 1000000.0
     },
     "drac": {
-        "10": 0.0,
-        "90": 1.24,
-        "95": 4.31,
-        "99": 15.0
+        "LOW/MEDIUM": 0.0,
+        "MEDIUM/HIGH": 0.02,
+        "HIGH/CRITICAL": 0.74
     }
 }

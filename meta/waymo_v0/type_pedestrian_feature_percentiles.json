@@ -1,0 +1,37 @@
+{
+    "speed": {
+        "LOW/MEDIUM": 0.8899999856948853,
+        "MEDIUM/HIGH": 1.649999976158142,
+        "HIGH/CRITICAL": 2.9100000858306885
+    },
+    "speed_limit_diff": {
+        "LOW/MEDIUM": 6.639999866485596,
+        "MEDIUM/HIGH": 12.539999961853027,
+        "HIGH/CRITICAL": 15.520000457763672
+    },
+    "acceleration": {
+        "LOW/MEDIUM": 0.41999998688697815,
+        "MEDIUM/HIGH": 1.309999942779541,
+        "HIGH/CRITICAL": 3.7300000190734863
+    },
+    "deceleration": {
+        "LOW/MEDIUM": 0.4300000071525574,
+        "MEDIUM/HIGH": 1.2699999809265137,
+        "HIGH/CRITICAL": 3.5899999141693115
+    },
+    "jerk": {
+        "LOW/MEDIUM": 3.309999942779541,
+        "MEDIUM/HIGH": 8.819999694824219,
+        "HIGH/CRITICAL": 28.110000610351562
+    },
+    "waiting_period": {
+        "LOW/MEDIUM": 0.05999999865889549,
+        "MEDIUM/HIGH": 0.6800000071525574,
+        "HIGH/CRITICAL": 2.1700000762939453
+    },
+    "kalman_difficulty": {
+        "LOW/MEDIUM": 0.05999999865889549,
+        "MEDIUM/HIGH": 1.399999976158142,
+        "HIGH/CRITICAL": 3.5
+    }
+}
