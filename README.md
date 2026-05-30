@@ -1,10 +1,26 @@
+<p align="center">
+  <a href="https://github.com/astral-sh/uv">
+  <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json" /></a>
+  <a href="https://github.com/astral-sh/ruff">
+  <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" /></a>
+  <a href="https://github.com/astral-sh/ty">
+  <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json" /></a>
+  <a href="https://docs.pydantic.dev">
+  <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/pydantic/pydantic/main/docs/badge/v2.json" /></a>
+  <a href="https://hydra.cc">
+  <img src="https://img.shields.io/badge/config-Hydra-E87615" /></a>
+</p>
+
+
 # ![WIP](https://img.shields.io/badge/status-WIP-orange) ScenarioCharacterization
 
->    **Note:** This project is a work in progress.
+An open-source framework for automated, dataset-agnostic profiling of driving scenarios in trajectory datasets. Built upon the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift), this project extends it into a modular, configuration-driven pipeline with three layers:
 
-A generalizable, automated scenario characterization framework for trajectory datasets. This project is primarily a re-implementation of the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift), as part of an internship project at **StackAV**.
+1. **Dataset adapter** — ingests custom datasets and re-formats them into a common scenario representation, validated by Pydantic schemas.
+2. **Characterizer** — performs feature extraction, behavior probing, and criticality scoring at the scenario and agent levels.
+3. **Analysis** — supports scenario visualization, feature and score analyses, categorical profiling, and scenario mining.
 
-## Diagram Visualization
+New datasets plug in without rewriting the characterization and analysis stack. The framework is demonstrated on [Waymo Open Motion](https://waymo.com/open), [nuScenes](https://www.nuscenes.org/), and [Argoverse2](https://www.argoverse.org/av2.html). Developed as part of an internship project at **StackAV**.
 
 <img width="100%" alt="Scenario Characterization workflow diagram" src="https://github.com/user-attachments/assets/2639ed69-6b7e-407a-a510-ff064e39453e" /> <!-- pragma: allowlist secret -->
 
@@ -17,11 +33,6 @@ A generalizable, automated scenario characterization framework for trajectory da
 | Results from our categorical profiler. Agents are visualized from dark green (low crit.) to dark red (high crit.) based on their criticality with respect to the ego agent (blue). | Result from our animated visualizer, showing agents by type: vehicle (gray), pedestrian (magenta), cyclist (green), and ego (blue), along with the scenario's elapsed time throughout the episode. | Result from our static scenario visualizer. The episode's time is shown by increasing trajectory opacity over time. |
 
 Repository: [github.com/navarrs/ScenarioCharacterization](https://github.com/navarrs/ScenarioCharacterization)
-
-This repository currently uses:
-- [uv](https://docs.astral.sh/uv/) as the package manager.
-- [Hydra](https://hydra.cc/docs/intro/) for hierarchical configuration management.
-- [Pydantic](https://docs.pydantic.dev/latest/) for input/output data validation.
 
 ## Installation
 
