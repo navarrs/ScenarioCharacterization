@@ -6,7 +6,7 @@ A generalizable, automated scenario characterization framework for trajectory da
 
 ## Diagram Visualization
 
-<img width="1200" alt="ScenarioCharacterization diagram visualization" src="https://github.com/user-attachments/assets/2639ed69-6b7e-407a-a510-ff064e39453e" /> <!-- pragma: allowlist secret -->
+<img width="1200" alt="High-level ScenarioCharacterization workflow diagram showing data ingestion, characterization, profiling, visualization, and analysis outputs." src="https://github.com/user-attachments/assets/2639ed69-6b7e-407a-a510-ff064e39453e" /> <!-- pragma: allowlist secret -->
 
 ## Visualization Examples
 
