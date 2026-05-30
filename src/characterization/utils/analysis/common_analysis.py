@@ -229,6 +229,9 @@ def compute_category_thresholds(data: NDArray[np.float64], categories: list[dict
     Returns:
         dict mapping "CAT_A/CAT_B" boundary labels to threshold values.
     """
+    if len(data) == 0:
+        logger.warning("compute_category_thresholds received empty data; returning empty thresholds")
+        return {}
     # Work on a local copy so pushing hi doesn't mutate the caller's category list.
     cats = [{"name": c["name"], "percentile_range": list(c["percentile_range"])} for c in categories]
     thresholds: dict[str, float] = {}
