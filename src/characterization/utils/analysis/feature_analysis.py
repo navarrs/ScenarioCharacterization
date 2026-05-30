@@ -301,6 +301,10 @@ def plot_feature_distributions(
         for feature_name, feature_values in features.items():
             logger.info("Plotting %s for %s with %d samples", feature_name, agent_type.name, feature_values.shape[0])
 
+            if feature_values.shape[0] == 0:
+                logger.warning("No data for feature %s / %s; skipping plot", feature_name, agent_type.name)
+                continue
+
             color = (
                 AGENT_COLORS.get(agent_type, "gray")
                 if show_colored_by_agent_type
