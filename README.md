@@ -4,6 +4,10 @@
 
 A generalizable, automated scenario characterization framework for trajectory datasets. This project is primarily a re-implementation of the scenario characterization approach introduced in [SafeShift](https://github.com/cmubig/SafeShift), as part of an internship project at **StackAV**.
 
+## Diagram Visualization
+
+<img width="1200" alt="ScenarioCharacterization diagram visualization" src="https://github.com/user-attachments/assets/2639ed69-6b7e-407a-a510-ff064e39453e" /> <!-- pragma: allowlist secret -->
+
 ## Visualization Examples
 
 | | | |
