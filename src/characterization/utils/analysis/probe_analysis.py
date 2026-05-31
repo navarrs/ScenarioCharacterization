@@ -5,6 +5,7 @@ Helpers for loading, transforming, and visualizing the ``probe_summary.csv`` pro
 """
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -13,7 +14,7 @@ import pandas as pd
 import seaborn as sns
 
 from characterization.processors.probe_processor import CSV_FIELDS
-from characterization.utils.analysis.common_analysis import plot_histograms_from_dataframe
+from characterization.utils.analysis.common_analysis import get_dataset_colors, plot_histograms_from_dataframe
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -179,8 +180,10 @@ def plot_score_delta_by_agent_type(df_probed: pd.DataFrame, output_dir: Path, dp
         data=df_plot,  # pyright: ignore[reportArgumentType]
         x="Agent Type",
         y="score_delta",
+        hue="Agent Type",
         palette=_PALETTE,
         inner="box",
+        legend=False,
         ax=ax,
     )
     ax.set_xlabel("Probed Agent Type", fontsize=12)
@@ -317,3 +320,256 @@ def save_probe_summary_json(df: pd.DataFrame, df_probed: pd.DataFrame, output_di
     out = output_dir / "probe_analysis_summary.json"
     out.write_text(json.dumps(summary, indent=2))
     logger.info("Saved probe analysis summary -> %s", out)
+
+
+# ---------------------------------------------------------------------------
+# Multi-dataset combined overlay plots
+# ---------------------------------------------------------------------------
+
+
+def plot_multi_dataset_probe_outcomes(
+    dfs_by_dataset: Mapping[str, pd.DataFrame],
+    output_dir: Path,
+    dpi: int = 300,
+) -> None:
+    """Grouped bar chart comparing probe outcome percentages across multiple datasets.
+
+    Args:
+        dfs_by_dataset: Mapping from dataset label to the full probe summary DataFrame.
+        output_dir: Directory to write ``probe_outcomes_combined.png``.
+        dpi: Output image resolution.
+    """
+    dataset_labels = list(dfs_by_dataset.keys())
+    colors = get_dataset_colors(dataset_labels)
+
+    categories = ["No probe", "Ego probe", "Non-ego probe"]
+    x = np.arange(len(categories))
+    bar_width = 0.8 / max(len(dataset_labels), 1)
+
+    _fig, ax = plt.subplots(figsize=(9, 5))
+    for i, label in enumerate(dataset_labels):
+        df = dfs_by_dataset[label]
+        total = max(len(df), 1)
+        no_probe = int((df["probe_found"] == "no").sum())
+        ego_probe = int(((df["probe_found"] == "yes") & (df["is_ego_agent"] == "yes")).sum())
+        non_ego_probe = int(((df["probe_found"] == "yes") & (df["is_ego_agent"] == "no")).sum())
+        counts = [no_probe, ego_probe, non_ego_probe]
+        pcts = [100.0 * v / total for v in counts]
+        offset = (i - len(dataset_labels) / 2 + 0.5) * bar_width
+        bars = ax.bar(x + offset, pcts, width=bar_width, label=f"{label} (n={total})", color=colors[label], alpha=0.8)
+        for bar, count in zip(bars, counts, strict=True):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 0.4,
+                str(count),
+                ha="center",
+                va="bottom",
+                fontsize=7,
+            )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(categories, fontsize=11)
+    ax.set_ylabel("Percentage (%)", fontsize=12)
+    ax.set_title("Probe Outcome Distribution by Dataset", fontsize=14, fontweight="bold")
+    ax.legend(title="Dataset", fontsize=9)
+    sns.despine(top=True, right=True)
+    plt.grid(visible=True, axis="y", linestyle="--", alpha=0.4)
+    plt.tight_layout()
+    out = output_dir / "probe_outcomes_combined.png"
+    plt.savefig(out, dpi=dpi)
+    plt.close()
+    logger.info("Saved combined probe outcomes chart -> %s", out)
+
+
+def plot_multi_dataset_probe_score_distributions(
+    dfs_probed_by_dataset: Mapping[str, pd.DataFrame],
+    output_dir: Path,
+    dpi: int = 300,
+) -> None:
+    """Overlapping KDE histograms of score_before and score_after across multiple datasets.
+
+    Args:
+        dfs_probed_by_dataset: Mapping from dataset label to the probed-only DataFrame.
+        output_dir: Directory to write ``score_distributions_combined.png``.
+        dpi: Output image resolution.
+    """
+    dataset_labels = list(dfs_probed_by_dataset.keys())
+    colors = get_dataset_colors(dataset_labels)
+
+    _fig, ax = plt.subplots(figsize=(10, 6))
+    for label, df_probed in dfs_probed_by_dataset.items():
+        if df_probed.empty:
+            continue
+        color = colors[label]
+        for col, linestyle, col_label, alpha in [
+            ("score_before", "--", "Before", 0.20),
+            ("score_after", "-", "After", 0.75),
+        ]:
+            numeric_col: pd.Series = pd.to_numeric(df_probed[col], errors="coerce")  # pyright: ignore[reportAssignmentType]
+            values = numeric_col.dropna()
+            sns.histplot(
+                x=values,
+                color=color,
+                bins=20,
+                kde=True,
+                stat="density",
+                alpha=alpha,
+                edgecolor="white",
+                linestyle=linestyle,
+                label=f"{label} — {col_label} (n={len(values)})",
+                ax=ax,
+            )
+
+    sns.despine(top=True, right=True)
+    ax.set_xlabel("Score", fontsize=12)
+    ax.set_ylabel("Density", fontsize=12)
+    ax.set_title("Score Before / After Distributions (Probed Scenarios)", fontsize=14, fontweight="bold")
+    ax.grid(visible=True, linestyle="--", alpha=0.4)
+    ax.legend(title="Dataset — Metric", fontsize=8)
+    plt.tight_layout()
+    out = output_dir / "score_distributions_combined.png"
+    plt.savefig(out, dpi=dpi)
+    plt.close()
+    logger.info("Saved combined score distributions -> %s", out)
+
+
+def plot_multi_dataset_probe_score_distributions_grid(
+    dfs_probed_by_dataset: Mapping[str, pd.DataFrame],
+    output_dir: Path,
+    dpi: int = 300,
+) -> None:
+    """Grid of histogram panels: one per dataset (before vs after) plus two combined panels.
+
+    Layout — N+2 columns sharing a y-axis:
+      - Columns 1..N: per-dataset panel showing score_before (dashed) and score_after (solid).
+      - Column N+1: all datasets' score_before overlaid.
+      - Column N+2: all datasets' score_after overlaid.
+
+    Args:
+        dfs_probed_by_dataset: Mapping from dataset label to the probed-only DataFrame.
+        output_dir: Directory to write ``score_distributions_grid_combined.png``.
+        dpi: Output image resolution.
+    """
+    dataset_labels = list(dfs_probed_by_dataset.keys())
+    colors = get_dataset_colors(dataset_labels)
+    n = len(dataset_labels)
+
+    x_max = 0.0
+    for _df in dfs_probed_by_dataset.values():
+        if _df.empty:
+            continue
+        for _col in ("score_before", "score_after"):
+            _s: pd.Series = pd.to_numeric(_df[_col], errors="coerce")  # pyright: ignore[reportAssignmentType]
+            x_max = max(x_max, float(_s.max()))
+
+    fig, axes = plt.subplots(1, n + 2, figsize=(6 * (n + 2), 4), sharey=True, sharex=True)
+
+    # Per-dataset panels: before in the dataset's color, after in red (matching individual plots)
+    for i, label in enumerate(dataset_labels):
+        ax = axes[i]
+        df_probed = dfs_probed_by_dataset[label]
+        for col, color, col_label in [
+            ("score_before", colors[label], "Before"),
+            ("score_after", _PIE_COLORS[0], "After"),
+        ]:
+            if df_probed.empty:
+                continue
+            numeric_col: pd.Series = pd.to_numeric(df_probed[col], errors="coerce")  # pyright: ignore[reportAssignmentType]
+            values = numeric_col.dropna()
+            sns.histplot(
+                x=values,
+                color=color,
+                kde=True,
+                stat="density",
+                alpha=0.5,
+                edgecolor="white",
+                label=f"{col_label} (n={len(values)})",
+                ax=ax,
+            )
+        ax.set_title(label, fontsize=12, fontweight="bold")
+        ax.set_xlabel("Score", fontsize=10)
+        ax.legend(fontsize=9)
+        ax.grid(visible=True, linestyle="--", alpha=0.4)
+        sns.despine(ax=ax, top=True, right=True)
+
+    # Combined "All Before" and "All After" panels
+    for panel_idx, (col, col_label) in enumerate([("score_before", "All — Before"), ("score_after", "All — After")]):
+        ax = axes[n + panel_idx]
+        for label, df_probed in dfs_probed_by_dataset.items():
+            if df_probed.empty:
+                continue
+            numeric_col2: pd.Series = pd.to_numeric(df_probed[col], errors="coerce")  # pyright: ignore[reportAssignmentType]
+            values = numeric_col2.dropna()
+            sns.histplot(
+                x=values,
+                color=colors[label],
+                bins=20,
+                kde=True,
+                stat="density",
+                alpha=0.5,
+                edgecolor="white",
+                label=f"{label} (n={len(values)})",
+                ax=ax,
+            )
+        ax.set_title(col_label, fontsize=12, fontweight="bold")
+        ax.set_xlabel("Score", fontsize=10)
+        ax.legend(fontsize=9)
+        ax.grid(visible=True, linestyle="--", alpha=0.4)
+        sns.despine(ax=ax, top=True, right=True)
+
+    axes[0].set_xlim(0, x_max)
+    axes[0].set_ylabel("Density", fontsize=11)
+    fig.suptitle("Score Distributions per Dataset and Combined (Probed Scenarios)", fontsize=13, fontweight="bold")
+    plt.tight_layout()
+    out = output_dir / "score_distributions_grid_combined.png"
+    plt.savefig(out, dpi=dpi)
+    plt.close()
+    logger.info("Saved score distributions grid -> %s", out)
+
+
+def plot_multi_dataset_probe_score_delta_density(
+    dfs_probed_by_dataset: Mapping[str, pd.DataFrame],
+    output_dir: Path,
+    dpi: int = 300,
+) -> None:
+    """Overlapping KDE histograms of score_delta across multiple datasets.
+
+    Args:
+        dfs_probed_by_dataset: Mapping from dataset label to the probed-only DataFrame.
+        output_dir: Directory to write ``score_delta_density_combined.png``.
+        dpi: Output image resolution.
+    """
+    dataset_labels = list(dfs_probed_by_dataset.keys())
+    colors = get_dataset_colors(dataset_labels)
+
+    _fig, ax = plt.subplots(figsize=(10, 6))
+    for label, df_probed in dfs_probed_by_dataset.items():
+        if df_probed.empty:
+            continue
+        numeric_delta: pd.Series = pd.to_numeric(df_probed["score_delta"], errors="coerce")  # pyright: ignore[reportAssignmentType]
+        deltas = numeric_delta.dropna()
+        if deltas.empty:
+            continue
+        sns.histplot(
+            x=deltas,
+            color=colors[label],
+            bins=20,
+            kde=True,
+            stat="density",
+            alpha=0.5,
+            edgecolor=None,
+            label=f"{label} (n={len(deltas)})",
+            ax=ax,
+        )
+
+    sns.despine(top=True, right=True)
+    ax.set_xlabel("Score Delta (score_after - score_before)", fontsize=12)
+    ax.set_ylabel("Density", fontsize=12)
+    ax.set_title("Score Delta Distribution (Probed Scenarios)", fontsize=14, fontweight="bold")
+    ax.grid(visible=True, linestyle="--", alpha=0.4)
+    ax.legend(title="Dataset", fontsize=9)
+    plt.tight_layout()
+    out = output_dir / "score_delta_density_combined.png"
+    plt.savefig(out, dpi=dpi)
+    plt.close()
+    logger.info("Saved combined score delta density -> %s", out)
