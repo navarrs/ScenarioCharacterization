@@ -1,4 +1,5 @@
 import json
+from collections.abc import Mapping
 from itertools import combinations, product
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,7 @@ from characterization.utils.analysis.common_analysis import (
     DEFAULT_FEATURE_CATEGORIES,
     compute_category_thresholds,
     compute_jaccard_index,
+    get_dataset_colors,
 )
 from characterization.utils.io_utils import from_pickle, get_logger
 from characterization.utils.scenario_types import AgentType
@@ -542,5 +544,131 @@ def plot_agent_scores_voxel_by_agent_type(
 
         plt.tight_layout()
         output_filepath = output_dir / f"agent_score_voxel_{criterion}_{agent_type_name}.png"
+        plt.savefig(output_filepath, dpi=dpi)
+        plt.close()
+
+
+def plot_multi_dataset_score_distributions(
+    scene_scores_by_dataset: Mapping[str, pd.DataFrame],
+    output_dir: Path,
+    dpi: int = 100,
+    tag: str = "",
+) -> None:
+    """Plots overlapping scene-level score density histograms for multiple datasets on shared axes.
+
+    One PNG is saved per score column. Each dataset is rendered as a semi-transparent histogram
+    with a distinct color drawn from the shared dataset color palette.
+
+    Args:
+        scene_scores_by_dataset (Mapping[str, pd.DataFrame]): Mapping from dataset label to the
+            scene-scores DataFrame (as returned by ``regroup_scenario_scores`` and converted to a
+            DataFrame). Non-numeric columns (e.g. ``scenario_ids``) are ignored automatically.
+        output_dir (Path): Directory to save the output plots.
+        dpi (int): Dots per inch for the saved figure.
+        tag (str): Optional tag prepended to output filenames.
+    """
+    prefix = f"{tag}_" if tag else ""
+    dataset_labels = list(scene_scores_by_dataset.keys())
+    dataset_colors = get_dataset_colors(dataset_labels)
+
+    first_df = next(iter(scene_scores_by_dataset.values()))
+    score_columns = list(first_df.select_dtypes(include="number").columns)
+
+    for col in score_columns:
+        _, ax = plt.subplots(figsize=(10, 6))
+
+        for label, df in scene_scores_by_dataset.items():
+            if col not in df.columns:
+                continue
+            values = df[col].dropna()
+            sns.histplot(
+                x=values,
+                color=dataset_colors[label],
+                bins=20,
+                kde=True,
+                stat="density",
+                alpha=0.6,
+                edgecolor="white",
+                label=f"{label} (n={len(values)})",
+                ax=ax,
+            )
+
+        # ax.set_yscale("log")
+        sns.despine(top=True, right=True)
+        ax.set_xlabel("Score values")
+        ax.set_ylabel("Density")
+        ax.set_title(f"Score Distribution — {col.replace('_', ' ').title()}")
+        ax.grid(visible=True, linestyle="--", alpha=0.4)
+        ax.legend(title="Dataset", fontsize=8)
+
+        plt.tight_layout()
+        output_filepath = output_dir / f"{prefix}score_density_{col}_combined.png"
+        plt.savefig(output_filepath, dpi=dpi)
+        plt.close()
+
+
+def plot_multi_dataset_agent_score_distributions(
+    agent_data_by_dataset: Mapping[str, tuple[dict[str, Any], dict[str, Any]]],
+    output_dir: Path,
+    dpi: int = 100,
+) -> None:
+    """Plots overlapping agent-level score distributions for multiple datasets on shared axes.
+
+    One PNG is saved per score key. Agent scores are flattened and validity-masked exactly as in
+    ``plot_agent_scores_distributions``. Each dataset is rendered as a semi-transparent histogram
+    with a distinct color drawn from the shared dataset color palette.
+
+    Args:
+        agent_data_by_dataset (Mapping[str, tuple]): Mapping from dataset label to a
+            ``(agent_scores, agent_scores_valid)`` tuple (as returned by ``regroup_scenario_scores``).
+        output_dir (Path): Directory to save the output plots.
+        dpi (int): Dots per inch for the saved figure.
+    """
+    dataset_labels = list(agent_data_by_dataset.keys())
+    dataset_colors = get_dataset_colors(dataset_labels)
+
+    first_agent_scores, _ = next(iter(agent_data_by_dataset.values()))
+    score_keys = [k for k in first_agent_scores if k != "scenario_ids"]
+
+    for key in score_keys:
+        _, ax = plt.subplots(figsize=(10, 6))
+
+        for label, (agent_scores, agent_scores_valid) in agent_data_by_dataset.items():
+            values = agent_scores.get(key)
+            valid = agent_scores_valid.get(key)
+            if values is None:
+                continue
+            flattened: list[float] = []
+            if valid is None:
+                for scores in values:
+                    flattened.extend(scores.tolist())
+            else:
+                for scores, mask in zip(values, valid, strict=True):
+                    flattened.extend(scores[mask].tolist())
+            flattened = [s for s in flattened if s >= 0.0]
+            if not flattened:
+                continue
+
+            sns.histplot(
+                flattened,
+                color=dataset_colors[label],
+                bins=20,
+                kde=True,
+                stat="probability",
+                alpha=0.5,
+                edgecolor=None,
+                label=f"{label} (n={len(flattened)})",
+                ax=ax,
+            )
+
+        sns.despine(top=True, right=True)
+        ax.set_xlabel("Score values")
+        ax.set_ylabel("Density")
+        ax.set_title(f"Agent Score Distribution — {key.replace('_', ' ').title()}")
+        ax.grid(visible=True, linestyle="--", alpha=0.4)
+        ax.legend(title="Dataset", fontsize=8)
+
+        plt.tight_layout()
+        output_filepath = output_dir / f"agent_score_distribution_{key}_combined.png"
         plt.savefig(output_filepath, dpi=dpi)
         plt.close()
