@@ -3,12 +3,10 @@ r"""Entrypoint for analyzing and visualizing precomputed scenario features.
 Loads individual and interaction features, regroups them by agent type and agent-pair type, and plots feature
 distributions. Configuration is loaded from ``config/run_analysis.yaml`` by default.
 
-Supports both single-dataset and multi-dataset analysis. In multi-dataset mode (``cfg.datasets`` is set),
-the analysis runs independently for each dataset and also produces combined overlay plots comparing all
-datasets on shared axes.
+Supports both single-dataset and multi-dataset analysis. In multi-dataset mode (``cfg.datasets`` is set), the analysis
+runs independently for each dataset and also produces combined overlay plots comparing all datasets on shared axes.
 
 Example usage::
-
     uv run python -m characterization.run_feature_analysis
     uv run python -m characterization.run_feature_analysis features_path=/path/to/features output_dir=/path/to/output
 
@@ -34,8 +32,8 @@ logger = get_logger(__name__)
 def _load_and_regroup(cfg: DictConfig, features_path: Path) -> tuple[dict[AgentType, Any], dict[AgentPairType, Any]]:
     """Loads and regroups individual and interaction features from *features_path*.
 
-    Uses ``cfg.scenario_types``, ``cfg.criteria``, and ``cfg.total_scenarios`` to control which
-    scenarios are loaded. All datasets in a multi-dataset run share these settings.
+    Uses ``cfg.scenario_types``, ``cfg.criteria``, and ``cfg.total_scenarios`` to control which scenarios are loaded.
+    All datasets in a multi-dataset run share these settings.
 
     Args:
         cfg (DictConfig): Top-level configuration.
@@ -124,10 +122,8 @@ def run(cfg: DictConfig) -> None:
         "include_pairs_with_no_vehicles": cfg.include_pairs_with_no_vehicles,
     }
 
+    # Single-dataset path — identical behaviour to the original script
     if cfg.datasets is None:
-        # ------------------------------------------------------------------
-        # Single-dataset path — identical behaviour to the original script
-        # ------------------------------------------------------------------
         individual_features, interaction_features = _load_and_regroup(cfg, Path(cfg.features_path))
 
         logger.info("Visualizing feature distribution for individual features.")
@@ -148,10 +144,8 @@ def run(cfg: DictConfig) -> None:
             **plot_kwargs,
         )
 
+    # Multi-dataset path — per-dataset analysis + combined overlay plots
     else:
-        # ------------------------------------------------------------------
-        # Multi-dataset path — per-dataset analysis + combined overlay plots
-        # ------------------------------------------------------------------
         all_individual: dict[str, dict[AgentType, Any]] = {}
         all_interaction: dict[str, dict[AgentPairType, Any]] = {}
 
