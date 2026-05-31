@@ -14,7 +14,7 @@ LARGE_VALUE = 1e6
 SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
 SUPPORTED_CRITERIA = ["critical", "average"]
 MIN_VALID_POINTS = 2
-MAX_DECELERATION = 10.0  # m/s^2,
+MAX_DECELERATION = 20.0  # m/s^2,
 STATIONARY_SPEED_THRESHOLD = 0.5  # m/s
 SUPPORTED_SCORERS = ["individual", "interaction", "safeshift"]
 
