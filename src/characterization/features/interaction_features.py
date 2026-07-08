@@ -1,9 +1,11 @@
 import json
 import multiprocessing as mp
+import os
+import threading
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from itertools import combinations
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 from warnings import warn
 
 import numpy as np
@@ -29,6 +31,46 @@ from characterization.utils.io_utils import get_logger
 from characterization.utils.scenario_types import AgentPairType, AgentType, get_agent_pair_type
 
 logger = get_logger(__name__)
+
+_MIN_CANDIDATE_PAIRS_FOR_MULTIPROCESSING: Final[int] = 8
+_MIN_PAIRS_PER_WORKER_FOR_MULTIPROCESSING: Final[int] = 4
+_PAIRWISE_POOL_START_METHOD: Final[str] = "fork"
+
+
+def _get_multiprocessing_pair_threshold(max_workers: int | None) -> int:
+    """Return the minimum candidate-pair count required before using multiprocessing."""
+    worker_count = max_workers if max_workers is not None else os.cpu_count()
+    worker_count = max(1, worker_count or 1)
+    return max(_MIN_CANDIDATE_PAIRS_FOR_MULTIPROCESSING, worker_count * _MIN_PAIRS_PER_WORKER_FOR_MULTIPROCESSING)
+
+
+def _get_fork_process_pool_skip_reason(
+    *,
+    max_workers: int | None,
+    candidate_pair_count: int,
+    multiprocessing_pair_threshold: int,
+) -> str | None:
+    """Return the reason to avoid the fork process pool, or None when fork is acceptable."""
+    if max_workers is not None and max_workers <= 1:
+        return f"max_workers={max_workers}"
+    if candidate_pair_count < multiprocessing_pair_threshold:
+        return f"candidate_pairs={candidate_pair_count} < minimum_pairs_for_pool={multiprocessing_pair_threshold}"
+
+    current_thread = threading.current_thread()
+    if current_thread is not threading.main_thread():
+        return (
+            "ignoring requested fork workers because caller is running in non-main thread "
+            f"{current_thread.name!r}; active_python_threads={threading.active_count()}"
+        )
+
+    active_threads = threading.enumerate()
+    if len(active_threads) > 1:
+        active_thread_names = ", ".join(thread.name for thread in active_threads[:8])
+        return (
+            "ignoring requested fork workers because multiple Python threads are active; "
+            f"active_python_threads={len(active_threads)}; active_thread_names={active_thread_names}"
+        )
+    return None
 
 
 def _chunked_prefilter_candidates(
@@ -556,15 +598,28 @@ class InteractionFeatures(BaseFeature):
                     scenario_dracs[pair_n] = results["drac"]
 
         candidate_pairs = [(int(n), agent_combinations[n][0], agent_combinations[n][1]) for n in candidate_ns]
+        multiprocessing_pair_threshold = _get_multiprocessing_pair_threshold(max_workers)
+        fork_pool_skip_reason = _get_fork_process_pool_skip_reason(
+            max_workers=max_workers,
+            candidate_pair_count=len(candidate_pairs),
+            multiprocessing_pair_threshold=multiprocessing_pair_threshold,
+        )
 
-        # max_workers=None means "use all CPUs" and goes to the pool path.
-        # When max_workers=1 (or 0), skip subprocess creation entirely: run in-process to
-        # avoid fork overhead and the CoW page faults caused by Python refcount updates.
-        if max_workers is None or max_workers > 1:
+        # Fork is retained only for single-threaded callers. Forking from a process
+        # with active Python threads can leave inherited locks permanently locked
+        # in the child, so threaded callers use the serial path instead.
+        if fork_pool_skip_reason is None:
             # Process agent combinations in parallel with fork context for zero-copy data sharing
+            logger.info(
+                "Starting pairwise interaction process pool: candidate_pairs=%d, max_workers=%s, "
+                "minimum_pairs_for_pool=%d, start_method=fork",
+                len(candidate_pairs),
+                max_workers,
+                multiprocessing_pair_threshold,
+            )
             with ProcessPoolExecutor(
                 max_workers=max_workers,
-                mp_context=mp.get_context("fork"),  # faster than spawn
+                mp_context=mp.get_context(_PAIRWISE_POOL_START_METHOD),  # faster than spawn
                 initializer=_init_worker_context,  # read-only
                 initargs=(
                     agent_masks,
@@ -590,14 +645,17 @@ class InteractionFeatures(BaseFeature):
                 ),
             ) as executor:
                 futures = [executor.submit(_process_agent_pair_worker, n, i, j) for n, i, j in candidate_pairs]
+                logger.info("Submitted %d pairwise interaction futures", len(futures))
 
                 # Process results as they complete with tqdm progress bar
+                completed_futures = 0
                 for future in tqdm(
                     as_completed(futures),
                     total=len(futures),
                     desc=f"Computing pairwise interactions (pool with {max_workers=})",
                 ):
                     n, status, results = future.result()
+                    completed_futures += 1
                     scenario_interaction_statuses[n] = status
 
                     if results is not None:
@@ -611,7 +669,20 @@ class InteractionFeatures(BaseFeature):
                         scenario_ttcs[n] = results["ttc"]
                         scenario_inv_ttcs[n] = results["inv_ttc"]
                         scenario_dracs[n] = results["drac"]
+                logger.info(
+                    "Completed %d pairwise interaction futures; waiting for process pool shutdown",
+                    completed_futures,
+                )
+            logger.info("Pairwise interaction process pool shutdown complete")
         else:
+            logger.info(
+                "Running pairwise interactions serially and not using requested process workers: "
+                "requested_max_workers=%s, candidate_pairs=%d, minimum_pairs_for_pool=%d, reason=%s",
+                max_workers,
+                len(candidate_pairs),
+                multiprocessing_pair_threshold,
+                fork_pool_skip_reason,
+            )
             _init_worker_context(
                 agent_masks,
                 agent_positions,
