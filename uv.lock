@@ -1518,6 +1518,12 @@ wheels = [
 ]
 
 [[package]]
+name = "nuplan-devkit"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d1/11/42bd90d32ed7adfcf5621c29b37b0b8ce82e8b63edab2406dc7ec24bb097/nuplan_devkit-2.0.0.tar.gz", hash = "sha256:774021ebcd9631f2094fe55de8ea2aa615c8505b20fccddeae6f8511d6ea2e93", size = 824337, upload-time = "2026-01-13T10:59:55.333Z" }
+
+[[package]]
 name = "nuscenes-devkit"
 version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2524,6 +2530,9 @@ argoverse2 = [
 dev = [
     { name = "pre-commit" },
 ]
+nuplan = [
+    { name = "nuplan-devkit", marker = "python_full_version < '3.11'" },
+]
 nuscenes = [
     { name = "nuscenes-devkit", marker = "python_full_version >= '3.12'" },
 ]
@@ -2547,6 +2556,7 @@ requires-dist = [
     { name = "matplotlib", marker = "extra == 'viz'", specifier = ">=3.6.1" },
     { name = "natsort", specifier = ">=8.4.0" },
     { name = "numpy", specifier = ">=1.21.5" },
+    { name = "nuplan-devkit", marker = "python_full_version == '3.10.*' and extra == 'nuplan'", specifier = ">=1.2.0" },
     { name = "nuscenes-devkit", marker = "python_full_version >= '3.12' and extra == 'nuscenes'", specifier = ">=1.2.0" },
     { name = "omegaconf", specifier = ">=2.3.0" },
     { name = "pandas", specifier = ">=1.5.3" },
@@ -2563,7 +2573,7 @@ requires-dist = [
     { name = "tqdm", specifier = ">=4.67.1" },
     { name = "waymo-open-dataset-tf-2-11-0", marker = "python_full_version == '3.10.*' and extra == 'waymo'", specifier = ">=1.6.1" },
 ]
-provides-extras = ["viz", "dev", "waymo", "nuscenes", "argoverse2"]
+provides-extras = ["viz", "dev", "waymo", "nuscenes", "argoverse2", "nuplan"]
 
 [[package]]
 name = "scikit-image"

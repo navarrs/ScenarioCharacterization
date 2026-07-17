@@ -65,6 +65,11 @@ nuscenes = [
 argoverse2 = [
     "av2>=0.2.1; python_version>='3.12'",
 ]
+# Optional dependency 'nuplan' — only supported in Python 3.10 (nuplan-devkit pins numpy<2.0
+# and targets Python 3.9/3.10); install in a dedicated 3.10 environment.
+nuplan = [
+    "nuplan-devkit>=1.2.0; python_version=='3.10'",
+]
 
 [project.urls]
 Homepage = "https://navars.xyz/safeshift/"
@@ -152,6 +157,7 @@ exclude = [
 waymo-open-dataset-tf-2-11-0 = "waymo_open_dataset"
 tensorflow = "tensorflow"
 av2 = "av2"
+nuplan-devkit = "nuplan"
 
 [tool.deptry.per_rule_ignores]
 DEP002 = [
