@@ -18,8 +18,12 @@ from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
+from nuplan.common.actor_state.state_representation import Point2D
 from nuplan.common.actor_state.tracked_objects_types import TrackedObjectType
 from nuplan.common.actor_state.vehicle_parameters import get_pacifica_parameters
+from nuplan.common.maps.abstract_map import AbstractMap
+from nuplan.common.maps.abstract_map_objects import LaneGraphEdgeMapObject, PolygonMapObject
+from nuplan.common.maps.maps_datatypes import SemanticMapLayer
 from nuplan.planning.scenario_builder.abstract_scenario import AbstractScenario
 from nuplan.planning.scenario_builder.nuplan_db.nuplan_scenario_builder import NuPlanScenarioBuilder
 from nuplan.planning.scenario_builder.nuplan_db.nuplan_scenario_utils import ScenarioMapping
@@ -27,7 +31,21 @@ from nuplan.planning.scenario_builder.scenario_filter import ScenarioFilter
 from nuplan.planning.utils.multithreading.worker_sequential import Sequential
 from rich.progress import track
 
+from characterization.utils.common import MIN_VALID_POINTS
+from characterization.utils.geometric_utils import build_polyline
+from characterization.utils.scenario_types import PolylineType
+
 logger = logging.getLogger(__name__)
+
+_MPS_TO_MPH = 2.2369362920544
+_MAP_MARGIN_M = 50.0
+_MAP_LAYERS = [
+    SemanticMapLayer.LANE,
+    SemanticMapLayer.LANE_CONNECTOR,
+    SemanticMapLayer.CROSSWALK,
+    SemanticMapLayer.STOP_LINE,
+    SemanticMapLayer.ROADBLOCK,
+]
 
 NUPLAN_TO_AGENT_TYPE: dict[TrackedObjectType, str] = {
     TrackedObjectType.VEHICLE: "TYPE_VEHICLE",
@@ -41,7 +59,7 @@ NUM_TIMESTEPS = 60
 CURRENT_TIME_INDEX = 20
 _TARGET_DT_S = 1.0 / SCENARIO_FREQ_HZ
 
-# Empty map placeholder; replaced with real map features in a later step.
+# nuPlan traffic-signal states are not extracted; dynamic map is always empty (mirrors nuScenes).
 _EMPTY_DYNAMIC_MAP: dict[str, list[Any]] = {"stop_point": [], "lane_id": [], "state": []}
 
 
@@ -135,6 +153,88 @@ def decode_tracked_objects_to_trajectories(scenario: AbstractScenario, source_in
     return {"object_id": object_ids, "object_type": object_types, "trajs": trajs, "track_tokens": track_tokens}
 
 
+def _lane_centerline_polyline(lane: LaneGraphEdgeMapObject) -> NDArray[np.float32] | None:
+    """Discretizes a lane/lane-connector baseline path into a (P, 7) polyline array."""
+    poses = lane.baseline_path.discrete_path
+    if len(poses) < MIN_VALID_POINTS:
+        return None
+    points = np.array([[p.x, p.y, 0.0] for p in poses], dtype=np.float32)
+    dirs = np.array([[np.cos(p.heading), np.sin(p.heading), 0.0] for p in poses], dtype=np.float32)
+    type_col = np.full((len(points), 1), PolylineType.TYPE_SURFACE_STREET.value, dtype=np.float32)
+    return np.concatenate([points, dirs, type_col], axis=1)
+
+
+def _polygon_polyline(map_object: PolygonMapObject, type_id: int) -> NDArray[np.float32] | None:
+    """Extracts a polygon map object's exterior boundary as a (P, 7) polyline array."""
+    coords = list(map_object.polygon.exterior.coords)[:-1]
+    points = np.array([[c[0], c[1], 0.0] for c in coords], dtype=np.float32)
+    return build_polyline(points, type_id)
+
+
+def decode_map_features(map_api: AbstractMap, center: tuple[float, float], radius: float) -> dict[str, Any]:
+    """Extracts nuPlan map features within a radius around the ego and converts to polyline format.
+
+    Returns a dict matching the Waymo pickle format: "all_polylines" (P, 7) plus per-category index
+    lists ("lane", "road_line", "road_edge", "crosswalk", "stop_sign"). nuPlan has no explicit
+    road-line layer, so "road_line" is always empty and roadblock polygons stand in for "road_edge".
+    """
+    proximal = map_api.get_proximal_map_objects(Point2D(center[0], center[1]), radius, _MAP_LAYERS)
+
+    map_infos: dict[str, Any] = {"lane": [], "road_line": [], "road_edge": [], "crosswalk": [], "stop_sign": []}
+    polylines_list: list[NDArray[np.float32]] = []
+    point_cnt = 0
+    feature_id = 0
+
+    def _append(category: str, polyline: NDArray[np.float32], extra: dict[str, Any] | None = None) -> None:
+        nonlocal point_cnt, feature_id
+        entry: dict[str, Any] = {"id": feature_id, "polyline_index": (point_cnt, point_cnt + len(polyline))}
+        if extra:
+            entry.update(extra)
+        map_infos[category].append(entry)
+        polylines_list.append(polyline)
+        point_cnt += len(polyline)
+        feature_id += 1
+
+    for layer in (SemanticMapLayer.LANE, SemanticMapLayer.LANE_CONNECTOR):
+        for lane in proximal.get(layer, []):
+            polyline = _lane_centerline_polyline(lane)
+            if polyline is not None:
+                speed = lane.speed_limit_mps
+                mph = float(speed * _MPS_TO_MPH) if speed is not None else float("nan")
+                _append("lane", polyline, {"speed_limit_mph": mph})
+
+    for crosswalk in proximal.get(SemanticMapLayer.CROSSWALK, []):
+        polyline = _polygon_polyline(crosswalk, PolylineType.TYPE_CROSSWALK.value)
+        if polyline is not None:
+            _append("crosswalk", polyline)
+
+    for stop_line in proximal.get(SemanticMapLayer.STOP_LINE, []):
+        polyline = _polygon_polyline(stop_line, PolylineType.TYPE_STOP_SIGN.value)
+        if polyline is not None:
+            _append("stop_sign", polyline, {"lane_ids": []})
+
+    for roadblock in proximal.get(SemanticMapLayer.ROADBLOCK, []):
+        polyline = _polygon_polyline(roadblock, PolylineType.TYPE_ROAD_EDGE_BOUNDARY.value)
+        if polyline is not None:
+            _append("road_edge", polyline)
+
+    map_infos["all_polylines"] = (
+        np.concatenate(polylines_list, axis=0).astype(np.float32)
+        if polylines_list
+        else np.zeros((0, 7), dtype=np.float32)
+    )
+    return map_infos
+
+
+def _map_query_region(ego_traj: NDArray[np.float32]) -> tuple[tuple[float, float], float]:
+    """Returns the (center, radius) query region covering the ego path plus a margin."""
+    ego_x, ego_y = ego_traj[:, 0], ego_traj[:, 1]
+    x_center = float((ego_x.min() + ego_x.max()) / 2)
+    y_center = float((ego_y.min() + ego_y.max()) / 2)
+    radius = 0.5 * float(np.hypot(ego_x.max() - ego_x.min(), ego_y.max() - ego_y.min())) + _MAP_MARGIN_M
+    return (x_center, y_center), radius
+
+
 def process_nuplan_scenario(scenario: AbstractScenario, output_path: str) -> dict[str, Any]:
     """Processes a single nuPlan scenario and saves a scenario pickle file.
 
@@ -151,6 +251,9 @@ def process_nuplan_scenario(scenario: AbstractScenario, output_path: str) -> dic
 
     ego_traj = decode_ego_trajectory(scenario, source_indices)
     agent_track_infos = decode_tracked_objects_to_trajectories(scenario, source_indices)
+
+    center, radius = _map_query_region(ego_traj)
+    map_infos = decode_map_features(scenario.map_api, center, radius)
 
     # Prepend ego vehicle at index 0; NuScenesData.repack_agent_data overrides type to TYPE_EGO_AGENT.
     all_trajs = np.concatenate([ego_traj[np.newaxis], agent_track_infos["trajs"]], axis=0).astype(np.float32)
@@ -174,7 +277,7 @@ def process_nuplan_scenario(scenario: AbstractScenario, output_path: str) -> dic
         "objects_of_interest": [],
         "tracks_to_predict": tracks_to_predict,
         "track_infos": {"object_id": all_ids, "object_type": all_types, "trajs": all_trajs},
-        "map_infos": None,  # populated by decode_map_features in a later step
+        "map_infos": map_infos,
         "dynamic_map_infos": _EMPTY_DYNAMIC_MAP,
     }
 
