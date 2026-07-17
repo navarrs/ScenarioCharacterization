@@ -38,7 +38,7 @@ NUSCENES_CATEGORY_TO_AGENT_TYPE: dict[str, str] = {
     "vehicle.emergency.ambulance": "TYPE_VEHICLE",
     "vehicle.emergency.police": "TYPE_VEHICLE",
     "vehicle.bicycle": "TYPE_CYCLIST",
-    "vehicle.motorcycle": "TYPE_CYCLIST",
+    "vehicle.motorcycle": "TYPE_VEHICLE",
 }
 
 MAP_LOCATIONS = [

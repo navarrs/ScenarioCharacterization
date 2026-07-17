@@ -41,7 +41,7 @@ CURRENT_TIME_INDEX: int = 49  # last observed timestep
 AV2_TO_AGENT_TYPE: dict[ObjectType, str] = {
     ObjectType.VEHICLE: "TYPE_VEHICLE",
     ObjectType.BUS: "TYPE_VEHICLE",
-    ObjectType.MOTORCYCLIST: "TYPE_CYCLIST",
+    ObjectType.MOTORCYCLIST: "TYPE_VEHICLE",
     ObjectType.RIDERLESS_BICYCLE: "TYPE_CYCLIST",
     ObjectType.PEDESTRIAN: "TYPE_PEDESTRIAN",
     ObjectType.CYCLIST: "TYPE_CYCLIST",
