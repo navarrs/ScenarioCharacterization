@@ -5,25 +5,26 @@ This page explains how to obtain and preprocess each supported dataset for use w
 - [Waymo Open Motion Dataset](WAYMO_EXAMPLE.md)
 - [nuScenes](NUSCENES_EXAMPLE.md)
 - [Argoverse 2 Motion Forecasting](ARGOVERSE2_EXAMPLE.md)
+- [nuPlan](NUPLAN_EXAMPLE.md)
 
 ---
 
 ## Dataset Comparison
 
-| Property | Waymo | nuScenes | Argoverse 2 |
-|---|---|---|---|
-| Native frequency | 10 Hz | 2 Hz (interpolated to 10 Hz) | 10 Hz |
-| Total timesteps | 91 (9.1 s) | 60 (6.0 s) | 110 (11.0 s) |
-| History timesteps | 11 (1.1 s) | 21 (2.0 s) | 50 (5.0 s) |
-| `current_time_index` | 10 | 20 | 49 |
-| Dynamic map (traffic signals) | Yes | No (always empty) | No (always empty) |
-| Speed limits in map | Yes (mph) | No (set to 0) | No (set to 0) |
-| Bounding box dimensions | Per agent (from proto) | Per agent (from annotations) | Per type (fixed defaults) |
-| z coordinate | Per agent | Per agent | Always 0.0 |
-| Road edges in map | Yes | Yes | No |
-| Difficulty ratings | 0/1/2 (easy/medium/hard) | Uniform (all 1.0) | Uniform (all 1.0) |
-| Agent relevance | Difficulty-weighted | Uniform (all 1.0) | 1.0 for FOCAL/SCORED, 0.0 otherwise |
-| Required Python version | 3.10 | 3.12 | 3.12 |
+| Property | Waymo | nuScenes | Argoverse 2 | nuPlan |
+|---|---|---|---|---|
+| Native frequency | 10 Hz | 2 Hz (interpolated to 10 Hz) | 10 Hz | 20 Hz (subsampled to 10 Hz) |
+| Total timesteps | 91 (9.1 s) | 60 (6.0 s) | 110 (11.0 s) | 60 (6.0 s) |
+| History timesteps | 11 (1.1 s) | 21 (2.0 s) | 50 (5.0 s) | 21 (2.0 s) |
+| `current_time_index` | 10 | 20 | 49 | 20 |
+| Dynamic map (traffic signals) | Yes | No (always empty) | No (always empty) | No (always empty) |
+| Speed limits in map | Yes (mph) | No (set to 0) | No (set to 0) | Yes (mph) |
+| Bounding box dimensions | Per agent (from proto) | Per agent (from annotations) | Per type (fixed defaults) | Per agent (from tracks) |
+| z coordinate | Per agent | Per agent | Always 0.0 | Always 0.0 |
+| Road edges in map | Yes | Yes | No | Yes (roadblock polygons) |
+| Difficulty ratings | 0/1/2 (easy/medium/hard) | Uniform (all 1.0) | Uniform (all 1.0) | Uniform (all 1.0) |
+| Agent relevance | Difficulty-weighted | Uniform (all 1.0) | 1.0 for FOCAL/SCORED, 0.0 otherwise | Uniform (all 1.0) |
+| Required Python version | 3.10 | 3.12 | 3.12 | 3.10 |
 
 ---
 
@@ -51,3 +52,12 @@ This page explains how to obtain and preprocess each supported dataset for use w
 - Per-agent bounding box sizes are not provided; type-based defaults are used (e.g., 4.5 × 2.0 × 1.7 m for vehicles).
 - No dedicated road-edge layer; `road_edge_ids` / `road_edge_polyline_idxs` are `None`. Lane boundaries with solid markings are stored as `road_line` entries.
 - Track categories (`FOCAL_TRACK`, `SCORED_TRACK`, `UNSCORED_TRACK`, `TRACK_FRAGMENT`) determine `agent_relevance`: FOCAL and SCORED tracks receive 1.0, others 0.0.
+
+### nuPlan
+
+- Requires Python 3.10 (`nuplan-devkit` pins `numpy<2.0` and targets Python 3.9/3.10); install in a dedicated environment.
+- Native 20 Hz tracks are subsampled to 10 Hz (stride derived from `database_interval`); no interpolation required.
+- Provides tens of thousands of scenarios; the number processed is controlled by `--limit` (use `5000` to match Waymo/Argoverse 2).
+- Agent velocities are recomputed via finite differences to avoid mixing ego body-frame and agent global-frame conventions.
+- No traffic signals; `DynamicMapData` fields are always `None`. All agents receive uniform `agent_relevance=1.0`.
+- No dedicated road-line layer (`road_line` is empty); roadblock polygons stand in for `road_edge`.
