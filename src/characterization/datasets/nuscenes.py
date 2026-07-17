@@ -31,6 +31,8 @@ class NuScenesData(BaseDataset):
     are pre-interpolated to 10Hz.
     """
 
+    DATASET_NAME = "nuscenes"
+
     def __init__(self, config: DictConfig) -> None:
         """Initializes the nuScenes dataset handler."""
         super().__init__(config=config)
@@ -216,7 +218,7 @@ class NuScenesData(BaseDataset):
             ego_vehicle_index=scenario_data["sdc_track_index"],
             track_length=self.total_steps,
             objects_of_interest=scenario_data["objects_of_interest"],
-            dataset="nuscenes",
+            dataset=self.DATASET_NAME,
         )
 
         return Scenario(
