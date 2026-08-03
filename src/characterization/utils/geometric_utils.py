@@ -84,25 +84,37 @@ def compute_dists_to_conflict_points(
     return np.linalg.norm(diff, axis=-1)  # shape (num_agents, num_time_steps, num_conflict_points)
 
 
-def compute_agent_to_agent_closest_dists(positions: NDArray[np.float32]) -> NDArray[np.float32]:
+def compute_agent_to_agent_closest_dists(
+    positions: NDArray[np.float32],
+    *,
+    chunk_size: int = 256,
+) -> NDArray[np.float32]:
     """Computes the closest distance between each agent and any other agent over their trajectories.
 
     Args:
         positions: Array of agent positions over time with shape [num_agents, num_time_steps, 3].
+        chunk_size: Number of agents to process per chunk. Smaller values reduce peak memory usage. Defaults to 256.
 
     Returns:
-        Minimum distance from each agent to any other agent over time with shape [num_agents, num_time_steps]. NaN
-            values are replaced with infinity.
+        Minimum distance from each agent to every other agent over time with shape [num_agents, num_agents]. NaN values
+            are replaced with infinity.
+
+    Raises:
+        ValueError: If ``chunk_size`` is not positive.
     """
-    # shape of dists is (num_agents, num_agents, num_time_steps)
-    dists = np.linalg.norm(positions[:, np.newaxis, :] - positions[np.newaxis, :, :], axis=-1)
+    if chunk_size <= 0:
+        error_message = f"chunk_size must be positive; got {chunk_size}."
+        raise ValueError(error_message)
 
-    # Replace self-distances (zero) with np.inf to ignore them in the min computation
-    # for t in range(dists.shape[-1]):
-    #     np.fill_diagonal(dists[:, :, t], np.inf)
+    num_agents = positions.shape[0]
+    closest_dists = np.full((num_agents, num_agents), np.inf, dtype=np.float32)
+    for start in range(0, num_agents, chunk_size):
+        end = min(start + chunk_size, num_agents)
+        position_chunk = positions[start:end]
+        dists = np.linalg.norm(position_chunk[:, np.newaxis, :] - positions[np.newaxis, :, :], axis=-1)
+        closest_dists[start:end] = np.nan_to_num(np.nanmin(dists, axis=-1), nan=np.inf)
 
-    # Return the minimum distance to any other agent over time, replacing NaNs with np.inf
-    return np.nan_to_num(np.nanmin(dists, axis=-1), nan=np.inf).astype(np.float32)
+    return closest_dists
 
 
 def find_conflict_points(  # noqa: PLR0912
