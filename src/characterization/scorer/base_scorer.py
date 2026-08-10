@@ -124,14 +124,20 @@ class BaseScorer(ABC):
         Returns:
             NDArray[np.float32]: The computed weights for each agent.
         """
-        agent_to_agent_dists = BaseScorer._get_agent_to_agent_closest_dists(
-            scenario, scenario_features
-        )  # Shape (num_agents, num_agents)
-
         ego_agent_index = scenario.metadata.ego_vehicle_index
 
-        # Get distance between each agent and the ego agent
-        min_dist = agent_to_agent_dists[:, ego_agent_index] + EPSILON  # Shape (num_agents, 1)
+        # SafeShift features may provide only the distances needed by this weighting method. Fall back to the full
+        # matrix for older feature caches and callers that construct ScenarioFeatures directly.
+        agent_to_ego_dists = scenario_features.agent_to_ego_closest_dists
+        if agent_to_ego_dists is None:
+            agent_to_agent_dists = BaseScorer._get_agent_to_agent_closest_dists(
+                scenario, scenario_features
+            )  # Shape (num_agents, num_agents)
+            min_dist = agent_to_agent_dists[:, ego_agent_index]
+        else:
+            min_dist = np.nan_to_num(agent_to_ego_dists, nan=np.inf)
+
+        min_dist = min_dist + EPSILON  # Shape (num_agents,)
         if reduce_distance_penalty:
             min_dist = np.sqrt(min_dist)
 
