@@ -106,6 +106,8 @@ class ScenarioFeatures(BaseModel):
         metadata (ScenarioMetadata): Metadata for the scenario, including IDs, timestamps, and thresholds.
         individual_features (IndividualFeatures | None): Individual features for each agent in the scenario.
         interaction_features (InteractionFeatures | None): Interaction features between agents in the scenario.
+        agent_to_ego_closest_dists (Float32NDArray1D | None): Minimum distance from each agent to the ego agent over
+            time.
     """
 
     metadata: ScenarioMetadata
@@ -117,4 +119,5 @@ class ScenarioFeatures(BaseModel):
     interaction_features: Interaction | None = None
 
     agent_to_agent_closest_dists: Float32NDArray2D | None = None
+    agent_to_ego_closest_dists: Float32NDArray1D | None = None
     model_config = {"arbitrary_types_allowed": True, "validate_assignment": True}

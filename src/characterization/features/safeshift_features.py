@@ -6,7 +6,10 @@ from characterization.features.interaction_features import InteractionFeatures
 from characterization.schemas.scenario import Scenario
 from characterization.schemas.scenario_features import ScenarioFeatures
 from characterization.utils.common import AgentTrajectoryMasker
-from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
+from characterization.utils.geometric_utils import (
+    compute_agent_to_agent_closest_dists,
+    compute_agent_to_ego_closest_dists,
+)
 from characterization.utils.io_utils import get_logger
 
 logger = get_logger(__name__)
@@ -84,6 +87,16 @@ class SafeShiftFeatures(BaseFeature):
         agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
         agent_positions = agent_trajectories.agent_xyz_pos
         pair_scope = "ego" if self.config.get("score_weighting_method", "uniform") == "distance_to_ego_agent" else "all"
+        agent_to_agent_closest_dists = None
+        agent_to_ego_closest_dists = None
+        if pair_scope == "ego":
+            agent_to_ego_closest_dists = compute_agent_to_ego_closest_dists(
+                agent_positions,
+                scenario.metadata.ego_vehicle_index,
+            )
+        else:
+            agent_to_agent_closest_dists = compute_agent_to_agent_closest_dists(agent_positions)
+
         return ScenarioFeatures(
             metadata=scenario.metadata,
             individual_features=self.individual_features.compute_individual_features(scenario),
@@ -92,5 +105,6 @@ class SafeShiftFeatures(BaseFeature):
                 max_workers=max_workers,
                 pair_scope=pair_scope,
             ),
-            agent_to_agent_closest_dists=compute_agent_to_agent_closest_dists(agent_positions),
+            agent_to_agent_closest_dists=agent_to_agent_closest_dists,
+            agent_to_ego_closest_dists=agent_to_ego_closest_dists,
         )

@@ -4,7 +4,10 @@ import unittest
 
 import numpy as np
 
-from characterization.utils.geometric_utils import compute_agent_to_agent_closest_dists
+from characterization.utils.geometric_utils import (
+    compute_agent_to_agent_closest_dists,
+    compute_agent_to_ego_closest_dists,
+)
 
 
 class ClosestDistanceTest(unittest.TestCase):
@@ -33,3 +36,18 @@ class ClosestDistanceTest(unittest.TestCase):
 
         with self.assertRaises(ValueError):  # noqa: PT027
             compute_agent_to_agent_closest_dists(positions, chunk_size=0)
+
+    def test_ego_distances_match_full_matrix_column(self) -> None:
+        """Compact ego distances match the corresponding full-matrix values."""
+        positions = np.asarray(
+            [
+                [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0]],
+                [[3.0, 0.0, 0.0], [3.0, 1.0, 0.0], [3.0, 2.0, 0.0]],
+                [[10.0, 0.0, 0.0], [10.0, 1.0, 0.0], [10.0, 2.0, 0.0]],
+            ],
+            dtype=np.float32,
+        )
+        full_distances = compute_agent_to_agent_closest_dists(positions, chunk_size=1)
+        ego_distances = compute_agent_to_ego_closest_dists(positions, ego_agent_index=1)
+
+        np.testing.assert_array_equal(ego_distances, full_distances[:, 1])

@@ -117,6 +117,33 @@ def compute_agent_to_agent_closest_dists(
     return closest_dists
 
 
+def compute_agent_to_ego_closest_dists(
+    positions: NDArray[np.float32],
+    ego_agent_index: int,
+) -> NDArray[np.float32]:
+    """Compute each agent's closest distance to the ego agent over its trajectory.
+
+    Args:
+        positions: Array of agent positions over time with shape [num_agents, num_time_steps, 3].
+        ego_agent_index: Index of the ego agent in ``positions``.
+
+    Returns:
+        Minimum distance from each agent to the ego agent over time with shape [num_agents]. NaN values are replaced
+            with infinity.
+
+    Raises:
+        ValueError: If ``ego_agent_index`` is invalid for the supplied positions.
+    """
+    num_agents = positions.shape[0]
+    if not 0 <= ego_agent_index < num_agents:
+        error_message = f"ego_agent_index={ego_agent_index} is invalid for a scenario with {num_agents} agents."
+        raise ValueError(error_message)
+
+    ego_positions = positions[ego_agent_index]
+    dists = np.linalg.norm(positions - ego_positions[np.newaxis, :], axis=-1)
+    return np.nan_to_num(np.nanmin(dists, axis=-1), nan=np.inf).astype(np.float32)
+
+
 def find_conflict_points(  # noqa: PLR0912
     scenario: Scenario,
     ndim: int = 3,
