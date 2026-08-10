@@ -128,12 +128,32 @@ def compute_intersections(agent_i: InteractionAgent, agent_j: InteractionAgent) 
 
     segments_i = np.stack([position_i[:-1], position_i[1:]], axis=1)
     segments_j = np.stack([position_j[:-1], position_j[1:]], axis=1)
-    segments_i = [LineString(x) for x in segments_i]
-    segments_j = [LineString(x) for x in segments_j]
 
-    intersections = [x.intersects(y) for x, y in zip(segments_i, segments_j, strict=False)]
+    # Segment bounding boxes provide an exact rejection test before constructing Shapely geometries. Shapely's
+    # predicates operate on the XY projection of these coordinates, so Z is intentionally excluded here.
+    segment_min_i = segments_i[:, :, :2].min(axis=1)
+    segment_max_i = segments_i[:, :, :2].max(axis=1)
+    segment_min_j = segments_j[:, :, :2].min(axis=1)
+    segment_max_j = segments_j[:, :, :2].max(axis=1)
+    boxes_overlap = np.logical_and(
+        np.all(segment_min_i <= segment_max_j, axis=1),
+        np.all(segment_min_j <= segment_max_i, axis=1),
+    )
+
+    # Preserve the previous Shapely behaviour for non-finite coordinates rather than rejecting them via NaN bounds.
+    finite_segments = np.logical_and(
+        np.isfinite(segments_i[:, :, :2]).all(axis=(1, 2)),
+        np.isfinite(segments_j[:, :, :2]).all(axis=(1, 2)),
+    )
+    candidate_segments = np.flatnonzero(boxes_overlap | ~finite_segments)
+    intersections = np.zeros(segments_i.shape[0], dtype=bool)
+    for segment_index in candidate_segments:
+        intersections[segment_index] = LineString(segments_i[segment_index]).intersects(
+            LineString(segments_j[segment_index])
+        )
+
     # Make it consistent with the number of timesteps
-    return np.array([intersections[0]] + intersections, dtype=bool)  # noqa: RUF005
+    return np.concatenate(([intersections[0]], intersections))
 
 
 def compute_mttcp(
