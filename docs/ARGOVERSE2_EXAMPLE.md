@@ -48,7 +48,7 @@ uv pip install -e ".[argoverse2]"
 3. **Pre-process the data:**
    ```bash
    uv run python -m characterization.datasets.argoverse2_preprocess \
-       ./samples/argoverse2/raw ./samples/argoverse2/ --split sample
+       --input_path ./samples/argoverse2/raw --output_path ./samples/argoverse2/ --split sample
    ```
    This reads all scenario directories from the `val` split, extracts agent trajectories and map polylines, and writes one `.pkl` file per scenario to `./samples/argoverse2/scenarios/`.
 

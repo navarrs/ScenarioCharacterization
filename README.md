@@ -20,7 +20,7 @@ An open-source framework for automated, dataset-agnostic profiling of driving sc
 2. **Characterizer** — performs feature extraction, behavior probing, and criticality scoring at the scenario and agent levels.
 3. **Analysis** — supports scenario visualization, feature and score analyses, categorical profiling, and scenario mining.
 
-New datasets plug in without rewriting the characterization and analysis stack. The framework is demonstrated on [Waymo Open Motion](https://waymo.com/open), [nuScenes](https://www.nuscenes.org/), and [Argoverse2](https://www.argoverse.org/av2.html). Developed as part of an internship project at **StackAV**.
+New datasets plug in without rewriting the characterization and analysis stack. The framework is demonstrated on [Waymo Open Motion](https://waymo.com/open), [nuScenes](https://www.nuscenes.org/), [Argoverse2](https://www.argoverse.org/av2.html), and [nuPlan](https://www.nuplan.org/). Developed as part of an internship project at **StackAV**.
 
 <img width="100%" alt="Scenario Characterization workflow diagram" src="https://github.com/user-attachments/assets/2639ed69-6b7e-407a-a510-ff064e39453e" /> <!-- pragma: allowlist secret -->
 
@@ -58,6 +58,9 @@ uv run pip install -e ".[waymo]"
 
 # nuScenes dataset (requires Python 3.12)
 uv run pip install -e ".[nuscenes]"
+
+# nuPlan dataset (requires Python 3.12)
+uv run pip install -e ".[nuplan]"
 ```
 
 If installing with development dependencies, run:
@@ -74,6 +77,7 @@ uv run pre-commit install
 - [Analysis](./docs/ANALYSIS.md): Shows how to run feature and score analyses.
 - [Waymo Example](./docs/WAYMO_EXAMPLE.md): Step-by-step usage example using the [Waymo Open Motion Dataset](https://waymo.com/open).
 - [nuScenes Example](./docs/NUSCENES_EXAMPLE.md): Step-by-step usage example using the [nuScenes dataset](https://www.nuscenes.org/).
+- [nuPlan Example](./docs/NUPLAN_EXAMPLE.md): Step-by-step usage example using the [nuPlan dataset](https://www.nuplan.org/).
 
 ## Citing
 

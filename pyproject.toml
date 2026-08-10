@@ -65,6 +65,26 @@ nuscenes = [
 argoverse2 = [
     "av2>=0.2.1; python_version>='3.12'",
 ]
+# Optional dependency 'nuplan' — works on the same Python 3.10–3.12 as the rest of the pipeline.
+# The PyPI nuplan-devkit wheel ships broken metadata that declares no dependencies, so its runtime
+# requirements (those the project core does not already provide) are listed explicitly here.
+nuplan = [
+    "aioboto3",
+    "aiofiles",
+    "boto3",
+    "botocore",
+    "geopandas",
+    "nuplan-devkit>=2.0.0",
+    "opencv-python-headless",
+    "pillow",
+    "psutil",
+    "pyquaternion",
+    "pytest",
+    "rasterio",
+    "requests",
+    "retry",
+    "sqlalchemy",
+]
 
 [project.urls]
 Homepage = "https://navars.xyz/safeshift/"
@@ -152,6 +172,7 @@ exclude = [
 waymo-open-dataset-tf-2-11-0 = "waymo_open_dataset"
 tensorflow = "tensorflow"
 av2 = "av2"
+nuplan-devkit = "nuplan"
 
 [tool.deptry.per_rule_ignores]
 DEP002 = [
@@ -159,7 +180,23 @@ DEP002 = [
     "duckdb",
     "pre-commit",
     "black",
-    "tensorflow"
+    "tensorflow",
+    # nuplan-devkit transitive deps declared in the [nuplan] extra (its wheel declares none);
+    # not imported by first-party code, so deptry would otherwise flag them as unused.
+    "aioboto3",
+    "aiofiles",
+    "boto3",
+    "botocore",
+    "geopandas",
+    "opencv-python-headless",
+    "pillow",
+    "psutil",
+    "pyquaternion",
+    "pytest",
+    "rasterio",
+    "requests",
+    "retry",
+    "sqlalchemy",
 ]
 
 [tool.pyright]

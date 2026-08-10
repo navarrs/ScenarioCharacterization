@@ -43,7 +43,7 @@ uv pip install -e ".[nuscenes]"
 4. **Pre-process the data:**
    ```bash
    uv run python -m characterization.datasets.nuscenes_preprocess \
-       ./samples/nuscenes/raw ./samples/nuscenes/ v1.0-trainval
+       --input_path ./samples/nuscenes/raw --output_path ./samples/nuscenes/ --version v1.0-trainval
    ```
    This reads all 1,000 scenes from the trainval split (850 train + 150 val), interpolates trajectories to 10 Hz, extracts map polylines, and writes one `.pkl` file per scene to `./samples/nuscenes/scenarios/`.
 

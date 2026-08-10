@@ -1,6 +1,7 @@
 import logging
 import os
 import pickle  # nosec B403
+import shutil
 from typing import Any
 from warnings import warn
 
@@ -154,6 +155,30 @@ def to_pickle(
 
     with open(data_file, "wb") as f:
         pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def clean_preprocessed_outputs(output_path: str) -> None:
+    """Removes existing preprocessed scenario outputs under ``output_path`` before a fresh run.
+
+    Deletes the ``scenarios/`` subdirectory and the ``processed_scenario_samples_infos.pkl`` metadata index,
+    leaving anything else under ``output_path`` untouched. Used by the dataset preprocess scripts when
+    ``--overwrite`` is set to clear stale scenario pickles from a previous run.
+
+    Args:
+        output_path (str): Directory holding the preprocessed outputs.
+
+    Returns:
+        None
+    """
+    logger = logging.getLogger(__name__)
+    scenarios_dir = os.path.join(output_path, "scenarios")
+    index_file = os.path.join(output_path, "processed_scenario_samples_infos.pkl")
+    if os.path.isdir(scenarios_dir):
+        shutil.rmtree(scenarios_dir)
+        logger.info("Removed existing scenarios directory %s", scenarios_dir)
+    if os.path.exists(index_file):
+        os.remove(index_file)
+        logger.info("Removed existing metadata index %s", index_file)
 
 
 def print_config(cfg: DictConfig, theme: str = "monokai") -> None:

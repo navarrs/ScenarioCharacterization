@@ -57,7 +57,8 @@ Sample files are available in the `samples` directory for quick testing.
    (Script adapted from [SafeShift](https://github.com/cmubig/SafeShift?tab=readme-ov-file#waymo-dataset-preparation))
 
    ```bash
-   uv run python -m characterization.datasets.waymo_preprocess ./samples/raw ./samples/
+   uv run python -m characterization.datasets.waymo_preprocess \
+       --input_path ./samples/raw --output_path ./samples/
    ```
    This will generate temporary scenario files in `samples/scenarios` for use in the pipeline. A sample config file (`waymo_sample.yaml`) is provided under `config/paths` with local paths to the sample data.
 

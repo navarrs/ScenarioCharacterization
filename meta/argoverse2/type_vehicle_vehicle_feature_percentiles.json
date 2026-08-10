@@ -5,9 +5,9 @@
         "HIGH/CRITICAL": 0.11
     },
     "separation": {
-        "LOW/MEDIUM": 21.15,
-        "MEDIUM/HIGH": 68.31,
-        "HIGH/CRITICAL": 86.03
+        "LOW/MEDIUM": 21.12,
+        "MEDIUM/HIGH": 68.27,
+        "HIGH/CRITICAL": 86.0
     },
     "intersection": {
         "LOW/MEDIUM": 0.0,
@@ -22,7 +22,7 @@
     "inv_mttcp": {
         "LOW/MEDIUM": 0.0,
         "MEDIUM/HIGH": 0.0,
-        "HIGH/CRITICAL": 0.41
+        "HIGH/CRITICAL": 0.42
     },
     "mttcp": {
         "LOW/MEDIUM": 1000000.0,

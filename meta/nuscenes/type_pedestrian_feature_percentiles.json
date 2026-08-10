@@ -20,9 +20,9 @@
         "HIGH/CRITICAL": 6.61
     },
     "waiting_period": {
-        "LOW/MEDIUM": 0.06,
-        "MEDIUM/HIGH": 0.54,
-        "HIGH/CRITICAL": 1.47
+        "LOW/MEDIUM": 0.0,
+        "MEDIUM/HIGH": 0.0,
+        "HIGH/CRITICAL": 0.0
     },
     "kalman_difficulty": {
         "LOW/MEDIUM": 0.06,
