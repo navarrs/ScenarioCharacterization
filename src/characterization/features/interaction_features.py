@@ -404,9 +404,16 @@ def _process_agent_pair_worker(n: int, i: int, j: int) -> tuple[int, Interaction
         leading_agent = interaction.find_leading_agent(agent_i, agent_j, valid_headings)
 
         # Now compute leader-follower interaction state
-        thws = interaction.compute_thw(agent_i, agent_j, leading_agent, valid_headings)
-        ttcs = interaction.compute_ttc(agent_i, agent_j, leading_agent, valid_headings)
-        dracs = interaction.compute_drac(agent_i, agent_j, leading_agent, valid_headings, agent_max_deceleration)
+        thws = interaction.compute_thw(agent_i, agent_j, leading_agent, valid_headings, separations=separations)
+        ttcs = interaction.compute_ttc(agent_i, agent_j, leading_agent, valid_headings, separations=separations)
+        dracs = interaction.compute_drac(
+            agent_i,
+            agent_j,
+            leading_agent,
+            valid_headings,
+            agent_max_deceleration,
+            separations=separations,
+        )
         status = InteractionStatus.COMPUTED_OK
 
     match return_criterion:
