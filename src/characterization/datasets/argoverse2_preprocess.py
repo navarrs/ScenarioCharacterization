@@ -6,7 +6,7 @@ disk. AV2 is already at 10 Hz; no interpolation is required.
 Example usage::
 
     uv run python -m characterization.datasets.argoverse2_preprocess \
-        <raw_data_path> <output_path> [--split train|val|test|sample]
+        --input_path <raw_data_path> --output_path <output_path> [--split train|val|test|sample] [--overwrite]
 """
 
 import argparse
@@ -25,6 +25,7 @@ from numpy.typing import NDArray
 from rich.progress import track
 
 from characterization.utils.geometric_utils import build_polyline
+from characterization.utils.io_utils import clean_preprocessed_outputs
 from characterization.utils.scenario_types import PolylineType
 
 _LOGGER = logging.getLogger(__name__)
@@ -304,7 +305,9 @@ def process_av2_scenario(scenario_dir: Path, output_path: str) -> dict[str, Any]
     return {k: v for k, v in info.items() if k not in ("track_infos", "map_infos", "dynamic_map_infos")}
 
 
-def create_infos_from_av2(raw_data_path: str, output_path: str, split: str = "train") -> None:
+def create_infos_from_av2(
+    raw_data_path: str, output_path: str, split: str = "train", *, overwrite: bool = False
+) -> None:
     """Creates processed scenario pickle files from raw AV2 Motion Forecasting data.
 
     Discovers all scenario directories under ``{raw_data_path}/{split}/``, processes each one, and writes:
@@ -315,6 +318,7 @@ def create_infos_from_av2(raw_data_path: str, output_path: str, split: str = "tr
         raw_data_path: Root directory of the AV2 Motion Forecasting dataset (contains subdirs: train/, val/, test/).
         output_path: Directory to save processed files.
         split: Dataset split to process (``"train"``, ``"val"``, or ``"test"``).
+        overwrite: Remove existing preprocessed outputs before writing. Defaults to False.
 
     Raises:
         ValueError: If ``raw_data_path`` or the split directory does not exist.
@@ -332,6 +336,8 @@ def create_infos_from_av2(raw_data_path: str, output_path: str, split: str = "tr
     scenario_dirs = [d for d in scenario_dirs if d.is_dir()]
     _LOGGER.info("Found %d scenario directories in %s/%s", len(scenario_dirs), raw_data_path, split)
 
+    if overwrite:
+        clean_preprocessed_outputs(output_path)
     os.makedirs(output_path, exist_ok=True)
     scenario_output_path = os.path.join(output_path, "scenarios")
     os.makedirs(scenario_output_path, exist_ok=True)
@@ -352,8 +358,11 @@ def create_infos_from_av2(raw_data_path: str, output_path: str, split: str = "tr
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(description="Preprocess Argoverse 2 Motion Forecasting data.")
-    parser.add_argument("raw_data_path", type=str, help="Root directory of the AV2 dataset.")
-    parser.add_argument("output_path", type=str, help="Output directory for processed pickle files.")
+    parser.add_argument("--input_path", type=str, required=True, help="Root directory of the AV2 dataset.")
+    parser.add_argument("--output_path", type=str, required=True, help="Output directory for processed pickle files.")
     parser.add_argument("--split", type=str, default="sample", choices=["train", "val", "test", "sample"])
+    parser.add_argument("--overwrite", action="store_true", help="Remove existing preprocessed outputs before writing.")
     args = parser.parse_args()
-    create_infos_from_av2(raw_data_path=args.raw_data_path, output_path=args.output_path, split=args.split)
+    create_infos_from_av2(
+        raw_data_path=args.input_path, output_path=args.output_path, split=args.split, overwrite=args.overwrite
+    )

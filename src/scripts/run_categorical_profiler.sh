@@ -13,6 +13,7 @@ Options:
                         "waymo" uses paths config "waymo_sample" and meta directory "./meta/waymo".
                         "nuscenes" uses paths config "nuscenes_sample" and meta directory "./meta/nuscenes".
                         "argoverse2" uses paths config "argoverse2_sample" and meta directory "./meta/argoverse2".
+                        "nuplan" uses paths config "nuplan_sample" and meta directory "./meta/nuplan".
                         Other datasets use paths config "<dataset>" and meta directory "./meta/<dataset>".
   -p <paths_config>     Specifies the configuration containing the data paths to be used (overrides -D default)
   -d <meta_dir>         Meta directory where analysis JSON files are copied (overrides -D default)
@@ -33,6 +34,7 @@ Examples:
   $0 -D waymo
   $0 -D nuscenes
   $0 -D argoverse2
+  $0 -D nuplan
 
   # Create metadata (c) and/or overwrite (o) existing results
   $0 -c
@@ -118,6 +120,7 @@ if [ -z "$paths_config" ]; then
         waymo) paths_config="waymo_sample" ;;
         nuscenes) paths_config="nuscenes_sample" ;;
         argoverse2) paths_config="argoverse2_sample" ;;
+        nuplan) paths_config="nuplan_sample" ;;
         *) paths_config="$dataset" ;;
     esac
 fi

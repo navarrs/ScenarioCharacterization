@@ -5,9 +5,9 @@
         "HIGH/CRITICAL": 0.1
     },
     "separation": {
-        "LOW/MEDIUM": 17.37,
-        "MEDIUM/HIGH": 51.97,
-        "HIGH/CRITICAL": 73.15
+        "LOW/MEDIUM": 17.36,
+        "MEDIUM/HIGH": 51.88,
+        "HIGH/CRITICAL": 72.99
     },
     "intersection": {
         "LOW/MEDIUM": 0.0,
@@ -35,7 +35,7 @@
         "HIGH/CRITICAL": 0.24
     },
     "thw": {
-        "LOW/MEDIUM": 23.08,
+        "LOW/MEDIUM": 23.27,
         "MEDIUM/HIGH": 1000000.0,
         "HIGH/CRITICAL": 1000000.0
     },

@@ -7,17 +7,18 @@ Native 20Hz tracks are subsampled to 10Hz to match the Waymo/nuScenes convention
 Example usage::
 
     uv run python -m characterization.datasets.nuplan_preprocess \
-        --data-root <db_logs_dir> --map-root <maps_dir> --output-path <out> --limit 5000
+        --input_path <db_logs_dir> --map_root <maps_dir> --output_path <out> --limit 5000
 """
 
 import argparse
 import logging
 import os
 import pickle  # nosec B403
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 from numpy.typing import NDArray
+from nuplan.common.actor_state.scene_object import SceneObject
 from nuplan.common.actor_state.state_representation import Point2D
 from nuplan.common.actor_state.tracked_objects_types import TrackedObjectType
 from nuplan.common.actor_state.vehicle_parameters import get_pacifica_parameters
@@ -33,6 +34,7 @@ from rich.progress import track
 
 from characterization.utils.common import MIN_VALID_POINTS
 from characterization.utils.geometric_utils import build_polyline
+from characterization.utils.io_utils import clean_preprocessed_outputs
 from characterization.utils.scenario_types import PolylineType
 
 logger = logging.getLogger(__name__)
@@ -119,9 +121,13 @@ def decode_tracked_objects_to_trajectories(scenario: AbstractScenario, source_in
     boxes: dict[str, dict[int, Any]] = {}
     types: dict[str, TrackedObjectType] = {}
     for out_idx, i in enumerate(source_indices):
-        for obj in scenario.get_tracked_objects_at_iteration(i).tracked_objects:
-            boxes.setdefault(obj.track_token, {})[out_idx] = obj.box
-            types[obj.track_token] = obj.tracked_object_type
+        detections = scenario.get_tracked_objects_at_iteration(i).tracked_objects.tracked_objects
+        for obj in cast("list[SceneObject]", detections):
+            token = obj.track_token
+            if token is None:
+                continue
+            boxes.setdefault(token, {})[out_idx] = obj.box
+            types[token] = obj.tracked_object_type
 
     object_ids: list[int] = []
     object_types: list[str] = []
@@ -196,24 +202,25 @@ def decode_map_features(map_api: AbstractMap, center: tuple[float, float], radiu
         feature_id += 1
 
     for layer in (SemanticMapLayer.LANE, SemanticMapLayer.LANE_CONNECTOR):
-        for lane in proximal.get(layer, []):
+        for lane in cast("list[LaneGraphEdgeMapObject]", proximal.get(layer, [])):
             polyline = _lane_centerline_polyline(lane)
             if polyline is not None:
                 speed = lane.speed_limit_mps
                 mph = float(speed * _MPS_TO_MPH) if speed is not None else float("nan")
                 _append("lane", polyline, {"speed_limit_mph": mph})
 
-    for crosswalk in proximal.get(SemanticMapLayer.CROSSWALK, []):
+    for crosswalk in cast("list[PolygonMapObject]", proximal.get(SemanticMapLayer.CROSSWALK, [])):
         polyline = _polygon_polyline(crosswalk, PolylineType.TYPE_CROSSWALK.value)
         if polyline is not None:
             _append("crosswalk", polyline)
 
-    for stop_line in proximal.get(SemanticMapLayer.STOP_LINE, []):
+    for stop_line in cast("list[PolygonMapObject]", proximal.get(SemanticMapLayer.STOP_LINE, [])):
         polyline = _polygon_polyline(stop_line, PolylineType.TYPE_STOP_SIGN.value)
         if polyline is not None:
             _append("stop_sign", polyline, {"lane_ids": []})
 
-    for roadblock in proximal.get(SemanticMapLayer.ROADBLOCK, []):
+    # RoadBlockGraphEdgeMapObject subclasses PolygonMapObject, so .polygon is available.
+    for roadblock in cast("list[PolygonMapObject]", proximal.get(SemanticMapLayer.ROADBLOCK, [])):
         polyline = _polygon_polyline(roadblock, PolylineType.TYPE_ROAD_EDGE_BOUNDARY.value)
         if polyline is not None:
             _append("road_edge", polyline)
@@ -302,7 +309,8 @@ def build_scenarios(
     builder = NuPlanScenarioBuilder(
         data_root=data_root,
         map_root=map_root,
-        sensor_root=sensor_root,
+        # sensor_root is typed as str but is unused here (no sensor blobs); None is fine at runtime.
+        sensor_root=cast("str", sensor_root),
         db_files=db_files,
         map_version=map_version,
         scenario_mapping=ScenarioMapping(scenario_map={}, subsample_ratio_override=None),
@@ -321,7 +329,13 @@ def build_scenarios(
         remove_invalid_goals=False,
         shuffle=True,
     )
+    logger.info("Scanning all .db logs to select scenarios (this runs before --limit and can take several minutes)...")
     scenarios = builder.get_scenarios(scenario_filter, Sequential())
+    logger.info("Selected %d scenarios.", len(scenarios))
+    logger.info(
+        "Processing scenarios. The first map load per city builds a spatial index and can take several minutes "
+        "(Las Vegas is the slowest), so the progress bar may sit at 0 for a while — this is expected, not a hang."
+    )
 
     return [
         info
@@ -338,8 +352,12 @@ def create_infos_from_nuplan(
     map_version: str = "nuplan-maps-v1.0",
     sensor_root: str | None = None,
     db_files: str | None = None,
+    *,
+    overwrite: bool = False,
 ) -> None:
     """Creates processed scenario pickle files and a metadata index from raw nuPlan data."""
+    if overwrite:
+        clean_preprocessed_outputs(output_path)
     scenario_path = os.path.join(output_path, "scenarios")
     sample_infos = build_scenarios(data_root, map_root, scenario_path, limit, map_version, sensor_root, db_files)
 
@@ -351,13 +369,16 @@ def create_infos_from_nuplan(
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Preprocess nuPlan scenarios into Waymo-format pickles.")
-    parser.add_argument("--data-root", required=True, help="Directory containing nuPlan .db log files.")
-    parser.add_argument("--map-root", required=True, help="Directory containing the nuPlan maps.")
-    parser.add_argument("--output-path", required=True, help="Output directory for scenario pickles.")
+    parser.add_argument("--input_path", required=True, help="Directory containing nuPlan .db log files.")
+    parser.add_argument("--map_root", required=True, help="Directory containing the nuPlan maps.")
+    parser.add_argument("--output_path", required=True, help="Output directory for scenario pickles.")
     parser.add_argument("--limit", type=int, default=5000, help="Maximum number of scenarios to extract.")
-    parser.add_argument("--map-version", default="nuplan-maps-v1.0", help="nuPlan map version string.")
-    parser.add_argument("--sensor-root", default=None, help="Optional sensor blob root (not required).")
-    parser.add_argument("--db-files", default=None, help="Optional specific .db file(s); defaults to all in data-root.")
+    parser.add_argument("--map_version", default="nuplan-maps-v1.0", help="nuPlan map version string.")
+    parser.add_argument("--sensor_root", default=None, help="Optional sensor blob root (not required).")
+    parser.add_argument(
+        "--db_files", default=None, help="Optional specific .db file(s); defaults to all in input_path."
+    )
+    parser.add_argument("--overwrite", action="store_true", help="Remove existing preprocessed outputs before writing.")
     return parser.parse_args()
 
 
@@ -365,11 +386,12 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     args = _parse_args()
     create_infos_from_nuplan(
-        data_root=args.data_root,
+        data_root=args.input_path,
         map_root=args.map_root,
         output_path=args.output_path,
         limit=args.limit,
         map_version=args.map_version,
         sensor_root=args.sensor_root,
         db_files=args.db_files,
+        overwrite=args.overwrite,
     )

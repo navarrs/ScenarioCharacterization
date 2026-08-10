@@ -10,7 +10,8 @@ Reads raw Waymo `.tfrecord` files, extracts scenario data, and writes pickle fil
 
 Example usage::
 
-    uv run python -m characterization.datasets.waymo_preprocess <raw_data_path> <output_path> [--num-workers N]
+    uv run python -m characterization.datasets.waymo_preprocess \
+        --input_path <raw_data_path> --output_path <output_path> [--num_workers N] [--overwrite]
 """
 
 import argparse
@@ -29,6 +30,7 @@ from rich.progress import track
 from waymo_open_dataset.protos import scenario_pb2
 
 from characterization.utils.geometric_utils import get_polyline_dir
+from characterization.utils.io_utils import clean_preprocessed_outputs
 from characterization.utils.scenario_types import (
     AgentType,
     LaneType,
@@ -318,13 +320,16 @@ def get_infos_from_protos(data_path: str, output_path: str | None = None, num_wo
     return [item for infos in data_infos for item in infos]
 
 
-def create_infos_from_protos(raw_data_path: str, output_path: str, num_workers: int = 8) -> None:
+def create_infos_from_protos(
+    raw_data_path: str, output_path: str, num_workers: int = 8, *, overwrite: bool = False
+) -> None:
     """Creates processed scenario info files from raw Waymo scenario protos.
 
     Args:
         raw_data_path (str): Path to directory with raw .tfrecord scenario files.
         output_path (str): Directory to save processed scenario info files.
         num_workers (int, optional): Number of parallel workers. Defaults to 8.
+        overwrite (bool, optional): Remove existing preprocessed outputs before writing. Defaults to False.
 
     Raises:
         ValueError: If the raw data path does not exist.
@@ -332,6 +337,8 @@ def create_infos_from_protos(raw_data_path: str, output_path: str, num_workers: 
     if not os.path.exists(raw_data_path):
         msg = f"The raw data path {raw_data_path} does not exist."
         raise ValueError(msg)
+    if overwrite:
+        clean_preprocessed_outputs(output_path)
     os.makedirs(output_path, exist_ok=True)
 
     scenario_path = os.path.join(output_path, "scenarios")
@@ -344,10 +351,14 @@ def create_infos_from_protos(raw_data_path: str, output_path: str, num_workers: 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Preprocess Waymo Open Dataset scenario protos.")
-    parser.add_argument("raw_data_path", help="Directory containing raw .tfrecord scenario files.")
-    parser.add_argument("output_path", help="Directory to save processed scenario info files.")
-    parser.add_argument("--num-workers", type=int, default=8, help="Number of parallel workers.")
+    parser.add_argument("--input_path", required=True, help="Directory containing raw .tfrecord scenario files.")
+    parser.add_argument("--output_path", required=True, help="Directory to save processed scenario info files.")
+    parser.add_argument("--num_workers", type=int, default=8, help="Number of parallel workers.")
+    parser.add_argument("--overwrite", action="store_true", help="Remove existing preprocessed outputs before writing.")
     args = parser.parse_args()
     create_infos_from_protos(
-        raw_data_path=args.raw_data_path, output_path=args.output_path, num_workers=args.num_workers
+        raw_data_path=args.input_path,
+        output_path=args.output_path,
+        num_workers=args.num_workers,
+        overwrite=args.overwrite,
     )

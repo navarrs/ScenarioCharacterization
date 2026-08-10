@@ -59,7 +59,7 @@ uv run pip install -e ".[waymo]"
 # nuScenes dataset (requires Python 3.12)
 uv run pip install -e ".[nuscenes]"
 
-# nuPlan dataset (requires Python 3.10)
+# nuPlan dataset (requires Python 3.12)
 uv run pip install -e ".[nuplan]"
 ```
 

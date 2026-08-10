@@ -5,14 +5,15 @@ to disk. Trajectories are interpolated from native 2Hz keyframes to 10Hz to matc
 
 Example usage::
 
-    uv run python -m characterization.datasets.nuscenes_preprocess <raw_data_path> <output_path> [version]
+    uv run python -m characterization.datasets.nuscenes_preprocess \
+        --input_path <raw_data_path> --output_path <output_path> [--version v1.0-trainval] [--overwrite]
 """
 
+import argparse
 import json
 import logging
 import os
 import pickle  # nosec B403
-import sys
 from typing import Any
 
 import numpy as np
@@ -24,6 +25,7 @@ from rich.progress import track
 
 from characterization.utils.common import EPSILON, MIN_VALID_POINTS
 from characterization.utils.geometric_utils import build_polyline
+from characterization.utils.io_utils import clean_preprocessed_outputs
 from characterization.utils.scenario_types import PolylineType
 
 logger = logging.getLogger(__name__)
@@ -500,6 +502,8 @@ def create_infos_from_nuscenes(
     raw_data_path: str,
     output_path: str,
     version: str = "v1.0-trainval",
+    *,
+    overwrite: bool = False,
 ) -> None:
     """Creates processed scenario pickle files from raw nuScenes data.
 
@@ -507,6 +511,7 @@ def create_infos_from_nuscenes(
         raw_data_path: Path to the root directory of the nuScenes dataset.
         output_path: Directory to save processed scenario pickle files and the metadata index.
         version: nuScenes dataset version string (e.g. "v1.0-trainval", "v1.0-mini").
+        overwrite: Remove existing preprocessed outputs before writing. Defaults to False.
 
     Raises:
         ValueError: If raw_data_path does not exist.
@@ -514,6 +519,9 @@ def create_infos_from_nuscenes(
     if not os.path.exists(raw_data_path):
         msg = f"The raw data path {raw_data_path} does not exist."
         raise ValueError(msg)
+
+    if overwrite:
+        clean_preprocessed_outputs(output_path)
 
     nusc = NuScenes(version=version, dataroot=raw_data_path, verbose=True)
     nusc_maps = {loc: NuScenesMap(dataroot=raw_data_path, map_name=loc) for loc in MAP_LOCATIONS}
@@ -534,13 +542,17 @@ def create_infos_from_nuscenes(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    if len(sys.argv) < _MIN_SAMPLES + 1:  # need at least raw_data_path and output_path
-        logger.error(
-            "Usage: python -m characterization.datasets.nuscenes_preprocess <raw_data_path> <output_path> [version]"
-        )
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Preprocess nuScenes data into Waymo-format pickles.")
+    parser.add_argument("--input_path", required=True, help="Root directory of the nuScenes dataset.")
+    parser.add_argument(
+        "--output_path", required=True, help="Directory to save processed scenario pickles and the metadata index."
+    )
+    parser.add_argument("--version", default="v1.0-trainval", help="nuScenes dataset version string.")
+    parser.add_argument("--overwrite", action="store_true", help="Remove existing preprocessed outputs before writing.")
+    args = parser.parse_args()
     create_infos_from_nuscenes(
-        raw_data_path=sys.argv[1],
-        output_path=sys.argv[2],
-        version=sys.argv[3] if len(sys.argv) > _MIN_SAMPLES + 1 else "v1.0-trainval",
+        raw_data_path=args.input_path,
+        output_path=args.output_path,
+        version=args.version,
+        overwrite=args.overwrite,
     )

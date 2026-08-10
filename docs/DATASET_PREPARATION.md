@@ -7,6 +7,8 @@ This page explains how to obtain and preprocess each supported dataset for use w
 - [Argoverse 2 Motion Forecasting](ARGOVERSE2_EXAMPLE.md)
 - [nuPlan](NUPLAN_EXAMPLE.md)
 
+All preprocess scripts accept `--overwrite`, which removes the existing `scenarios/` directory and `processed_scenario_samples_infos.pkl` index under the output path before writing, clearing stale scenario pickles from a previous run. Without it, each pickle is overwritten in place and any stale files are left untouched.
+
 ---
 
 ## Dataset Comparison
@@ -24,7 +26,7 @@ This page explains how to obtain and preprocess each supported dataset for use w
 | Road edges in map | Yes | Yes | No | Yes (roadblock polygons) |
 | Difficulty ratings | 0/1/2 (easy/medium/hard) | Uniform (all 1.0) | Uniform (all 1.0) | Uniform (all 1.0) |
 | Agent relevance | Difficulty-weighted | Uniform (all 1.0) | 1.0 for FOCAL/SCORED, 0.0 otherwise | Uniform (all 1.0) |
-| Required Python version | 3.10 | 3.12 | 3.12 | 3.10 |
+| Required Python version | 3.10 | 3.12 | 3.12 | 3.12 |
 
 ---
 
@@ -55,7 +57,7 @@ This page explains how to obtain and preprocess each supported dataset for use w
 
 ### nuPlan
 
-- Requires Python 3.10 (`nuplan-devkit` pins `numpy<2.0` and targets Python 3.9/3.10); install in a dedicated environment.
+- Runs on Python 3.12 (same environment as the rest of the pipeline). The PyPI `nuplan-devkit` wheel declares no dependencies, so the `[nuplan]` extra lists them explicitly.
 - Native 20 Hz tracks are subsampled to 10 Hz (stride derived from `database_interval`); no interpolation required.
 - Provides tens of thousands of scenarios; the number processed is controlled by `--limit` (use `5000` to match Waymo/Argoverse 2).
 - Agent velocities are recomputed via finite differences to avoid mixing ego body-frame and agent global-frame conventions.

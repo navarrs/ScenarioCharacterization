@@ -52,6 +52,7 @@ DATASET_COLORS: dict[str, str] = {
     "waymo": "#1B82E2",  # vivid red
     "nuscenes": "#52E2D1",  # vivid orange
     "argoverse2": "#EEBC47",  # medium purple
+    "nuplan": "#9B5DE5",  # vivid purple
 }
 
 _DATASET_FALLBACK_PALETTE: tuple[str, ...] = (
@@ -65,7 +66,7 @@ _DATASET_FALLBACK_PALETTE: tuple[str, ...] = (
 def get_dataset_colors(dataset_labels: list[str]) -> dict[str, str]:
     """Returns a stable label → color mapping for multi-dataset plots.
 
-    Known datasets (waymo, nuscenes, argoverse2) get fixed colors that do not overlap with
+    Known datasets (waymo, nuscenes, argoverse2, nuplan) get fixed colors that do not overlap with
     AGENT_COLORS. Unknown labels cycle through _DATASET_FALLBACK_PALETTE.
     """
     result: dict[str, str] = {}
