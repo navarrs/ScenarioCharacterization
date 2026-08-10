@@ -160,6 +160,8 @@ def compute_mttcp(
     agent_i: InteractionAgent,
     agent_j: InteractionAgent,
     agent_to_agent_max_distance: float = 0.5,
+    *,
+    chunk_size: int = 256,
 ) -> NDArray[np.float32]:
     """Computes the minimum time to conflict point (mTTCP) between two agents.
 
@@ -174,41 +176,55 @@ def compute_mttcp(
         agent_i (InteractionAgent): The first agent.
         agent_j (InteractionAgent): The second agent.
         agent_to_agent_max_distance (float): The maximum distance between agents to consider for mTTCP.
+        chunk_size (int): Number of agent-i timesteps and conflict points to process per chunk. Smaller values reduce
+            peak memory usage. Defaults to 256.
 
     Returns:
         mttcp (NDArray[np.float32]): An array of mTTCP values for each timestep (shape: [N,]), or [np.inf] if no valid
             pairs are found.
     """
+    if chunk_size <= 0:
+        error_message = f"chunk_size must be positive; got {chunk_size}."
+        raise ValueError(error_message)
+
     position_i, position_j = agent_i.position, agent_j.position
     vel_i, vel_j = agent_i.speed, agent_j.speed
 
-    # T, 2 -> T, T
-    dists = np.linalg.norm(position_i[:, None, :] - position_j, axis=-1)
-    i_idx, _ = np.where(dists <= agent_to_agent_max_distance)
+    # The dense implementation formed a (T, T) distance matrix. Process rows in chunks while retaining the same
+    # per-row proximity predicate and ascending conflict-point order.
+    conflict_time_indices: list[NDArray[np.intp]] = []
+    for start in range(0, position_i.shape[0], chunk_size):
+        position_i_chunk = position_i[start : start + chunk_size]
+        dists = np.linalg.norm(position_i_chunk[:, None, :] - position_j, axis=-1)
+        close_timesteps = np.any(dists <= agent_to_agent_max_distance, axis=1)
+        conflict_time_indices.append(start + np.flatnonzero(close_timesteps))
 
-    _, i_unique = np.unique(i_idx, return_index=True)
-    ti = i_idx[i_unique]
-    if len(ti) == 0:
+    ti = np.concatenate(conflict_time_indices) if conflict_time_indices else np.empty(0, dtype=np.intp)
+    if ti.size == 0:
         return np.array([np.inf], dtype=np.float32)
 
     conflict_points = position_i[ti]
     mttcp = np.inf * np.ones(conflict_points.shape[0], dtype=np.float32)
 
-    cp_to_position_i = np.linalg.norm(position_i - conflict_points[:, None], axis=-1)
-    cp_to_position_j = np.linalg.norm(position_j - conflict_points[:, None], axis=-1)
-    tj = cp_to_position_j.argmin(axis=-1)
+    # Process conflict points in chunks as well, avoiding a second dense (num_conflict_points, T) allocation.
+    for start in range(0, conflict_points.shape[0], chunk_size):
+        end = start + chunk_size
+        conflict_points_chunk = conflict_points[start:end]
+        cp_to_position_i = np.linalg.norm(position_i - conflict_points_chunk[:, None], axis=-1)
+        cp_to_position_j = np.linalg.norm(position_j - conflict_points_chunk[:, None], axis=-1)
+        tj = cp_to_position_j.argmin(axis=-1)
 
-    t_min = np.minimum(ti, tj) + 1
-    for n, t in enumerate(t_min):
-        # Compute the time to conflict point for each agent
-        ttcp_i = cp_to_position_i[n, :t] / vel_i[:t]  # Shape: (num. conflict points, 0 to t)
-        ttcp_j = cp_to_position_j[n, :t] / vel_j[:t]
+        t_min = np.minimum(ti[start:end], tj) + 1
+        for n, t in enumerate(t_min):
+            # Compute the time to conflict point for each agent
+            ttcp_i = cp_to_position_i[n, :t] / vel_i[:t]  # Shape: (num. conflict points, 0 to t)
+            ttcp_j = cp_to_position_j[n, :t] / vel_j[:t]
 
-        # Calculate the absolute difference in time to conflict point
-        ttcp = np.abs(ttcp_i - ttcp_j)
+            # Calculate the absolute difference in time to conflict point
+            ttcp = np.abs(ttcp_i - ttcp_j)
 
-        # Update the minimum mTTCP
-        mttcp[n] = ttcp.min()
+            # Update the minimum mTTCP
+            mttcp[start + n] = ttcp.min()
 
     return mttcp
 
