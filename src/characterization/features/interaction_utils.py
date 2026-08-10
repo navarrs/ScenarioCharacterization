@@ -198,6 +198,8 @@ def compute_thw(
     agent_j: InteractionAgent,
     leading_agent: NDArray[np.intp],
     valid_headings: NDArray[np.intp] | None = None,
+    *,
+    separations: NDArray[np.float32] | None = None,
 ) -> NDArray[np.float32]:
     """Computes the following leader-follower interaction measurements.
 
@@ -212,6 +214,8 @@ def compute_thw(
         agent_j (InteractionAgent): The second agent.
         leading_agent (NDArray[np.intp]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
         valid_headings (NDArray[np.intp] | None): Optional mask to filter valid headings.
+        separations (NDArray[np.float32] | None): Optional precomputed pairwise separation distances. If omitted,
+            separations are computed from the agent positions.
 
     Returns:
         thw (NDArray[np.float32]): Array of time headway values for each timestep (shape: [T,]).
@@ -226,6 +230,12 @@ def compute_thw(
         position_j = position_j[valid_headings]
         speed_j = speed_j[valid_headings]
         length_j = length_j[valid_headings]
+    if separations is None:
+        separation_values = np.linalg.norm(position_i - position_j, axis=-1)
+    elif valid_headings is None:
+        separation_values = separations
+    else:
+        separation_values = separations[valid_headings]
 
     thw = np.full(position_i.shape[0], np.inf, dtype=np.float32)
 
@@ -233,13 +243,13 @@ def compute_thw(
     # ...where i is the agent ahead
     i_idx = np.where(leading_agent == 0)[0]
     if len(i_idx) > 0:
-        d_i = np.linalg.norm(position_i[i_idx] - position_j[i_idx], axis=-1) - length_i[i_idx]
+        d_i = separation_values[i_idx] - length_i[i_idx]
         thw[i_idx] = d_i / (speed_j[i_idx] + EPSILON)
 
     # ...where j is the agent ahead
     j_idx = np.where(leading_agent == 1)[0]
     if len(j_idx) > 0:
-        d_j = np.linalg.norm(position_j[j_idx] - position_i[j_idx], axis=-1) - length_j[j_idx]
+        d_j = separation_values[j_idx] - length_j[j_idx]
         thw[j_idx] = d_j / (speed_i[j_idx] + EPSILON)
 
     return np.abs(thw)
@@ -250,6 +260,8 @@ def compute_ttc(
     agent_j: InteractionAgent,
     leading_agent: NDArray[np.intp],
     valid_headings: NDArray[np.intp] | None = None,
+    *,
+    separations: NDArray[np.float32] | None = None,
 ) -> NDArray[np.float32]:
     """Computes the following leader-follower interaction measurement.
 
@@ -267,6 +279,8 @@ def compute_ttc(
         agent_j (InteractionAgent): The second agent.
         leading_agent (NDArray[np.intp]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
         valid_headings (NDArray[np.intp] | None): Optional mask to filter valid headings.
+        separations (NDArray[np.float32] | None): Optional precomputed pairwise separation distances. If omitted,
+            separations are computed from the agent positions.
 
     Returns:
         ttc (NDArray[np.float32]): Array of time-to-collision values for each timestep (shape: [T,]).
@@ -281,6 +295,12 @@ def compute_ttc(
         position_j = position_j[valid_headings]
         speed_j = speed_j[valid_headings]
         length_j = length_j[valid_headings]
+    if separations is None:
+        separation_values = np.linalg.norm(position_i - position_j, axis=-1)
+    elif valid_headings is None:
+        separation_values = separations
+    else:
+        separation_values = separations[valid_headings]
 
     ttc = np.full(position_i.shape[0], np.inf, dtype=np.float32)
 
@@ -289,7 +309,7 @@ def compute_ttc(
     j_faster = np.where(speed_j > speed_i)[0]
     i_idx = np.intersect1d(i_leads, j_faster)
     if len(i_idx) > 0:
-        d_ij = np.linalg.norm(position_i[i_idx] - position_j[i_idx], axis=-1) - length_i[i_idx]
+        d_ij = separation_values[i_idx] - length_i[i_idx]
         ttc[i_idx] = d_ij / (speed_j[i_idx] - speed_i[i_idx] + EPSILON)
 
     # ...where j is the agent ahead and i's speed is higher
@@ -297,7 +317,7 @@ def compute_ttc(
     i_faster = np.where(speed_i > speed_j)[0]
     j_idx = np.intersect1d(j_leads, i_faster)
     if len(j_idx) > 0:
-        d_ji = np.linalg.norm(position_j[j_idx] - position_i[j_idx], axis=-1) - length_j[j_idx]
+        d_ji = separation_values[j_idx] - length_j[j_idx]
         ttc[j_idx] = d_ji / (speed_i[j_idx] - speed_j[j_idx] + EPSILON)
 
     return np.abs(ttc)
@@ -309,6 +329,8 @@ def compute_drac(
     leading_agent: NDArray[np.intp],
     valid_headings: NDArray[np.intp] | None = None,
     max_deceleration: float = MAX_DECELERATION,
+    *,
+    separations: NDArray[np.float32] | None = None,
 ) -> NDArray[np.float32]:
     """Computes the following leader-follower interaction measurement.
 
@@ -326,6 +348,8 @@ def compute_drac(
         leading_agent (NDArray[np.intp]): Array indicating which agent is leading (0 for agent_i, 1 for agent_j).
         valid_headings (NDArray[np.intp] | None): Optional mask to filter valid headings.
         max_deceleration (float): Maximum deceleration value to clip DRAC values.
+        separations (NDArray[np.float32] | None): Optional precomputed pairwise separation distances. If omitted,
+            separations are computed from the agent positions.
 
     Returns:
         drac (NDArray[np.float32]): Array of time-to-collision values for each timestep (shape: [T,]).
@@ -340,6 +364,12 @@ def compute_drac(
         position_j = position_j[valid_headings]
         speed_j = speed_j[valid_headings]
         length_j = length_j[valid_headings]
+    if separations is None:
+        separation_values = np.linalg.norm(position_i - position_j, axis=-1)
+    elif valid_headings is None:
+        separation_values = separations
+    else:
+        separation_values = separations[valid_headings]
 
     drac = np.full(position_i.shape[0], 0.0, dtype=np.float32)
 
@@ -348,7 +378,7 @@ def compute_drac(
     j_faster = np.where(speed_j > speed_i)[0]
     i_idx = np.intersect1d(i_leads, j_faster)
     if len(i_idx) > 0:
-        d_ij = np.linalg.norm(position_i[i_idx] - position_j[i_idx], axis=-1) - length_i[i_idx]
+        d_ij = separation_values[i_idx] - length_i[i_idx]
         v_ji = speed_j[i_idx] - speed_i[i_idx]
         drac[i_idx] = (v_ji**2) / (2 * np.abs(d_ij) + EPSILON)
 
@@ -357,7 +387,7 @@ def compute_drac(
     i_faster = np.where(speed_i > speed_j)[0]
     j_idx = np.intersect1d(j_leads, i_faster)
     if len(j_idx) > 0:
-        d_ji = np.linalg.norm(position_j[j_idx] - position_i[j_idx], axis=-1) - length_j[j_idx]
+        d_ji = separation_values[j_idx] - length_j[j_idx]
         v_ij = speed_i[j_idx] - speed_j[j_idx]
         drac[j_idx] = (v_ij**2) / (2 * np.abs(d_ji) + EPSILON)
 
