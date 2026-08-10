@@ -83,11 +83,14 @@ class SafeShiftFeatures(BaseFeature):
         agent_data = scenario.agent_data
         agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
         agent_positions = agent_trajectories.agent_xyz_pos
+        pair_scope = "ego" if self.config.get("score_weighting_method", "uniform") == "distance_to_ego_agent" else "all"
         return ScenarioFeatures(
             metadata=scenario.metadata,
             individual_features=self.individual_features.compute_individual_features(scenario),
             interaction_features=self.interaction_features.compute_interaction_features(
-                scenario, max_workers=max_workers
+                scenario,
+                max_workers=max_workers,
+                pair_scope=pair_scope,
             ),
             agent_to_agent_closest_dists=compute_agent_to_agent_closest_dists(agent_positions),
         )

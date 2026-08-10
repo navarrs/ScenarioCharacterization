@@ -2,6 +2,7 @@ import json
 import multiprocessing as mp
 import os
 import threading
+import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from itertools import combinations
 from pathlib import Path
@@ -34,7 +35,27 @@ logger = get_logger(__name__)
 
 _MIN_CANDIDATE_PAIRS_FOR_MULTIPROCESSING: Final[int] = 8
 _MIN_PAIRS_PER_WORKER_FOR_MULTIPROCESSING: Final[int] = 4
-_PAIRWISE_POOL_START_METHOD: Final[str] = "fork"
+_PAIRWISE_POOL_START_METHOD_ENV: Final[str] = "CHARACTERIZATION_PAIRWISE_POOL_START_METHOD"
+_DEFAULT_PAIRWISE_POOL_START_METHOD: Final[str] = "spawn"
+_PAIR_SCOPE_ALL: Final[str] = "all"
+_PAIR_SCOPE_EGO: Final[str] = "ego"
+
+
+def _get_pairwise_pool_start_method() -> str:
+    """Return the configured multiprocessing start method.
+
+    ``spawn`` is the default because characterization may run from a threaded host process, where forking can
+    inherit locked state and deadlock.  ``fork`` remains available as an explicit opt-in for single-threaded callers
+    that prefer to avoid copying large trajectory arrays.
+    """
+    start_method = os.getenv(_PAIRWISE_POOL_START_METHOD_ENV, _DEFAULT_PAIRWISE_POOL_START_METHOD).lower()
+    if start_method not in mp.get_all_start_methods():
+        available_methods = ", ".join(mp.get_all_start_methods())
+        error_message = (
+            f"Unsupported {_PAIRWISE_POOL_START_METHOD_ENV}={start_method!r}; available methods: {available_methods}"
+        )
+        raise ValueError(error_message)
+    return start_method
 
 
 def _get_multiprocessing_pair_threshold(max_workers: int | None) -> int:
@@ -44,33 +65,78 @@ def _get_multiprocessing_pair_threshold(max_workers: int | None) -> int:
     return max(_MIN_CANDIDATE_PAIRS_FOR_MULTIPROCESSING, worker_count * _MIN_PAIRS_PER_WORKER_FOR_MULTIPROCESSING)
 
 
-def _get_fork_process_pool_skip_reason(
+def _get_process_pool_skip_reason(
     *,
     max_workers: int | None,
     candidate_pair_count: int,
     multiprocessing_pair_threshold: int,
+    start_method: str,
 ) -> str | None:
-    """Return the reason to avoid the fork process pool, or None when fork is acceptable."""
+    """Return the reason to avoid the process pool, or None when it is safe to use."""
     if max_workers is not None and max_workers <= 1:
         return f"max_workers={max_workers}"
     if candidate_pair_count < multiprocessing_pair_threshold:
         return f"candidate_pairs={candidate_pair_count} < minimum_pairs_for_pool={multiprocessing_pair_threshold}"
 
-    current_thread = threading.current_thread()
-    if current_thread is not threading.main_thread():
-        return (
-            "ignoring requested fork workers because caller is running in non-main thread "
-            f"{current_thread.name!r}; active_python_threads={threading.active_count()}"
-        )
+    # Forking from a process with active Python threads can leave inherited locks permanently locked in the child.
+    # Spawn starts a fresh interpreter and is safe for this case, at the cost of serialising the worker context.
+    if start_method == "fork":
+        current_thread = threading.current_thread()
+        if current_thread is not threading.main_thread():
+            return (
+                "ignoring requested fork workers because caller is running in non-main thread "
+                f"{current_thread.name!r}; active_python_threads={threading.active_count()}"
+            )
 
-    active_threads = threading.enumerate()
-    if len(active_threads) > 1:
-        active_thread_names = ", ".join(thread.name for thread in active_threads[:8])
-        return (
-            "ignoring requested fork workers because multiple Python threads are active; "
-            f"active_python_threads={len(active_threads)}; active_thread_names={active_thread_names}"
-        )
+        active_threads = threading.enumerate()
+        if len(active_threads) > 1:
+            active_thread_names = ", ".join(thread.name for thread in active_threads[:8])
+            return (
+                "ignoring requested fork workers because multiple Python threads are active; "
+                f"active_python_threads={len(active_threads)}; active_thread_names={active_thread_names}"
+            )
     return None
+
+
+def _get_agent_combinations(
+    num_agents: int,
+    *,
+    pair_scope: str,
+    ego_vehicle_index: int,
+) -> list[tuple[int, int]]:
+    """Return the agent pairs required by an interaction-feature scope.
+
+    The default ``all`` scope preserves the historical lexicographic ordering produced by
+    :func:`itertools.combinations`. The ``ego`` scope preserves that ordering after filtering to pairs containing the
+    ego vehicle, which keeps the filtered pair ordering stable relative to the full pair set.
+
+    Args:
+        num_agents: Number of agents in the scenario.
+        pair_scope: Pair scope, either ``"all"`` or ``"ego"``.
+        ego_vehicle_index: Index of the ego vehicle. Used only by the ``"ego"`` scope.
+
+    Returns:
+        The requested unordered agent-index pairs.
+
+    Raises:
+        ValueError: If ``pair_scope`` is unsupported or the ego index is invalid for the ``"ego"`` scope.
+    """
+    if pair_scope == _PAIR_SCOPE_ALL:
+        return list(combinations(range(num_agents), 2))
+
+    if pair_scope != _PAIR_SCOPE_EGO:
+        error_message = f"Unsupported pair_scope={pair_scope!r}; expected {_PAIR_SCOPE_ALL!r} or {_PAIR_SCOPE_EGO!r}."
+        raise ValueError(error_message)
+
+    if not 0 <= ego_vehicle_index < num_agents:
+        error_message = f"ego_vehicle_index={ego_vehicle_index} is invalid for a scenario with {num_agents} agents."
+        raise ValueError(error_message)
+
+    return [
+        (min(ego_vehicle_index, other_index), max(ego_vehicle_index, other_index))
+        for other_index in range(num_agents)
+        if other_index != ego_vehicle_index
+    ]
 
 
 def _chunked_prefilter_candidates(
@@ -78,6 +144,7 @@ def _chunked_prefilter_candidates(
     agent_positions: NDArray[np.float32],
     agent_to_agent_max_distance: float,
     chunk_size: int = 256,
+    pair_combinations: list[tuple[int, int]] | None = None,
 ) -> NDArray[np.bool_]:
     """Return a boolean mask of agent pairs that are candidate interactions.
 
@@ -112,20 +179,24 @@ def _chunked_prefilter_candidates(
         agent_to_agent_max_distance: Distance threshold in metres.
         chunk_size: Number of timesteps to process per iteration.  Controls the
             memory/iteration-count trade-off.  Defaults to 256.
+        pair_combinations: Optional ordered list of agent-index pairs to evaluate. If omitted, all unordered pairs are
+            evaluated.
 
     Returns:
-        Boolean array of shape ``(num_pairs,)`` where ``num_pairs = n*(n-1)/2``.
-        Element ``k`` is ``True`` when pair ``k``
-        (ordered as ``np.triu_indices(n, k=1)``,
-        equivalently ``itertools.combinations(range(n), 2)``)
-        comes within the distance threshold at some shared valid timestep.
+        Boolean array of shape ``(num_pairs,)``. Element ``k`` is ``True`` when the corresponding pair comes within the
+        distance threshold at some shared valid timestep. Pair ordering follows ``pair_combinations`` when supplied;
+        otherwise it follows ``itertools.combinations(range(n), 2)``.
 
     """
     n_agents: int = agent_positions.shape[0]
     num_timesteps: int = agent_positions.shape[1]
     pair_rows: NDArray[np.intp]
     pair_cols: NDArray[np.intp]
-    pair_rows, pair_cols = np.triu_indices(n_agents, k=1)
+    if pair_combinations is None:
+        pair_rows, pair_cols = np.triu_indices(n_agents, k=1)
+    else:
+        pair_rows = np.fromiter((i for i, _ in pair_combinations), dtype=np.intp, count=len(pair_combinations))
+        pair_cols = np.fromiter((j for _, j in pair_combinations), dtype=np.intp, count=len(pair_combinations))
     num_pairs: int = pair_rows.shape[0]
 
     # Replace invalid timesteps with inf so they never contribute to a minimum distance.
@@ -466,6 +537,7 @@ class InteractionFeatures(BaseFeature):
         scenario: Scenario,
         *,
         max_workers: int | None = None,
+        pair_scope: str = _PAIR_SCOPE_ALL,
     ) -> Interaction | None:
         """Compute comprehensive pairwise interaction features for all agent combinations.
 
@@ -476,6 +548,8 @@ class InteractionFeatures(BaseFeature):
                 - static_map_data: Map conflict points and agent distances to conflict points
             max_workers: Maximum number of worker processes for parallel computation.
                 Defaults to None, which uses the number of processors on the machine.
+            pair_scope: Agent-pair scope. ``"all"`` computes every unordered pair. ``"ego"`` computes only pairs
+                containing ``scenario.metadata.ego_vehicle_index``. The default is ``"all"``.
 
         Returns:
             Interaction: Structured object containing computed interaction features:
@@ -501,8 +575,13 @@ class InteractionFeatures(BaseFeature):
         metadata = scenario.metadata
         agent_data = scenario.agent_data
         map_data = scenario.static_map_data
+        interaction_started = time.perf_counter()
 
-        agent_combinations = list(combinations(range(agent_data.num_agents), 2))
+        agent_combinations = _get_agent_combinations(
+            agent_data.num_agents,
+            pair_scope=pair_scope,
+            ego_vehicle_index=metadata.ego_vehicle_index,
+        )
         if len(agent_combinations) == 0:
             warning_message = "No agent combinations found. Ensure that the scenario has at least two agents."
             warn(warning_message, UserWarning, stacklevel=2)
@@ -521,6 +600,17 @@ class InteractionFeatures(BaseFeature):
         agent_headings = np.rad2deg(agent_trajectories.agent_headings)
         conflict_points = map_data.map_conflict_points if map_data is not None else None
         dists_to_conflict_points = map_data.agent_distances_to_conflict_points if map_data is not None else None
+
+        logger.info(
+            "Interaction feature inputs: agents=%d, timesteps=%d, max_workers=%s, start_method=%s, "
+            "active_python_threads=%d, pair_scope=%s",
+            agent_data.num_agents,
+            agent_positions.shape[1],
+            max_workers,
+            os.getenv(_PAIRWISE_POOL_START_METHOD_ENV, _DEFAULT_PAIRWISE_POOL_START_METHOD),
+            threading.active_count(),
+            pair_scope,
+        )
 
         # Meta information
         stationary_speed = metadata.max_stationary_speed
@@ -566,19 +656,40 @@ class InteractionFeatures(BaseFeature):
         # Pairs that are never within range are marked DISTANCE_TOO_FAR here
         # and never submitted to a worker,
         # avoiding their IPC and scheduling overhead.
+        prefilter_started = time.perf_counter()
         is_candidate: NDArray[np.bool_] = _chunked_prefilter_candidates(
-            agent_masks, agent_positions, agent_to_agent_max_distance
+            agent_masks,
+            agent_positions,
+            agent_to_agent_max_distance,
+            pair_combinations=agent_combinations,
         )  # (num_pairs,)
+
+        other_agent_mask = np.asarray([agent_type == AgentType.TYPE_OTHER for agent_type in agent_types], dtype=bool)
+        pair_has_only_other_agents = np.asarray(
+            [
+                agent_types[i] == AgentType.TYPE_OTHER and agent_types[j] == AgentType.TYPE_OTHER
+                for i, j in agent_combinations
+            ],
+            dtype=bool,
+        )
+        skipped_candidate_count = int(np.count_nonzero(is_candidate & pair_has_only_other_agents))
+        is_candidate &= ~pair_has_only_other_agents
+        logger.info(
+            "Skipping TYPE_OTHER-TYPE_OTHER pairs from pairwise workers: other_agents=%d, pairs_removed=%d",
+            int(other_agent_mask.sum()),
+            skipped_candidate_count,
+        )
 
         candidate_ns: NDArray[np.intp] = np.where(is_candidate)[0]
         for i in np.where(~is_candidate)[0]:
             scenario_interaction_statuses[int(i)] = InteractionStatus.DISTANCE_TOO_FAR
 
         logger.info(
-            "Distance pre-filter: %d / %d pairs left (%.1f%% skipped)",
+            "Distance pre-filter: %d / %d pairs left (%.1f%% skipped); elapsed=%.3fs",
             len(candidate_ns),
             num_interactions,
             100.0 * (~is_candidate).mean(),
+            time.perf_counter() - prefilter_started,
         )
 
         def _run_pairwise_full_loop(pairs: list[tuple[int, int, int]]) -> None:
@@ -598,28 +709,36 @@ class InteractionFeatures(BaseFeature):
                     scenario_dracs[pair_n] = results["drac"]
 
         candidate_pairs = [(int(n), agent_combinations[n][0], agent_combinations[n][1]) for n in candidate_ns]
+        participating_agent_indices = {agent_index for _, i, j in candidate_pairs for agent_index in (i, j)}
+        logger.info(
+            "Pairwise interaction agent workload: total_agents=%d, other_agents=%d, "
+            "agents_in_candidate_pairs=%d, candidate_pairs=%d",
+            agent_data.num_agents,
+            int(other_agent_mask.sum()),
+            len(participating_agent_indices),
+            len(candidate_pairs),
+        )
         multiprocessing_pair_threshold = _get_multiprocessing_pair_threshold(max_workers)
-        fork_pool_skip_reason = _get_fork_process_pool_skip_reason(
+        pool_start_method = _get_pairwise_pool_start_method()
+        pool_skip_reason = _get_process_pool_skip_reason(
             max_workers=max_workers,
             candidate_pair_count=len(candidate_pairs),
             multiprocessing_pair_threshold=multiprocessing_pair_threshold,
+            start_method=pool_start_method,
         )
 
-        # Fork is retained only for single-threaded callers. Forking from a process
-        # with active Python threads can leave inherited locks permanently locked
-        # in the child, so threaded callers use the serial path instead.
-        if fork_pool_skip_reason is None:
-            # Process agent combinations in parallel with fork context for zero-copy data sharing
+        if pool_skip_reason is None:
             logger.info(
                 "Starting pairwise interaction process pool: candidate_pairs=%d, max_workers=%s, "
-                "minimum_pairs_for_pool=%d, start_method=fork",
+                "minimum_pairs_for_pool=%d, start_method=%s",
                 len(candidate_pairs),
                 max_workers,
                 multiprocessing_pair_threshold,
+                pool_start_method,
             )
             with ProcessPoolExecutor(
                 max_workers=max_workers,
-                mp_context=mp.get_context(_PAIRWISE_POOL_START_METHOD),  # faster than spawn
+                mp_context=mp.get_context(pool_start_method),
                 initializer=_init_worker_context,  # read-only
                 initargs=(
                     agent_masks,
@@ -681,7 +800,7 @@ class InteractionFeatures(BaseFeature):
                 max_workers,
                 len(candidate_pairs),
                 multiprocessing_pair_threshold,
-                fork_pool_skip_reason,
+                pool_skip_reason,
             )
             _init_worker_context(
                 agent_masks,
@@ -706,6 +825,12 @@ class InteractionFeatures(BaseFeature):
                 self.inv_stability_cap,
             )
             _run_pairwise_full_loop(candidate_pairs)
+
+        logger.info(
+            "Pairwise interaction computation complete: candidate_pairs=%d, elapsed=%.3fs",
+            len(candidate_pairs),
+            time.perf_counter() - interaction_started,
+        )
 
         return Interaction(
             separation=scenario_separations,
