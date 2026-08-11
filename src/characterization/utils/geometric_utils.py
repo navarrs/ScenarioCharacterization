@@ -47,24 +47,6 @@ def compute_moving_average(values: NDArray[np.float32], window_size: int = 5) ->
     return np.convolve(padded_values, np.ones(window_size) / window_size, mode="valid")
 
 
-def compute_median_filter(values: NDArray[np.float32], window_size: int = 5) -> NDArray[np.float32]:
-    """Applies a median filter to smooth the speed time series.
-
-    Args:
-        values (NDArray[np.float32]): The raw speed time series (shape: [T,]).
-        window_size (int, optional): The size of the median filter window. Defaults to 5.
-
-    Returns:
-        NDArray[np.float32]: The smoothed speed time series (shape: [T,]).
-    """
-    if window_size < 1:
-        return values
-
-    pad_size = window_size // 2
-    padded_values = np.pad(values, (pad_size, pad_size), mode="edge")
-    return np.array([np.median(padded_values[i : i + window_size]) for i in range(len(values))])
-
-
 def compute_dists_to_conflict_points(
     conflict_points: NDArray[np.float32] | None, trajectories: NDArray[np.float32]
 ) -> NDArray[np.float32] | None:

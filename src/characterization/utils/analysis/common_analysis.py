@@ -85,34 +85,6 @@ DEFAULT_FEATURE_CATEGORIES: list[dict[str, Any]] = [
 ]
 
 
-def get_sample_to_plot(
-    df: pd.DataFrame,
-    key: str,
-    min_value: float,
-    max_value: float,
-    seed: int,
-    sample_size: int,
-) -> pd.DataFrame:
-    """Selects a random sample of rows from a DataFrame within a specified value range for a given column.
-
-    Args:
-        df (pd.DataFrame): The DataFrame to sample from.
-        key (str): The column name to filter by value range.
-        min_value (float): The minimum value (inclusive) for filtering.
-        max_value (float): The maximum value (exclusive) for filtering.
-        seed (int): Random seed for reproducibility.
-        sample_size (int): Number of samples to return.
-
-    Returns:
-        pd.DataFrame: A DataFrame containing the sampled rows within the specified range.
-    """
-    df_subset = df.loc[(df[key] >= min_value) & (df[key] < max_value)]
-    subset_size = len(df_subset)
-    logger.info("Found %d rows between [%.2f to %.2f] for %s", subset_size, min_value, max_value, key)
-    sample_size = min(sample_size, subset_size)
-    return df_subset.sample(n=sample_size, random_state=seed)
-
-
 def get_valid_scenario_ids(scenario_types: list[str], criteria: list[str], base_path: Path) -> list[str]:
     """Finds scenario IDs that are common across all specified scenario types and criteria.
 
@@ -130,27 +102,6 @@ def get_valid_scenario_ids(scenario_types: list[str], criteria: list[str], base_
         scenario_files = [f.name for f in scenarios_path.iterdir()]
         scenario_lists.append(scenario_files)
     return list(set.intersection(*[set(scenario_list) for scenario_list in scenario_lists]))
-
-
-def get_scored_scenario_ids(scenario_types: list[str], criteria: list[str], base_path: Path) -> dict[str, list[str]]:
-    """Retrieves the list of scored scenario IDs for each combination of scenario type and criterion.
-
-    Args:
-        scenario_types (list[str]): List of scenario types to consider.
-        criteria (list[str]): List of criteria to consider.
-        base_path (Path): Base path where the scored scenario files are located.
-
-    Returns:
-        dict[str, list[str]]: A dictionary mapping each scenario type and criterion combination to a list of scored
-            scenario IDs (file names).
-    """
-    scenario_lists = {}
-    for scenario_type, criterion in product(scenario_types, criteria):
-        key = f"{scenario_type}_{criterion}"
-        scenario_type_criterion_path = base_path / key
-        scenario_type_scores_files = [file.name for file in scenario_type_criterion_path.glob("*.pkl")]
-        scenario_lists[key] = scenario_type_scores_files
-    return scenario_lists
 
 
 def plot_histograms_from_dataframe(
