@@ -68,6 +68,76 @@ Commonly overridden keys:
 | <img width="300" height="200" alt="individual_speed_limit_diff_type_vehicle_distributions" src="https://github.com/user-attachments/assets/be2f6bbf-3ae3-400d-840d-35ac43758605" /> <!-- pragma: allowlist secret -->  | <img width="300" height="200" alt="individual_speed_limit_diff_type_cyclist_distributions" src="https://github.com/user-attachments/assets/189d1c0c-7627-4d94-8a51-7f975264a3e1" /> <!-- pragma: allowlist secret -->  | <img width="300" height="200" alt="individual_speed_limit_diff_type_pedestrian_distributions" src="https://github.com/user-attachments/assets/5e7c58bc-5636-4dbc-a7df-d6d6e360d2e8" /> <!-- pragma: allowlist secret -->  |
 | | | |
 
+## Dataset Analysis
+
+The dataset analysis utility counts how many individual trajectories and interaction pairs each dataset
+contributes, broken down by agent type and agent-pair type. Both the population the pipeline enumerated
+and the subset it successfully characterized come from a single streaming pass over the cached feature
+artifacts.
+
+### What this produces
+
+Each run writes a timestamped folder under `output_dir` (default: `${paths.cache_path}/analysis`) with:
+- `dataset_counts.csv` — one row per dataset, every agent type and pair type, `total` and `valid` columns
+- `dataset_counts.json` — the same counts, nested by dataset label
+- `dataset_counts.tex` — booktabs table of the valid counts, ready to `\input` (needs `booktabs` and `graphicx`)
+- `trajectory_counts.png`, `interaction_counts.png` — grouped bars, one hue per dataset, log y-axis
+- `trajectory_composition.png`, `interaction_composition.png` — 100%-stacked bars of the class mix
+
+### Example usage
+
+Count a single dataset:
+```bash
+uv run python -m characterization.run_dataset_analysis paths=waymo_sample dataset=waymo
+```
+
+Count several datasets into one table, with LaTeX row labels:
+```bash
+uv run python -m characterization.run_dataset_analysis \
+    "datasets=[{label: Waymo, dataset_name: waymo, latex_label: '\womd~\cite{ettinger2021large}'}, \
+               {label: Argoverse2, dataset_name: argoverse2}, \
+               {label: nuPlan, dataset_name: nuplan}]"
+```
+
+Include the VRU-only pair types in the table and plots:
+```bash
+uv run python -m characterization.run_dataset_analysis \
+    latex_pair_types="[TYPE_VEHICLE_VEHICLE,TYPE_VEHICLE_PEDESTRIAN,TYPE_VEHICLE_CYCLIST,TYPE_PEDESTRIAN_PEDESTRIAN,TYPE_PEDESTRIAN_CYCLIST,TYPE_CYCLIST_CYCLIST]"
+```
+
+Emit exact numbers instead of `300k` / `3.6M`:
+```bash
+uv run python -m characterization.run_dataset_analysis latex_compact_numbers=false
+```
+
+### Useful config overrides
+
+Commonly overridden keys:
+- `features_path` (default: `${paths.cache_path}/features`)
+- `scenario_types`, `criteria` (exactly one of each — see Notes)
+- `total_scenarios` (limit scenario count for faster runs)
+- `latex_agent_types`, `latex_pair_types` (which types the table and plots render)
+- `latex_compact_numbers`, `count_scenarios_on_disk`
+- `output_dir`, `exp_tag`, `dpi`
+
+### Notes
+
+- **Exactly one `scenario_types` x `criteria` branch per run.** Feature artifacts are stored per branch,
+  so counting several would count every scenario once per branch. The script raises rather than
+  silently multiplying the numbers; re-run once per branch instead.
+- **`total` means enumerated by the pipeline, not present in the raw dataset.** For trajectories it is
+  the full `agent_types` list; for interactions it is every pair in `interaction_status`, which is
+  `C(N,2)` under the default `pair_scope=all` but only `N-1` when features were computed with
+  `pair_scope=ego`. Compare `num_scenarios_counted` against `num_scenarios_on_disk` to see whether
+  feature computation covered the whole dataset.
+- **A pair is valid when its `interaction_status` is `COMPUTED_OK` or `PARTIAL_INVALID_HEADING`** — the
+  same filter the interaction feature distributions use, so the counts match those plots exactly.
+- **The ego agent is counted in its own `TYPE_EGO_AGENT` trajectory bucket**, but `AgentPairType` has no
+  ego member and `get_agent_pair_type` folds ego into vehicle, so ego pairs land in V-V / V-P / V-C. The
+  CSV and JSON carry `pairs_with_ego_total` / `pairs_with_ego_valid` so this stays visible.
+- Composition plots take shares over the **selected** types only; excluding a type also removes it from
+  the denominator.
+
 ## Score Analysis
 
 The score analysis utility loads cached score/feature artifacts, computes scenario-level summaries,
