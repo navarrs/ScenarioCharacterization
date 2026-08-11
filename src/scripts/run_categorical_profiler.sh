@@ -23,7 +23,8 @@ Options:
                         in natural-sort order. Pair with -m scratch when changing it between runs.
   -o                    Overwrite existing results
   -c                    Create metadata for the features
-  -m <mode>             Execution mode: scratch or resume (default: resume)
+  -m <mode>             Execution mode: scratch or resume (default: resume). Progress is tracked in a separate
+                        file per dataset, so resuming one dataset never skips steps of another.
   -s <step>             Repeat a specific step by number (see -l for list); ignores progress file
   -l                    List all steps with their numbers and exit
   -n                    Dry run (print commands, do not execute)
@@ -69,7 +70,6 @@ EOF
 DEFAULT_DATASET="waymo"
 DEFAULT_RUN_MODE="resume"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROGRESS_FILE="$SCRIPT_DIR/categorical_profiler.progress"
 
 DEFAULT_OUTPUT_DIR="outputs/categorical_profiler"
 RAW_FEATURES_ANALYSIS_EXPERIMENT_TAG="raw_features_distribution_analysis"
@@ -133,6 +133,9 @@ if [ -n "$num_scenarios" ]; then
 fi
 
 [ -z "$dataset" ] && dataset="$DEFAULT_DATASET"
+
+# Progress is tracked per dataset so a resume never picks up another dataset's step counter.
+PROGRESS_FILE="$SCRIPT_DIR/categorical_profiler.${dataset}.progress"
 
 if [ -z "$paths_config" ]; then
     case "$dataset" in

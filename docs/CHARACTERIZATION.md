@@ -139,7 +139,7 @@ bash src/scripts/run_categorical_profiler.sh [options]
 - `-d <meta_dir>`: Meta directory where analysis JSON files are copied (overrides the `-D` default)
 - `-u <output_dir>`: Output directory for categorical profiling analyses (default: `outputs/categorical_profiler`)
 - `-N <num_scenarios>`: Cap the number of scenarios (default: all). Passed as `num_scenarios` to the computation steps and `total_scenarios` to the analysis steps
-- `-m <mode>`: Run mode, either `resume` (default) or `scratch`
+- `-m <mode>`: Run mode, either `resume` (default) or `scratch`. Progress is tracked in a separate file per dataset, so resuming one dataset never skips steps of another
 - `-s <step>`: Repeat a specific step by number (see `-l` for the step list); ignores the progress file
 - `-l`: List all steps with their numbers and exit
 - `-c`: Create metadata for feature computation
