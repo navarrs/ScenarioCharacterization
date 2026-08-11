@@ -5,8 +5,6 @@ from characterization.utils.analysis.common_analysis import (
     SUPPORTED_FEATURES,
     compute_category_thresholds,
     compute_jaccard_index,
-    get_sample_to_plot,
-    get_scored_scenario_ids,
     get_valid_scenario_ids,
     plot_histograms_from_dataframe,
 )
@@ -68,9 +66,7 @@ __all__ = [
     "count_dataset_features",
     "count_scenario_features",
     "count_scenarios_on_disk",
-    "get_sample_to_plot",
     "get_scenario_splits",
-    "get_scored_scenario_ids",
     "get_valid_scenario_ids",
     "load_features",
     "load_probe_csv",

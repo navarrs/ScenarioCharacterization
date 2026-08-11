@@ -4,7 +4,6 @@ from .interaction_features import InteractionFeatures
 from .safeshift_features import SafeShiftFeatures
 
 SUPPORTED_FEATURES = [
-    "random_feature",
     "speed",
     "speed_limit_diff",
     "acceleration",
