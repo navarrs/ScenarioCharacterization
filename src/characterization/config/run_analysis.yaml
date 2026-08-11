@@ -51,7 +51,7 @@ datasets: null
 show_kde: false
 show_percentiles: true
 show_colored_by_agent_type: true # If false, it will color by feature type
-include_pairs_with_no_vehicles: true
+# NOTE: include_pairs_with_no_vehicles is defined in run_processor.yaml so the analysis and processor steps share it.
 
 feature_categories:
   - name: LOW

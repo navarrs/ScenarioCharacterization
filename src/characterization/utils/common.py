@@ -115,6 +115,7 @@ class InteractionStatus(Enum):
     MASK_NOT_VALID = 2
     DISTANCE_TOO_FAR = 3
     STATIONARY = 4
+    OUT_OF_SCOPE = 5
 
 
 class ReturnCriterion(Enum):

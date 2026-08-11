@@ -496,6 +496,7 @@ class InteractionFeatures(BaseFeature):
 
         self.categorize_features = FeatureType(self.config.get("feature_type", "continuous")) == FeatureType.CATEGORICAL
         self.inv_stability_cap: float = self.config.get("inv_stability_cap", 10.0)
+        self.include_pairs_with_no_vehicles: bool = bool(self.config.get("include_pairs_with_no_vehicles", True))
         if self.categorize_features:
             vehicle_vehicle_file = Path(self.config.get("vehicle_vehicle_categorization_file", ""))
             if not vehicle_vehicle_file.is_file():
@@ -518,26 +519,32 @@ class InteractionFeatures(BaseFeature):
             with vehicle_cyclist_file.open("r") as f:
                 self.vehicle_cyclist_categories = json.load(f)
 
-            pedestrian_pedestrian_file = Path(self.config.get("pedestrian_pedestrian_categorization_file", ""))
-            if not pedestrian_pedestrian_file.is_file():
-                msg = f"Categorization file {pedestrian_pedestrian_file} does not exist."
-                raise FileNotFoundError(msg)
-            with pedestrian_pedestrian_file.open("r") as f:
-                self.pedestrian_pedestrian_categories = json.load(f)
+            # Vehicle-free pairs are dropped before categorization when disabled, so their threshold files are
+            # neither required nor produced by the feature analysis step.
+            self.pedestrian_pedestrian_categories: dict[str, dict[str, Any]] = {}
+            self.pedestrian_cyclist_categories: dict[str, dict[str, Any]] = {}
+            self.cyclist_cyclist_categories: dict[str, dict[str, Any]] = {}
+            if self.include_pairs_with_no_vehicles:
+                pedestrian_pedestrian_file = Path(self.config.get("pedestrian_pedestrian_categorization_file", ""))
+                if not pedestrian_pedestrian_file.is_file():
+                    msg = f"Categorization file {pedestrian_pedestrian_file} does not exist."
+                    raise FileNotFoundError(msg)
+                with pedestrian_pedestrian_file.open("r") as f:
+                    self.pedestrian_pedestrian_categories = json.load(f)
 
-            pedestrian_cyclist_file = Path(self.config.get("pedestrian_cyclist_categorization_file", ""))
-            if not pedestrian_cyclist_file.is_file():
-                msg = f"Categorization file {pedestrian_cyclist_file} does not exist."
-                raise FileNotFoundError(msg)
-            with pedestrian_cyclist_file.open("r") as f:
-                self.pedestrian_cyclist_categories = json.load(f)
+                pedestrian_cyclist_file = Path(self.config.get("pedestrian_cyclist_categorization_file", ""))
+                if not pedestrian_cyclist_file.is_file():
+                    msg = f"Categorization file {pedestrian_cyclist_file} does not exist."
+                    raise FileNotFoundError(msg)
+                with pedestrian_cyclist_file.open("r") as f:
+                    self.pedestrian_cyclist_categories = json.load(f)
 
-            cyclist_cyclist_file = Path(self.config.get("cyclist_cyclist_categorization_file", ""))
-            if not cyclist_cyclist_file.is_file():
-                msg = f"Categorization file {cyclist_cyclist_file} does not exist."
-                raise FileNotFoundError(msg)
-            with cyclist_cyclist_file.open("r") as f:
-                self.cyclist_cyclist_categories = json.load(f)
+                cyclist_cyclist_file = Path(self.config.get("cyclist_cyclist_categorization_file", ""))
+                if not cyclist_cyclist_file.is_file():
+                    msg = f"Categorization file {cyclist_cyclist_file} does not exist."
+                    raise FileNotFoundError(msg)
+                with cyclist_cyclist_file.open("r") as f:
+                    self.cyclist_cyclist_categories = json.load(f)
 
     def compute_interaction_features(
         self,
@@ -687,9 +694,29 @@ class InteractionFeatures(BaseFeature):
             skipped_candidate_count,
         )
 
+        pair_has_no_vehicle = np.zeros(num_interactions, dtype=bool)
+        if not self.include_pairs_with_no_vehicles:
+            vehicle_types = (AgentType.TYPE_VEHICLE, AgentType.TYPE_EGO_AGENT)
+            pair_has_no_vehicle = np.asarray(
+                [
+                    agent_types[i] not in vehicle_types and agent_types[j] not in vehicle_types
+                    for i, j in agent_combinations
+                ],
+                dtype=bool,
+            )
+            skipped_no_vehicle_count = int(np.count_nonzero(is_candidate & pair_has_no_vehicle))
+            is_candidate &= ~pair_has_no_vehicle
+            logger.info(
+                "Skipping pairs without a vehicle from pairwise workers: pairs_out_of_scope=%d, pairs_removed=%d",
+                int(pair_has_no_vehicle.sum()),
+                skipped_no_vehicle_count,
+            )
+
         candidate_ns: NDArray[np.intp] = np.where(is_candidate)[0]
         for i in np.where(~is_candidate)[0]:
             scenario_interaction_statuses[int(i)] = InteractionStatus.DISTANCE_TOO_FAR
+        for i in np.where(pair_has_no_vehicle)[0]:
+            scenario_interaction_statuses[int(i)] = InteractionStatus.OUT_OF_SCOPE
 
         logger.info(
             "Distance pre-filter: %d / %d pairs left (%.1f%% skipped); elapsed=%.3fs",
