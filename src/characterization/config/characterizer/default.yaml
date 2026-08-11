@@ -33,6 +33,7 @@ processor:
 characterizer:
   config:
     feature_type: ${feature_type}
+    include_pairs_with_no_vehicles: ${include_pairs_with_no_vehicles}
 
     # Individual feature categorization files
     vehicle_categorization_file: ./meta/${paths.dataset_name}/type_vehicle_feature_percentiles.json

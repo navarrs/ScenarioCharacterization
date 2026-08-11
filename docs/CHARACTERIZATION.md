@@ -144,6 +144,7 @@ bash src/scripts/run_categorical_profiler.sh [options]
 - `-l`: List all steps with their numbers and exit
 - `-c`: Create metadata for feature computation
 - `-o`: Overwrite existing outputs
+- `-V`: Vehicles-only mode. Excludes interaction pairs without a vehicle (pedestrian/cyclist only) from feature computation, categorization, scoring, and analysis
 - `-n`: Dry run (print commands without executing)
 
 ### Common examples
@@ -176,6 +177,18 @@ Computation takes the first *N* scenarios in natural-sort order, so the subset i
 rather than a random sample. The analysis steps cap whatever is already cached on disk, and their selection order
 is not stable across runs — so pair `-N` with `-m scratch` when you change it, otherwise the progress file resumes
 mid-pipeline with a mismatched cap.
+
+Only consider interaction pairs that involve a vehicle:
+
+```bash
+bash src/scripts/run_categorical_profiler.sh -D waymo -V -m scratch -o
+```
+
+`-V` sets `include_pairs_with_no_vehicles=false` on every step. Pedestrian-pedestrian, pedestrian-cyclist, and
+cyclist-cyclist pairs are then marked `OUT_OF_SCOPE` during feature computation, so they are absent from the
+distribution analyses and never scored, and their `*_feature_percentiles.json` threshold files are neither produced
+nor required. Because this changes what lands in the feature cache, pair `-V` with `-m scratch -o` when switching
+modes; otherwise the run reuses features computed under the other setting.
 
 Run with custom meta and output directories:
 

@@ -25,6 +25,9 @@ scenario_type: 'gt'
 return_criterion: 'critical'
 feature_type: 'continuous' # 'categorical' or 'continuous'
 ego_only: false
+# When false, interaction pairs without a vehicle (pedestrian/cyclist only) are excluded from feature computation,
+# categorization, scoring and analysis. Shared with run_analysis.yaml, which inherits this file.
+include_pairs_with_no_vehicles: true
 score_weighting_method: "distance_to_ego_agent" # "uniform" or "distance_to_ego_agent" or "distance_to_relevant_agents"
 reduce_distance_penalty: true
 aggregated_score_weight: 0.5

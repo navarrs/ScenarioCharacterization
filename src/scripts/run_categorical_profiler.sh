@@ -21,6 +21,9 @@ Options:
   -N <num_scenarios>    Cap the number of scenarios (default: all). Passed as num_scenarios to the computation
                         steps and total_scenarios to the analysis steps. Computation takes the first N scenarios
                         in natural-sort order. Pair with -m scratch when changing it between runs.
+  -V                    Vehicles-only mode. Excludes interaction pairs without a vehicle (pedestrian/cyclist only)
+                        from feature computation, categorization, scoring and analysis. Changes the feature cache,
+                        so pair it with -m scratch -o when switching between runs.
   -o                    Overwrite existing results
   -c                    Create metadata for the features
   -m <mode>             Execution mode: scratch or resume (default: resume). Progress is tracked in a separate
@@ -51,6 +54,9 @@ Examples:
   # Run on the first 5000 scenarios only
   $0 -D waymo -N 5000 -m scratch
 
+  # Only analyze interaction pairs that involve a vehicle
+  $0 -D waymo -V -m scratch -o
+
   # Use a custom paths config, meta directory, or output directory
   $0 -p waymo_sample -d ./my_meta -u outputs/my_categorical_profiler
 
@@ -80,6 +86,7 @@ CAT_SCORES_ANALYSIS_EXPERIMENT_TAG="cat_scores_distribution_analysis"
 
 create_metadata=false
 overwrite=false
+vehicles_only=false
 dry_run=false
 list_steps=false
 run_mode="$DEFAULT_RUN_MODE"
@@ -94,7 +101,7 @@ num_scenarios=""
 # Parse arguments
 ############################
 
-while getopts ":D:p:d:u:m:s:N:conlh" opt; do
+while getopts ":D:p:d:u:m:s:N:conlhV" opt; do
     case $opt in
         D) dataset="$OPTARG" ;;
         p) paths_config="$OPTARG" ;;
@@ -105,6 +112,7 @@ while getopts ":D:p:d:u:m:s:N:conlh" opt; do
         N) num_scenarios="$OPTARG" ;;
         o) overwrite=true ;;
         c) create_metadata=true ;;
+        V) vehicles_only=true ;;
         l) list_steps=true ;;
         n) dry_run=true ;;
         h) usage ;;
@@ -130,6 +138,12 @@ if [ -n "$num_scenarios" ]; then
     fi
     num_scenarios_opt=(num_scenarios="$num_scenarios")
     total_scenarios_opt=(total_scenarios="$num_scenarios")
+fi
+
+# Applied to every step so the computation and analysis steps never disagree on which pairs are in scope.
+scope_opt=()
+if $vehicles_only; then
+    scope_opt=(include_pairs_with_no_vehicles=false)
 fi
 
 [ -z "$dataset" ] && dataset="$DEFAULT_DATASET"
@@ -166,6 +180,7 @@ raw_features_cmd=(
     create_metadata="$create_metadata"
     overwrite="$overwrite"
     "${num_scenarios_opt[@]}"
+    "${scope_opt[@]}"
 )
 
 raw_feature_distribution_analysis_cmd=(
@@ -176,6 +191,7 @@ raw_feature_distribution_analysis_cmd=(
     add_timestamp=false
     exp_tag="$RAW_FEATURES_ANALYSIS_EXPERIMENT_TAG"
     "${total_scenarios_opt[@]}"
+    "${scope_opt[@]}"
 )
 
 cp_raw_feature_analysis_to_meta_cmd=(
@@ -190,6 +206,7 @@ cat_features_cmd=(
     feature_type=categorical
     overwrite="$overwrite"
     "${num_scenarios_opt[@]}"
+    "${scope_opt[@]}"
 )
 
 cat_feature_distribution_analysis_cmd=(
@@ -200,6 +217,7 @@ cat_feature_distribution_analysis_cmd=(
     add_timestamp=false
     exp_tag="$CAT_FEATURES_ANALYSIS_EXPERIMENT_TAG"
     "${total_scenarios_opt[@]}"
+    "${scope_opt[@]}"
 )
 
 raw_scores_cmd=(
@@ -211,6 +229,7 @@ raw_scores_cmd=(
     score_weighting_method="distance_to_ego_agent"
     overwrite="$overwrite"
     "${num_scenarios_opt[@]}"
+    "${scope_opt[@]}"
 )
 
 raw_scores_distribution_analysis_cmd=(
@@ -221,6 +240,7 @@ raw_scores_distribution_analysis_cmd=(
     add_timestamp=false
     exp_tag="$RAW_SCORES_ANALYSIS_EXPERIMENT_TAG"
     "${total_scenarios_opt[@]}"
+    "${scope_opt[@]}"
 )
 
 raw_scores_from_cat_features_cmd=(
@@ -232,6 +252,7 @@ raw_scores_from_cat_features_cmd=(
     score_weighting_method="distance_to_ego_agent"
     overwrite="$overwrite"
     "${num_scenarios_opt[@]}"
+    "${scope_opt[@]}"
 )
 
 raw_scores_from_cat_features_distribution_analysis_cmd=(
@@ -242,6 +263,7 @@ raw_scores_from_cat_features_distribution_analysis_cmd=(
     add_timestamp=false
     exp_tag="$RAW_SCORES_FROM_CAT_FEATURES_ANALYSIS_EXPERIMENT_TAG"
     "${total_scenarios_opt[@]}"
+    "${scope_opt[@]}"
 )
 
 cp_raw_scores_from_cat_features_analysis_to_meta_cmd=(
@@ -258,6 +280,7 @@ cat_scores_cmd=(
     categorize_scores=true
     overwrite="$overwrite"
     "${num_scenarios_opt[@]}"
+    "${scope_opt[@]}"
 )
 
 cat_scores_distribution_analysis_cmd=(
@@ -268,6 +291,7 @@ cat_scores_distribution_analysis_cmd=(
     add_timestamp=false
     exp_tag="$CAT_SCORES_ANALYSIS_EXPERIMENT_TAG"
     "${total_scenarios_opt[@]}"
+    "${scope_opt[@]}"
 )
 
 step_labels=(
