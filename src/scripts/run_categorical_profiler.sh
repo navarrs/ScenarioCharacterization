@@ -18,6 +18,9 @@ Options:
   -p <paths_config>     Specifies the configuration containing the data paths to be used (overrides -D default)
   -d <meta_dir>         Meta directory where analysis JSON files are copied (overrides -D default)
   -u <output_dir>       Output directory for categorical profiling analyses (default: outputs/categorical_profiler)
+  -N <num_scenarios>    Cap the number of scenarios (default: all). Passed as num_scenarios to the computation
+                        steps and total_scenarios to the analysis steps. Computation takes the first N scenarios
+                        in natural-sort order. Pair with -m scratch when changing it between runs.
   -o                    Overwrite existing results
   -c                    Create metadata for the features
   -m <mode>             Execution mode: scratch or resume (default: resume)
@@ -43,6 +46,9 @@ Examples:
 
   # Dry run to preview commands
   $0 -n
+
+  # Run on the first 5000 scenarios only
+  $0 -D waymo -N 5000 -m scratch
 
   # Use a custom paths config, meta directory, or output directory
   $0 -p waymo_sample -d ./my_meta -u outputs/my_categorical_profiler
@@ -82,12 +88,13 @@ dataset=""
 meta_dir=""
 output_dir=""
 paths_config=""
+num_scenarios=""
 
 ############################
 # Parse arguments
 ############################
 
-while getopts ":D:p:d:u:m:s:conlh" opt; do
+while getopts ":D:p:d:u:m:s:N:conlh" opt; do
     case $opt in
         D) dataset="$OPTARG" ;;
         p) paths_config="$OPTARG" ;;
@@ -95,6 +102,7 @@ while getopts ":D:p:d:u:m:s:conlh" opt; do
         u) output_dir="$OPTARG" ;;
         m) run_mode="$OPTARG" ;;
         s) repeat_step="$OPTARG" ;;
+        N) num_scenarios="$OPTARG" ;;
         o) overwrite=true ;;
         c) create_metadata=true ;;
         l) list_steps=true ;;
@@ -111,6 +119,17 @@ done
 if [ "$run_mode" != "scratch" ] && [ "$run_mode" != "resume" ]; then
     echo "Invalid mode: $run_mode. Use 'scratch' or 'resume'." >&2
     usage
+fi
+
+num_scenarios_opt=()
+total_scenarios_opt=()
+if [ -n "$num_scenarios" ]; then
+    if ! [[ "$num_scenarios" =~ ^[0-9]+$ ]] || [ "$num_scenarios" -lt 1 ]; then
+        echo "Invalid number of scenarios: $num_scenarios. Must be a positive integer." >&2
+        usage
+    fi
+    num_scenarios_opt=(num_scenarios="$num_scenarios")
+    total_scenarios_opt=(total_scenarios="$num_scenarios")
 fi
 
 [ -z "$dataset" ] && dataset="$DEFAULT_DATASET"
@@ -143,6 +162,7 @@ raw_features_cmd=(
     feature_type=continuous
     create_metadata="$create_metadata"
     overwrite="$overwrite"
+    "${num_scenarios_opt[@]}"
 )
 
 raw_feature_distribution_analysis_cmd=(
@@ -152,6 +172,7 @@ raw_feature_distribution_analysis_cmd=(
     output_dir="$output_dir"
     add_timestamp=false
     exp_tag="$RAW_FEATURES_ANALYSIS_EXPERIMENT_TAG"
+    "${total_scenarios_opt[@]}"
 )
 
 cp_raw_feature_analysis_to_meta_cmd=(
@@ -165,6 +186,7 @@ cat_features_cmd=(
     characterizer=safeshift_features
     feature_type=categorical
     overwrite="$overwrite"
+    "${num_scenarios_opt[@]}"
 )
 
 cat_feature_distribution_analysis_cmd=(
@@ -174,6 +196,7 @@ cat_feature_distribution_analysis_cmd=(
     output_dir="$output_dir"
     add_timestamp=false
     exp_tag="$CAT_FEATURES_ANALYSIS_EXPERIMENT_TAG"
+    "${total_scenarios_opt[@]}"
 )
 
 raw_scores_cmd=(
@@ -184,6 +207,7 @@ raw_scores_cmd=(
     feature_type=continuous
     score_weighting_method="distance_to_ego_agent"
     overwrite="$overwrite"
+    "${num_scenarios_opt[@]}"
 )
 
 raw_scores_distribution_analysis_cmd=(
@@ -193,6 +217,7 @@ raw_scores_distribution_analysis_cmd=(
     output_dir="$output_dir"
     add_timestamp=false
     exp_tag="$RAW_SCORES_ANALYSIS_EXPERIMENT_TAG"
+    "${total_scenarios_opt[@]}"
 )
 
 raw_scores_from_cat_features_cmd=(
@@ -203,6 +228,7 @@ raw_scores_from_cat_features_cmd=(
     feature_type=categorical
     score_weighting_method="distance_to_ego_agent"
     overwrite="$overwrite"
+    "${num_scenarios_opt[@]}"
 )
 
 raw_scores_from_cat_features_distribution_analysis_cmd=(
@@ -212,6 +238,7 @@ raw_scores_from_cat_features_distribution_analysis_cmd=(
     output_dir="$output_dir"
     add_timestamp=false
     exp_tag="$RAW_SCORES_FROM_CAT_FEATURES_ANALYSIS_EXPERIMENT_TAG"
+    "${total_scenarios_opt[@]}"
 )
 
 cp_raw_scores_from_cat_features_analysis_to_meta_cmd=(
@@ -227,6 +254,7 @@ cat_scores_cmd=(
     score_weighting_method="distance_to_ego_agent"
     categorize_scores=true
     overwrite="$overwrite"
+    "${num_scenarios_opt[@]}"
 )
 
 cat_scores_distribution_analysis_cmd=(
@@ -236,6 +264,7 @@ cat_scores_distribution_analysis_cmd=(
     output_dir="$output_dir"
     add_timestamp=false
     exp_tag="$CAT_SCORES_ANALYSIS_EXPERIMENT_TAG"
+    "${total_scenarios_opt[@]}"
 )
 
 step_labels=(

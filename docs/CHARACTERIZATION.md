@@ -138,6 +138,7 @@ bash src/scripts/run_categorical_profiler.sh [options]
 - `-p <paths_config>`: Paths configuration to use (overrides the `-D` default)
 - `-d <meta_dir>`: Meta directory where analysis JSON files are copied (overrides the `-D` default)
 - `-u <output_dir>`: Output directory for categorical profiling analyses (default: `outputs/categorical_profiler`)
+- `-N <num_scenarios>`: Cap the number of scenarios (default: all). Passed as `num_scenarios` to the computation steps and `total_scenarios` to the analysis steps
 - `-m <mode>`: Run mode, either `resume` (default) or `scratch`
 - `-s <step>`: Repeat a specific step by number (see `-l` for the step list); ignores the progress file
 - `-l`: List all steps with their numbers and exit
@@ -164,6 +165,17 @@ Run with metadata creation and overwrite enabled:
 ```bash
 bash src/scripts/run_categorical_profiler.sh -c -o
 ```
+
+Run on a subset of the dataset (here, 5000 scenarios):
+
+```bash
+bash src/scripts/run_categorical_profiler.sh -D waymo -N 5000 -m scratch
+```
+
+Computation takes the first *N* scenarios in natural-sort order, so the subset is reproducible but is a prefix
+rather than a random sample. The analysis steps cap whatever is already cached on disk, and their selection order
+is not stable across runs — so pair `-N` with `-m scratch` when you change it, otherwise the progress file resumes
+mid-pipeline with a mismatched cap.
 
 Run with custom meta and output directories:
 
