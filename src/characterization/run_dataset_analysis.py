@@ -13,6 +13,12 @@ Example usage::
     # Multi-dataset
     uv run python -m characterization.run_dataset_analysis \\
         "datasets=[{label: WOMD, dataset_name: waymo}, {label: nuPlan, dataset_name: nuplan}]"
+
+    # Multi-dataset with LaTeX row labels. Single-quote each label so YAML keeps the backslashes.
+    uv run python -m characterization.run_dataset_analysis output_dir=./outputs/dataset_analysis \\
+        "datasets=[{label: WOMD, dataset_name: waymo, latex_label: '\womd'}, \\
+                   {label: Argoverse2, dataset_name: argoverse2, latex_label: '\argoverse'}, \\
+                   {label: nuPlan, dataset_name: nuplan, latex_label: '\nuplan'}]"
 """
 
 from datetime import UTC, datetime
@@ -28,12 +34,19 @@ from characterization.utils.io_utils import get_logger
 logger = get_logger(__name__)
 
 
-def _count_dataset(cfg: DictConfig, label: str, features_path: Path, scenario_base_path: Path) -> dict[str, object]:
+def _count_dataset(
+    cfg: DictConfig,
+    label: str,
+    dataset_name: str,
+    features_path: Path,
+    scenario_base_path: Path,
+) -> dict[str, object]:
     """Counts one dataset's trajectories and interactions and returns a single table row.
 
     Args:
         cfg (DictConfig): Top-level configuration.
         label (str): Display name for this dataset.
+        dataset_name (str): Canonical dataset name, used to resolve plot colors independently of *label*.
         features_path (Path): Path to the directory containing this dataset's feature files.
         scenario_base_path (Path): Path to this dataset's raw scenario pickles, used only to report how
             many scenarios exist on disk versus how many were counted.
@@ -61,7 +74,7 @@ def _count_dataset(cfg: DictConfig, label: str, features_path: Path, scenario_ba
 
     counts = analysis.count_dataset_features(scenario_ids, scenario_type, criterion, features_path)
 
-    row: dict[str, object] = {"dataset": label}
+    row: dict[str, object] = {"dataset": label, "dataset_name": dataset_name}
     if cfg.count_scenarios_on_disk:
         row["num_scenarios_on_disk"] = analysis.count_scenarios_on_disk(scenario_base_path)
     row.update(counts)
@@ -107,7 +120,13 @@ def run(cfg: DictConfig) -> None:
     latex_labels: dict[str, str] = {}
     if cfg.datasets is None:
         rows = [
-            _count_dataset(cfg, cfg.paths.dataset_name, Path(cfg.features_path), Path(cfg.paths.scenario_base_path))
+            _count_dataset(
+                cfg,
+                cfg.paths.dataset_name,
+                cfg.paths.dataset_name,
+                Path(cfg.features_path),
+                Path(cfg.paths.scenario_base_path),
+            )
         ]
     else:
         rows = []
@@ -118,7 +137,9 @@ def run(cfg: DictConfig) -> None:
                 str(cfg.paths.scenario_base_path).replace(cfg.paths.dataset_name, dataset_entry.dataset_name)
             )
             logger.info("Processing dataset: %s", dataset_entry.label)
-            rows.append(_count_dataset(cfg, dataset_entry.label, features_path, scenario_base_path))
+            rows.append(
+                _count_dataset(cfg, dataset_entry.label, dataset_entry.dataset_name, features_path, scenario_base_path)
+            )
             if "latex_label" in dataset_entry:
                 latex_labels[dataset_entry.label] = dataset_entry.latex_label
 
