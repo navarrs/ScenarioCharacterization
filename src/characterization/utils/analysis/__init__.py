@@ -10,6 +10,16 @@ from characterization.utils.analysis.common_analysis import (
     get_valid_scenario_ids,
     plot_histograms_from_dataframe,
 )
+from characterization.utils.analysis.dataset_analysis import (
+    VALID_INTERACTION_STATUSES,
+    count_dataset_features,
+    count_scenario_features,
+    count_scenarios_on_disk,
+    plot_dataset_composition,
+    plot_dataset_counts,
+    save_dataset_counts_json,
+    write_latex_table,
+)
 from characterization.utils.analysis.feature_analysis import (
     load_features,
     load_scenario_features,
@@ -51,9 +61,13 @@ __all__ = [
     "DEFAULT_FEATURE_CATEGORIES",
     "FEATURE_COLOR_MAP",
     "SUPPORTED_FEATURES",
+    "VALID_INTERACTION_STATUSES",
     "build_probed_df",
     "compute_category_thresholds",
     "compute_jaccard_index",
+    "count_dataset_features",
+    "count_scenario_features",
+    "count_scenarios_on_disk",
     "get_sample_to_plot",
     "get_scenario_splits",
     "get_scored_scenario_ids",
@@ -68,6 +82,8 @@ __all__ = [
     "plot_agent_scores_heatmap",
     "plot_agent_scores_voxel",
     "plot_agent_scores_voxel_by_agent_type",
+    "plot_dataset_composition",
+    "plot_dataset_counts",
     "plot_feature_distributions",
     "plot_histograms_from_dataframe",
     "plot_multi_dataset_agent_score_distributions",
@@ -85,5 +101,7 @@ __all__ = [
     "regroup_individual_features",
     "regroup_interaction_features",
     "regroup_scenario_scores",
+    "save_dataset_counts_json",
     "save_probe_summary_json",
+    "write_latex_table",
 ]
