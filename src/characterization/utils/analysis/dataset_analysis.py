@@ -267,6 +267,19 @@ def _set_theme() -> None:
     )
 
 
+def _palette_by_label(counts_df: pd.DataFrame) -> dict[str, str]:
+    """Maps each dataset's display label to the color of its canonical ``dataset_name``.
+
+    Colors are resolved from ``dataset_name`` rather than from ``dataset`` so that a dataset keeps the
+    same color as in the feature and score analyses no matter what display label it is given. Falls back
+    to the label when ``dataset_name`` is absent (e.g. a CSV written before that column existed).
+    """
+    labels = [str(label) for label in counts_df["dataset"]]
+    names = [str(name) for name in counts_df["dataset_name"]] if "dataset_name" in counts_df else labels
+    colors_by_name = get_dataset_colors(names)
+    return {label: colors_by_name[name] for label, name in zip(labels, names, strict=True)}
+
+
 def _long_form(counts_df: pd.DataFrame, prefix: str, type_names: list[str]) -> pd.DataFrame:
     """Reshapes the wide counts table into ``dataset`` / ``type`` / ``count`` rows for seaborn."""
     records = [
@@ -298,8 +311,7 @@ def plot_dataset_counts(
         dpi (int): Dots per inch for the saved figures.
     """
     _set_theme()
-    dataset_labels = [str(label) for label in counts_df["dataset"]]
-    palette = get_dataset_colors(dataset_labels)
+    palette = _palette_by_label(counts_df)
 
     for prefix, type_names, title, filename in [
         ("agents_valid_", agent_types, "Valid Trajectories per Dataset", "trajectory_counts.png"),
