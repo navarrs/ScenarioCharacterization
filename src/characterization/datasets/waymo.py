@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from natsort import natsorted
 from numpy.typing import NDArray
 from omegaconf import DictConfig
 
@@ -47,17 +46,11 @@ class WaymoData(BaseDataset):
     def load_data(self) -> None:
         """Loads the Waymo dataset and scenario metadata.
 
-        Loads scenario metadata and scenario file paths, applies sharding if enabled,
-        and checks that the number of scenarios matches the number of conflict points.
-
-        Raises:
-            AssertionError: If the number of scenarios and conflict points do not match.
+        Loads scenario metadata and scenario file paths, drawing a seeded random subset when
+        `num_scenarios` is set.
         """
         logger.info("Loading WOMD scenario base data from %s", self.scenario_base_path)
-        self.scenarios = natsorted(list(map(str, self.scenario_base_path.rglob("*.pkl"))))
-
-        if self.num_scenarios != -1:
-            self.scenarios = self.scenarios[: self.num_scenarios]
+        self.scenarios = self.select_scenarios()
 
         logger.info("Total number of scenarios found: %d", len(self.scenarios))
         if self.create_metadata:

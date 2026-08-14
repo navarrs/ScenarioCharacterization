@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from natsort import natsorted
 from numpy.typing import NDArray
 from omegaconf import DictConfig
 
@@ -53,10 +52,7 @@ class NuScenesData(BaseDataset):
     def load_data(self) -> None:
         """Loads the nuScenes dataset and scenario metadata."""
         logger.info("Loading nuScenes scenario base data from %s", self.scenario_base_path)
-        self.scenarios = natsorted(list(map(str, self.scenario_base_path.rglob("*.pkl"))))
-
-        if self.num_scenarios != -1:
-            self.scenarios = self.scenarios[: self.num_scenarios]
+        self.scenarios = self.select_scenarios()
 
         logger.info("Total number of scenarios found: %d", len(self.scenarios))
         if self.create_metadata:

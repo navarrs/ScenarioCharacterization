@@ -4,6 +4,7 @@ from itertools import pairwise
 from typing import Annotated, Any, ClassVar
 
 import numpy as np
+from natsort import natsorted
 from numpy.typing import NDArray
 from pydantic import BeforeValidator
 
@@ -47,6 +48,29 @@ def categorize_from_thresholds(value: float, threshold_values: list[float]) -> i
 
     # If value is above the highest range
     return num_thresholds + 1
+
+
+def sample_scenarios(scenarios: list[str], num_scenarios: int | None, seed: int) -> list[str]:
+    """Draws a seeded random subset of scenarios, returned in natural-sort order.
+
+    The draw depends on both the seed and the pool contents, so adding or removing scenarios changes which
+    subset is returned.
+
+    Args:
+        scenarios (list[str]): Scenario identifiers or paths to sample from.
+        num_scenarios (int | None): Size of the subset. Returns all scenarios when None, negative, or at
+            least the pool size.
+        seed (int): Seed for the random draw.
+
+    Returns:
+        list[str]: The selected scenarios, natural-sorted.
+    """
+    ordered: list[str] = natsorted(scenarios)
+    if num_scenarios is None or num_scenarios < 0 or num_scenarios >= len(ordered):
+        return ordered
+
+    indices = np.random.default_rng(seed).choice(len(ordered), size=num_scenarios, replace=False)
+    return natsorted(ordered[index] for index in indices)
 
 
 def mph_to_ms(mph: float) -> float:

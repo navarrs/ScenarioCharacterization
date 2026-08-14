@@ -53,13 +53,9 @@ def _load_and_regroup(cfg: DictConfig, features_path: Path) -> tuple[dict[AgentT
         msg = f"No valid scenarios found in {features_path} for {scenario_types} and criteria {criteria}"
         raise ValueError(msg)
 
-    total_scenarios = (
-        min(len(scenario_ids), cfg.total_scenarios)
-        if cfg.total_scenarios and cfg.total_scenarios > 0
-        else len(scenario_ids)
-    )
-    logger.info("Found %d valid scenarios for analysis. Using %d scenarios.", len(scenario_ids), total_scenarios)
-    scenario_ids = scenario_ids[:total_scenarios]
+    num_valid_scenarios = len(scenario_ids)
+    scenario_ids = common.sample_scenarios(scenario_ids, cfg.total_scenarios, cfg.seed)
+    logger.info("Found %d valid scenarios for analysis. Using %d scenarios.", num_valid_scenarios, len(scenario_ids))
 
     logger.info("Loading the features from %s", features_path)
     individual_features, interaction_features, _ = analysis.load_scenario_features(
@@ -111,6 +107,7 @@ def run(cfg: DictConfig) -> None:
     plot_kwargs: dict[str, Any] = {
         "dpi": cfg.dpi,
         "categories": list(cfg.feature_categories),
+        "font_scale": cfg.font_scale,
         "show_kde": cfg.show_kde,
         "show_percentiles": cfg.show_percentiles,
         "include_pairs_with_no_vehicles": cfg.include_pairs_with_no_vehicles,
@@ -118,6 +115,7 @@ def run(cfg: DictConfig) -> None:
     # Keyword arguments for combined overlay plots (no percentile lines, no per-category config)
     combined_plot_kwargs: dict[str, Any] = {
         "dpi": cfg.dpi,
+        "font_scale": cfg.font_scale,
         "show_kde": cfg.show_kde,
         "include_pairs_with_no_vehicles": cfg.include_pairs_with_no_vehicles,
     }

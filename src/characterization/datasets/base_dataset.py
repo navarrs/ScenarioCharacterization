@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 
 from characterization.schemas import Scenario
-from characterization.utils.common import SUPPORTED_SCENARIO_TYPES
+from characterization.utils.common import SUPPORTED_SCENARIO_TYPES, sample_scenarios
 from characterization.utils.geometric_utils import find_closest_lanes, find_conflict_points
 from characterization.utils.io_utils import get_logger
 
@@ -53,6 +53,7 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
         self.batch_size = config.get("batch_size", 4)
         self.step = config.get("step", 1)
         self.num_scenarios = config.get("num_scenarios", -1)
+        self.seed = config.get("seed", 42)
         self.num_workers = config.get("num_workers", 0)
         self.num_shards = config.get("num_shards", 1)
         self.shard_index = config.get("shard_index", 0)
@@ -69,6 +70,15 @@ class BaseDataset(Dataset, ABC):  # pyright: ignore[reportMissingTypeArgument, r
             str: The name of the dataset class and its base path.
         """
         return f"{self.__class__.__name__} (loaded from: {self.scenario_base_path})"
+
+    def select_scenarios(self) -> list[str]:
+        """Returns a seeded random subset of `num_scenarios` scenario files found under the base path.
+
+        Returns:
+            list[str]: Paths to the selected scenario pickles, natural-sorted.
+        """
+        scenarios = [str(path) for path in self.scenario_base_path.rglob("*.pkl")]
+        return sample_scenarios(scenarios, self.num_scenarios, self.seed)
 
     def compute_metadata(self) -> None:
         """Computes and validates metadata for each scenario in the dataset."""

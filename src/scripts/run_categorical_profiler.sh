@@ -19,8 +19,8 @@ Options:
   -d <meta_dir>         Meta directory where analysis JSON files are copied (overrides -D default)
   -u <output_dir>       Output directory for categorical profiling analyses (default: outputs/categorical_profiler)
   -N <num_scenarios>    Cap the number of scenarios (default: all). Passed as num_scenarios to the computation
-                        steps and total_scenarios to the analysis steps. Computation takes the first N scenarios
-                        in natural-sort order. Pair with -m scratch when changing it between runs.
+                        steps and total_scenarios to the analysis steps. Both draw a seeded random subset using
+                        the configured seed. Pair with -m scratch when changing it between runs.
   -V                    Vehicles-only mode. Excludes interaction pairs without a vehicle (pedestrian/cyclist only)
                         from feature computation, categorization, scoring and analysis. Changes the feature cache,
                         so pair it with -m scratch -o when switching between runs.
@@ -204,6 +204,7 @@ cat_features_cmd=(
     dataset="$dataset"
     characterizer=safeshift_features
     feature_type=categorical
+    create_metadata="$create_metadata"
     overwrite="$overwrite"
     "${num_scenarios_opt[@]}"
     "${scope_opt[@]}"
@@ -227,6 +228,7 @@ raw_scores_cmd=(
     characterizer=safeshift_scores
     feature_type=continuous
     score_weighting_method="distance_to_ego_agent"
+    create_metadata="$create_metadata"
     overwrite="$overwrite"
     "${num_scenarios_opt[@]}"
     "${scope_opt[@]}"
@@ -250,6 +252,7 @@ raw_scores_from_cat_features_cmd=(
     characterizer=safeshift_scores_categorical
     feature_type=categorical
     score_weighting_method="distance_to_ego_agent"
+    create_metadata="$create_metadata"
     overwrite="$overwrite"
     "${num_scenarios_opt[@]}"
     "${scope_opt[@]}"
@@ -278,6 +281,7 @@ cat_scores_cmd=(
     feature_type=categorical
     score_weighting_method="distance_to_ego_agent"
     categorize_scores=true
+    create_metadata="$create_metadata"
     overwrite="$overwrite"
     "${num_scenarios_opt[@]}"
     "${scope_opt[@]}"
