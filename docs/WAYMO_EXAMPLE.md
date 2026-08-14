@@ -53,6 +53,19 @@ Sample files are available in the `samples` directory for quick testing.
    gsutil -m cp -r "gs://waymo_open_dataset_motion_v_1_3_0/uncompressed/scenario/training/training.tfrecord-00000-of-01000" .
    ```
 
+   Add more shards to grow the pool. The training split holds ~486,995 scenarios across 1000 shards (~487 each),
+   so ~11 shards yields the ~5000 the experiment setting uses.
+
+   > **Note — enlarging the shard pool increases scenario overlap.** WOMD cuts each 20-second segment into
+   > overlapping 9.1-second windows: validation/test at start offsets `{0, 5, 10}` s and training at
+   > `{0, 2, 4, 5, 6, 8, 10}` s, so sibling windows from one segment share 4.1 s or more with each other. Those
+   > siblings are distributed across shards, so the chance of drawing two windows of the same segment scales with
+   > the *fraction of the split's shards* you download, not with the scenario count. At ~11 of 1000 training
+   > shards (~1%) the measured overlap is ~4% of scenarios — comparable to Argoverse 2's 2.4%. Taking the same
+   > ~5000 scenarios from the 150-shard validation split means ~12% of shards and pushes overlap to roughly 20%.
+   > Prefer many shards from a large split over few shards from a small one, and re-run the overlap check if you
+   > change the pool.
+
 5. **Pre-process the data:**
    (Script adapted from [SafeShift](https://github.com/cmubig/SafeShift?tab=readme-ov-file#waymo-dataset-preparation))
 

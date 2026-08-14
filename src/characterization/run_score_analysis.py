@@ -59,13 +59,9 @@ def _load_and_regroup_scores(
         msg = f"No valid scenarios found in {scores_path} for {scenario_types} and criteria {criteria}"
         raise ValueError(msg)
 
-    total_scenarios = (
-        min(len(scenario_ids), cfg.total_scenarios)
-        if cfg.total_scenarios and cfg.total_scenarios > 0
-        else len(scenario_ids)
-    )
-    logger.info("Found %d valid scenarios for analysis. Using %d scenarios.", len(scenario_ids), total_scenarios)
-    scenario_ids = scenario_ids[:total_scenarios]
+    num_valid_scenarios = len(scenario_ids)
+    scenario_ids = common.sample_scenarios(scenario_ids, cfg.total_scenarios, cfg.seed)
+    logger.info("Found %d valid scenarios for analysis. Using %d scenarios.", num_valid_scenarios, len(scenario_ids))
 
     logger.info("Loading agent types from %s", features_path)
     _, _, agent_types = analysis.load_scenario_features(scenario_ids, scenario_types, criteria, features_path)

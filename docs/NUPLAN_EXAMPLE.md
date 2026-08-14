@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide demonstrates how to process and analyze scenarios from the [nuPlan dataset](https://www.nuplan.org/) using the provided pipeline. nuPlan tracks are subsampled from the native 20 Hz rate to 10 Hz during preprocessing, producing 6-second scenarios (60 timesteps) with a 2-second observation window (21 timesteps). nuPlan is the practical choice for a large-scale comparison (e.g. ~5,000 scenarios) against Waymo and Argoverse 2: the mini split alone yields on the order of ~15k scenarios (the exact count depends on the scenario filter), and the trainval split far more, whereas nuScenes has only 850 annotated scenes.
+This guide demonstrates how to process and analyze scenarios from the [nuPlan dataset](https://www.nuplan.org/) using the provided pipeline. nuPlan tracks are subsampled from the native 20 Hz rate to 10 Hz during preprocessing, producing 6-second scenarios (60 timesteps) with a 2-second observation window (21 timesteps). nuPlan is the practical choice for a large-scale comparison (e.g. ~5,000 scenarios) against Waymo and Argoverse 2, whereas nuScenes has only 850 annotated scenes.
 
 ---
 
@@ -26,31 +26,28 @@ uv pip install -e ".[nuplan]"
 
 1. **Register and accept nuPlan's terms of use** at [nuplan.org](https://www.nuplan.org/nuplan#download).
 
-2. **Download the nuPlan Mini split** (SQLite `.db` log files) and the **nuPlan Maps** pack from the Download section. The mini split (64 logs, ~7 hours, ~15k scenarios) is the recommended starting point; use the trainval split if you need more. Unzip both archives under a single data root (`./samples/nuplan` below) — keep the folder names the archives create, no renaming needed. The result matches the standard devkit layout:
-   ```text
-   samples/nuplan/
-   ├── maps/
-   │   ├── nuplan-maps-v1.0.json
-   │   └── <us-ma-boston | us-nv-las-vegas-strip | sg-one-north | us-pa-pittsburgh-hazelwood>/...
-   └── nuplan-v1.1/
-       └── splits/
-           └── mini/
-               ├── 2021.05.12.22.00.38_veh-35_01008_01518.db
-               └── ...
+2. **Download the nuPlan Maps pack and one split of `.db` log files** (`val` is the smallest; `mini` is enough only for smoke tests). Skip every sensor archive — the preprocessor reads only object tracks and map geometry, and `sensor_blobs` is the multi-terabyte part of the dataset.
+
+   Selected scenarios never overlap, so each one consumes 6 s of distinct driving: **5000 scenarios need ~10 hours of logs (~140 logs, ~20 GB extracted)**. Mini's 64 logs yield only 3,473. Extract the `.db` files anywhere and point `--db_files` at that directory:
+   ```bash
+   mkdir -p samples/nuplan/logs
+   unzip -j nuplan-v1.1_val.zip "*.db" -d samples/nuplan/logs
+   unzip nuplan-maps-v1.0.zip -d samples/nuplan/maps
    ```
-   The preprocessor reads the auto-labeled object tracks and vector map geometry; the `sensor_blobs` are **not required**.
 
 3. **Pre-process the data:**
    ```bash
    uv run python -m characterization.datasets.nuplan_preprocess \
        --input_path ./samples/nuplan \
-       --db_files ./samples/nuplan/nuplan-v1.1/splits/mini \
+       --db_files ./samples/nuplan/logs \
        --map_root ./samples/nuplan/maps \
        --map_version nuplan-maps-v1.0 \
        --output_path ./samples/nuplan/ \
        --limit 5000
    ```
-   This selects up to `--limit` scenarios, subsamples trajectories to 10 Hz, extracts map polylines, and writes one `.pkl` file per scenario to `./samples/nuplan/scenarios/`. Use `--limit 5000` to match the Waymo and Argoverse 2 examples. To use the larger split instead, point `--db_files` at `.../nuplan-v1.1/splits/trainval`.
+   This selects up to `--limit` scenarios, subsamples trajectories to 10 Hz, extracts map polylines, and writes one `.pkl` file per scenario to `./samples/nuplan/scenarios/`. Use `--limit 5000` to match the Waymo and Argoverse 2 examples.
+
+   Candidates are the labelled scenarios in each log, thinned to those at least `--min_gap_seconds` apart (default `6.0`, one scenario length, so selected scenarios never overlap) and drawn with `--seed` (default `42`) for a reproducible sample. If fewer candidates survive than `--limit` requests, all are kept and a warning is logged — add more logs, or lower `--min_gap_seconds` to trade overlap for count.
 
    > **First run can be slow, and that is expected.** Scenario selection scans every `.db` log before `--limit` is applied, and the first map load per city builds a spatial index (minutes per city; Las Vegas is the slowest). The progress bar may sit at `0` for several minutes on the first scenario — this is normal, not a hang. To sanity-check the pipeline quickly, point `--db_files` at a single small-city `.db` (e.g. Boston or Singapore, avoiding Las Vegas) with `--limit 5`. If it truly never advances, verify `--map_root` is the directory that directly contains `nuplan-maps-v1.0.json` and the city folders, and delete a stale `<map_root>/.maplocks` directory left by an interrupted run.
 

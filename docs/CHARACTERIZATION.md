@@ -173,10 +173,10 @@ Run on a subset of the dataset (here, 5000 scenarios):
 bash src/scripts/run_categorical_profiler.sh -D waymo -N 5000 -m scratch
 ```
 
-Computation takes the first *N* scenarios in natural-sort order, so the subset is reproducible but is a prefix
-rather than a random sample. The analysis steps cap whatever is already cached on disk, and their selection order
-is not stable across runs — so pair `-N` with `-m scratch` when you change it, otherwise the progress file resumes
-mid-pipeline with a mismatched cap.
+Both computation and analysis draw a seeded random subset of *N* scenarios, using the same `seed` (default `42`)
+and the same mechanism for every dataset, so the subset is both random and reproducible. The draw depends on the
+pool of scenarios present on disk, so it changes if you re-preprocess a dataset — pair `-N` with `-m scratch` when
+you change it, otherwise the progress file resumes mid-pipeline with a mismatched cap.
 
 Only consider interaction pairs that involve a vehicle:
 

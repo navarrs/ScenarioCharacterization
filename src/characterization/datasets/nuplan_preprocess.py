@@ -11,10 +11,12 @@ Example usage::
 """
 
 import argparse
+import glob
 import logging
 import os
 import pickle  # nosec B403
-from typing import Any, cast
+import sqlite3
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -32,10 +34,13 @@ from nuplan.planning.scenario_builder.scenario_filter import ScenarioFilter
 from nuplan.planning.utils.multithreading.worker_sequential import Sequential
 from rich.progress import track
 
-from characterization.utils.common import MIN_VALID_POINTS
+from characterization.utils.common import MIN_VALID_POINTS, sample_scenarios
 from characterization.utils.geometric_utils import build_polyline
 from characterization.utils.io_utils import clean_preprocessed_outputs
 from characterization.utils.scenario_types import PolylineType
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +68,30 @@ _TARGET_DT_S = 1.0 / SCENARIO_FREQ_HZ
 
 # nuPlan traffic-signal states are not extracted; dynamic map is always empty (mirrors nuScenes).
 _EMPTY_DYNAMIC_MAP: dict[str, list[Any]] = {"stop_point": [], "lane_id": [], "state": []}
+
+# Default minimum spacing between selected scenarios within a log. nuPlan offers one candidate scenario per
+# lidar frame (20Hz), so an unconstrained draw returns near-duplicate overlapping windows. One scenario length
+# guarantees the selected scenarios never overlap.
+DEFAULT_MIN_GAP_S = NUM_TIMESTEPS / SCENARIO_FREQ_HZ
+
+# Mirrors the devkit's own candidate query: labelled lidar frames belonging to a scene that has at least two
+# scenes before and after it. Untagged ('unknown') frames are excluded, matching the devkit's scenario filter.
+_CANDIDATE_QUERY = """
+    WITH ordered_scenes AS (
+        SELECT token, ROW_NUMBER() OVER (ORDER BY name ASC) AS row_num FROM scene
+    ),
+    num_scenes AS (SELECT COUNT(*) AS cnt FROM scene),
+    valid_scenes AS (
+        SELECT o.token FROM ordered_scenes AS o CROSS JOIN num_scenes AS n
+        WHERE o.row_num >= 3 AND o.row_num < n.cnt - 1
+    )
+    SELECT hex(lp.token), lp.timestamp
+    FROM lidar_pc AS lp
+    INNER JOIN scenario_tag AS st ON lp.token = st.lidar_pc_token
+    INNER JOIN valid_scenes AS vs ON lp.scene_token = vs.token
+    GROUP BY lp.token, lp.timestamp
+    ORDER BY lp.timestamp ASC;
+"""
 
 
 def get_agent_type(object_type: TrackedObjectType) -> str:
@@ -295,6 +324,65 @@ def process_nuplan_scenario(scenario: AbstractScenario, output_path: str) -> dic
     return {k: v for k, v in info.items() if k not in ("track_infos", "map_infos", "dynamic_map_infos")}
 
 
+def _log_files(data_root: str, db_files: str | None) -> list[str]:
+    """Returns the .db log files the builder will read."""
+    root = db_files or data_root
+    if os.path.isfile(root):
+        return [root]
+    return sorted(glob.glob(os.path.join(root, "**", "*.db"), recursive=True))
+
+
+def select_scenario_tokens(data_root: str, db_files: str | None, limit: int, min_gap_s: float, seed: int) -> list[str]:
+    """Draws a seeded, non-overlapping sample of `limit` scenario tokens across the available logs.
+
+    Within each log, candidates are walked in timestamp order and kept only when at least `min_gap_s` have
+    elapsed since the previous kept candidate, so no two selected scenarios share source frames. The surviving
+    candidates are then sampled uniformly at random across all logs.
+
+    Args:
+        data_root: Directory containing the nuPlan .db logs.
+        db_files: Optional specific .db file or directory overriding `data_root`.
+        limit: Number of scenario tokens to select. Selects all candidates when the pool is smaller.
+        min_gap_s: Minimum seconds between two selected scenarios within a log.
+        seed: Seed for the random draw.
+
+    Returns:
+        list[str]: The selected lidar_pc tokens, lowercase hex.
+    """
+    min_gap_us = min_gap_s * 1e6
+    candidates: list[str] = []
+    total = 0
+    for log_file in _log_files(data_root, db_files):
+        connection = sqlite3.connect(log_file)
+        try:
+            rows = connection.execute(_CANDIDATE_QUERY).fetchall()
+        finally:
+            connection.close()
+        total += len(rows)
+        last_kept = -min_gap_us
+        for token, timestamp in rows:
+            if timestamp - last_kept >= min_gap_us:
+                candidates.append(token.lower())
+                last_kept = timestamp
+
+    logger.info(
+        "Found %d labelled candidate scenarios; %d remain after enforcing a %.1fs minimum gap within each log.",
+        total,
+        len(candidates),
+        min_gap_s,
+    )
+    if len(candidates) < limit:
+        logger.warning(
+            "Only %d non-overlapping scenarios are available but %d were requested. Add more .db logs "
+            "(a %.1fs gap allows roughly one scenario per %.1fs of driving) or lower --min_gap_seconds.",
+            len(candidates),
+            limit,
+            min_gap_s,
+            min_gap_s,
+        )
+    return sample_scenarios(candidates, limit, seed)
+
+
 def build_scenarios(
     data_root: str,
     map_root: str,
@@ -303,8 +391,10 @@ def build_scenarios(
     map_version: str,
     sensor_root: str | None,
     db_files: str | None,
+    min_gap_s: float = DEFAULT_MIN_GAP_S,
+    seed: int = 42,
 ) -> list[dict[str, Any]]:
-    """Selects up to `limit` nuPlan scenarios and writes one pickle per scenario."""
+    """Selects up to `limit` non-overlapping nuPlan scenarios and writes one pickle per scenario."""
     os.makedirs(output_path, exist_ok=True)
     builder = NuPlanScenarioBuilder(
         data_root=data_root,
@@ -316,20 +406,25 @@ def build_scenarios(
         scenario_mapping=ScenarioMapping(scenario_map={}, subsample_ratio_override=None),
         vehicle_parameters=get_pacifica_parameters(),
     )
+    logger.info("Scanning .db logs to select scenarios...")
+    tokens = select_scenario_tokens(data_root, db_files, limit, min_gap_s, seed)
+    # Selection is done above, so the devkit only has to materialise the chosen tokens. Leaving
+    # limit_total_scenarios unset keeps it from re-cutting the sample with its own filter.
     scenario_filter = ScenarioFilter(
         scenario_types=None,
-        scenario_tokens=None,
+        # scenario_tokens is annotated List[Sequence[str]] but the devkit calls bytearray.fromhex() on each
+        # element, so it expects plain token strings.
+        scenario_tokens=cast("list[Sequence[str]]", tokens),
         log_names=None,
         map_names=None,
         num_scenarios_per_type=None,
-        limit_total_scenarios=limit,
+        limit_total_scenarios=None,
         timestamp_threshold_s=None,
         ego_displacement_minimum_m=None,
         expand_scenarios=False,
         remove_invalid_goals=False,
-        shuffle=True,
+        shuffle=False,
     )
-    logger.info("Scanning all .db logs to select scenarios (this runs before --limit and can take several minutes)...")
     scenarios = builder.get_scenarios(scenario_filter, Sequential())
     logger.info("Selected %d scenarios.", len(scenarios))
     logger.info(
@@ -352,6 +447,8 @@ def create_infos_from_nuplan(
     map_version: str = "nuplan-maps-v1.0",
     sensor_root: str | None = None,
     db_files: str | None = None,
+    min_gap_s: float = DEFAULT_MIN_GAP_S,
+    seed: int = 42,
     *,
     overwrite: bool = False,
 ) -> None:
@@ -359,7 +456,9 @@ def create_infos_from_nuplan(
     if overwrite:
         clean_preprocessed_outputs(output_path)
     scenario_path = os.path.join(output_path, "scenarios")
-    sample_infos = build_scenarios(data_root, map_root, scenario_path, limit, map_version, sensor_root, db_files)
+    sample_infos = build_scenarios(
+        data_root, map_root, scenario_path, limit, map_version, sensor_root, db_files, min_gap_s, seed
+    )
 
     sample_filename = os.path.join(output_path, "processed_scenario_samples_infos.pkl")
     with open(sample_filename, "wb") as f:
@@ -378,6 +477,14 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--db_files", default=None, help="Optional specific .db file(s); defaults to all in input_path."
     )
+    parser.add_argument(
+        "--min_gap_seconds",
+        type=float,
+        default=DEFAULT_MIN_GAP_S,
+        help="Minimum seconds between selected scenarios within a log. The default is one scenario length, "
+        "so selected scenarios never overlap. Lower it to fit more scenarios into fewer logs.",
+    )
+    parser.add_argument("--seed", type=int, default=42, help="Seed for the scenario draw.")
     parser.add_argument("--overwrite", action="store_true", help="Remove existing preprocessed outputs before writing.")
     return parser.parse_args()
 
@@ -393,5 +500,7 @@ if __name__ == "__main__":
         map_version=args.map_version,
         sensor_root=args.sensor_root,
         db_files=args.db_files,
+        min_gap_s=args.min_gap_seconds,
+        seed=args.seed,
         overwrite=args.overwrite,
     )
