@@ -51,6 +51,10 @@ datasets: null
 show_kde: false
 show_percentiles: true
 show_colored_by_agent_type: true # If false, it will color by feature type
+# Multiplier on the plot theme's font sizes. Plots are drawn at 10x6 in and then shrunk when placed in
+# a document, so the text has to be oversized here to stay legible there. 1.4 puts tick labels near
+# 15 pt; the previous 0.9 put them near 10 pt, which is what made the figures hard to read in the PDF.
+font_scale: 1.4
 # NOTE: include_pairs_with_no_vehicles is defined in run_processor.yaml so the analysis and processor steps share it.
 
 feature_categories:
@@ -85,6 +89,10 @@ latex_pair_types:
 # Render counts as 300k / 3.6M instead of 300,000 / 3,600,000.
 latex_compact_numbers: true
 
+# Report per-scenario median [IQR] instead of dataset totals, so pools of different sizes stay comparable
+# and the right skew in these counts stays visible.
+latex_per_scenario: true
+
 # ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 # Score Analysis
 # ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -98,11 +106,16 @@ test_percentile: 80 # Percentile to use to determine if holding out scenario for
 # Path to probe_summary.csv produced by run_processor with characterizer=cvm_probe.
 probe_csv: ${paths.cache_path}/probes/constant_velocity/probe_summary.csv
 
+# Multiplier on the plot theme's font sizes, separate from the feature analysis font_scale. These figures are
+# authored at ~7-10 in wide and shrunk when placed in the manuscript, so the text is oversized here to stay
+# legible there.
+probe_font_scale: 2.0
+
 # ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 # Scenario Visualization
 # ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-scenario_id: null  # If set, only visualize this single scenario (matched by pickle filename stem)
+scenario_id: null  # If set, only visualize these scenarios (a single ID or a list, matched by pickle filename stem)
 scenario_viz_dir: ${output_dir}/scenario_viz
 scores_tag: 'gt_critical_continuous' # Either 'gt_critical_continuous' or 'ho_critical_categorical'
 score_to_visualize: 'safeshift'

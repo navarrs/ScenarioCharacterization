@@ -15,10 +15,12 @@ Example usage::
         "datasets=[{label: WOMD, dataset_name: waymo}, {label: nuPlan, dataset_name: nuplan}]"
 
     # Multi-dataset with LaTeX row labels. Single-quote each label so YAML keeps the backslashes.
+    # Labels are passed through verbatim, so citation keys must match the manuscript's ref.bib.
     uv run python -m characterization.run_dataset_analysis output_dir=./outputs/dataset_analysis \\
-        "datasets=[{label: WOMD, dataset_name: waymo, latex_label: '\womd'}, \\
-                   {label: Argoverse2, dataset_name: argoverse2, latex_label: '\argoverse'}, \\
-                   {label: nuPlan, dataset_name: nuplan, latex_label: '\nuplan'}]"
+        "datasets=[\\
+          {label: WOMD, dataset_name: waymo, latex_label: '\womd~\cite{ettinger2021large}'}, \\
+          {label: Argoverse2, dataset_name: argoverse2, latex_label: '\argoverse~\cite{wilson2021argoverse}'}, \\
+          {label: nuPlan, dataset_name: nuplan, latex_label: '\nuplan~\cite{karnchanachari2024nuplan}'}]"
 """
 
 from datetime import UTC, datetime
@@ -40,7 +42,7 @@ def _count_dataset(
     dataset_name: str,
     features_path: Path,
     scenario_base_path: Path,
-) -> dict[str, object]:
+) -> tuple[dict[str, object], pd.DataFrame]:
     """Counts one dataset's trajectories and interactions and returns a single table row.
 
     Args:
@@ -52,7 +54,8 @@ def _count_dataset(
             many scenarios exist on disk versus how many were counted.
 
     Returns:
-        dict[str, object]: One row of the counts table.
+        tuple[dict[str, object], pd.DataFrame]: One row of the counts table, and the per-scenario counts
+            behind it, which the table and the distribution plots use to report spread.
 
     Raises:
         ValueError: If no valid scenarios are found under *features_path*.
@@ -64,21 +67,19 @@ def _count_dataset(
         msg = f"No valid scenarios found in {features_path} for {scenario_type} and criterion {criterion}"
         raise ValueError(msg)
 
-    total_scenarios = (
-        min(len(scenario_ids), cfg.total_scenarios)
-        if cfg.total_scenarios and cfg.total_scenarios > 0
-        else len(scenario_ids)
+    num_valid_scenarios = len(scenario_ids)
+    scenario_ids = common.sample_scenarios(scenario_ids, cfg.total_scenarios, cfg.seed)
+    logger.info(
+        "Found %d valid scenarios for %s. Counting %d scenarios.", num_valid_scenarios, label, len(scenario_ids)
     )
-    logger.info("Found %d valid scenarios for %s. Counting %d scenarios.", len(scenario_ids), label, total_scenarios)
-    scenario_ids = scenario_ids[:total_scenarios]
 
-    counts = analysis.count_dataset_features(scenario_ids, scenario_type, criterion, features_path)
+    counts, per_scenario_counts = analysis.count_dataset_features(scenario_ids, scenario_type, criterion, features_path)
 
     row: dict[str, object] = {"dataset": label, "dataset_name": dataset_name}
     if cfg.count_scenarios_on_disk:
         row["num_scenarios_on_disk"] = analysis.count_scenarios_on_disk(scenario_base_path)
     row.update(counts)
-    return row
+    return row, per_scenario_counts
 
 
 @hydra.main(config_path="config", config_name="run_analysis", version_base="1.3")
@@ -118,18 +119,22 @@ def run(cfg: DictConfig) -> None:
         raise ValueError(msg)
 
     latex_labels: dict[str, str] = {}
+    dataset_names: dict[str, str] = {}
+    per_scenario_counts: dict[str, pd.DataFrame] = {}
+    rows: list[dict[str, object]] = []
     if cfg.datasets is None:
-        rows = [
-            _count_dataset(
-                cfg,
-                cfg.paths.dataset_name,
-                cfg.paths.dataset_name,
-                Path(cfg.features_path),
-                Path(cfg.paths.scenario_base_path),
-            )
-        ]
+        label = cfg.paths.dataset_name
+        row, scenario_counts = _count_dataset(
+            cfg,
+            label,
+            cfg.paths.dataset_name,
+            Path(cfg.features_path),
+            Path(cfg.paths.scenario_base_path),
+        )
+        rows.append(row)
+        dataset_names[label] = cfg.paths.dataset_name
+        per_scenario_counts[label] = scenario_counts
     else:
-        rows = []
         for dataset_entry in cfg.datasets:
             # Derive per-dataset paths by substituting dataset_name into the resolved path templates.
             features_path = Path(str(cfg.features_path).replace(cfg.paths.dataset_name, dataset_entry.dataset_name))
@@ -137,9 +142,12 @@ def run(cfg: DictConfig) -> None:
                 str(cfg.paths.scenario_base_path).replace(cfg.paths.dataset_name, dataset_entry.dataset_name)
             )
             logger.info("Processing dataset: %s", dataset_entry.label)
-            rows.append(
-                _count_dataset(cfg, dataset_entry.label, dataset_entry.dataset_name, features_path, scenario_base_path)
+            row, scenario_counts = _count_dataset(
+                cfg, dataset_entry.label, dataset_entry.dataset_name, features_path, scenario_base_path
             )
+            rows.append(row)
+            dataset_names[dataset_entry.label] = dataset_entry.dataset_name
+            per_scenario_counts[dataset_entry.label] = scenario_counts
             if "latex_label" in dataset_entry:
                 latex_labels[dataset_entry.label] = dataset_entry.latex_label
 
@@ -151,6 +159,14 @@ def run(cfg: DictConfig) -> None:
 
     analysis.save_dataset_counts_json(counts_df, output_dir)
 
+    # Kept so the choice of summary statistic can be revisited without re-reading every feature pickle.
+    per_scenario_df = pd.concat(
+        [frame.assign(dataset=label) for label, frame in per_scenario_counts.items()], ignore_index=True
+    )
+    output_filepath = output_dir / "dataset_counts_per_scenario.csv"
+    per_scenario_df.to_csv(output_filepath, index=False)
+    logger.info("Saved per-scenario counts -> %s", output_filepath)
+
     agent_types, pair_types = list(cfg.latex_agent_types), list(cfg.latex_pair_types)
     analysis.write_latex_table(
         counts_df,
@@ -158,10 +174,14 @@ def run(cfg: DictConfig) -> None:
         agent_types,
         pair_types,
         latex_labels,
+        per_scenario_counts if cfg.latex_per_scenario else None,
         compact_numbers=cfg.latex_compact_numbers,
     )
     analysis.plot_dataset_counts(counts_df, output_dir, agent_types, pair_types, cfg.dpi)
     analysis.plot_dataset_composition(counts_df, output_dir, agent_types, pair_types, cfg.dpi)
+    analysis.plot_dataset_distributions(
+        per_scenario_counts, output_dir, agent_types, pair_types, cfg.dpi, dataset_names
+    )
 
 
 if __name__ == "__main__":
