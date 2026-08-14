@@ -15,6 +15,7 @@ from characterization.utils.analysis.dataset_analysis import (
     count_scenarios_on_disk,
     plot_dataset_composition,
     plot_dataset_counts,
+    plot_dataset_distributions,
     save_dataset_counts_json,
     write_latex_table,
 )
@@ -80,6 +81,7 @@ __all__ = [
     "plot_agent_scores_voxel_by_agent_type",
     "plot_dataset_composition",
     "plot_dataset_counts",
+    "plot_dataset_distributions",
     "plot_feature_distributions",
     "plot_histograms_from_dataframe",
     "plot_multi_dataset_agent_score_distributions",

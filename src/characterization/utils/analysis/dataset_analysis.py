@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.container import BarContainer
+from numpy.typing import NDArray
 from tqdm import tqdm
 
 from characterization.schemas import ScenarioFeatures
@@ -46,6 +47,28 @@ _LATEX_SHORT_NAMES: dict[str, str] = {
     "TYPE_PEDESTRIAN_CYCLIST": "P-C",
     "TYPE_CYCLIST_CYCLIST": "C-C",
 }
+
+# Under the ego pair scope every pair contains the ego agent, which get_agent_pair_type folds into the
+# vehicle side. The pair-type columns are then ego-relative, so the headers name the partner agent.
+_LATEX_EGO_SHORT_NAMES: dict[str, str] = {
+    "TYPE_VEHICLE_VEHICLE": "E-V",
+    "TYPE_VEHICLE_PEDESTRIAN": "E-P",
+    "TYPE_VEHICLE_CYCLIST": "E-C",
+}
+
+
+def _set_theme() -> None:
+    """Applies the shared plot theme used by the dataset figures."""
+    sns.set_theme(
+        style="whitegrid",
+        font_scale=0.9,
+        rc={
+            "grid.linestyle": "--",
+            "grid.alpha": 0.3,
+            "font.family": "sans-serif",
+            "font.sans-serif": ["DejaVu Sans"],
+        },
+    )
 
 
 def _empty_counts() -> dict[str, int]:
@@ -109,7 +132,7 @@ def count_dataset_features(
     scenario_type: str,
     criterion: str,
     features_path: Path,
-) -> dict[str, int]:
+) -> tuple[dict[str, int], pd.DataFrame]:
     """Accumulates per-scenario counts across a dataset, loading one feature artifact at a time.
 
     Streams rather than reusing ``load_scenario_features``, which retains every scenario's full feature
@@ -123,20 +146,24 @@ def count_dataset_features(
         features_path (Path): Path to the directory containing the per-branch feature directories.
 
     Returns:
-        dict[str, int]: Accumulated counts plus ``num_scenarios_counted``.
+        tuple[dict[str, int], pd.DataFrame]: Accumulated counts plus ``num_scenarios_counted``, and one
+            row of raw counts per scenario. The per-scenario rows are kept because these distributions
+            are heavily right-skewed, so a dataset mean does not describe a typical scenario.
     """
     key = f"{scenario_type}_{criterion}"
     branch_path = features_path / key
 
     totals = _empty_counts()
+    per_scenario: list[dict[str, int]] = []
     for scenario_id in tqdm(scenario_ids, desc=f"Counting {key} features"):
         features = from_pickle(str(branch_path / scenario_id))  # nosec B301
         counts = count_scenario_features(ScenarioFeatures.model_validate(features))
+        per_scenario.append(counts)
         for column, value in counts.items():
             totals[column] += value
 
     totals["num_scenarios_counted"] = len(scenario_ids)
-    return totals
+    return totals, pd.DataFrame(per_scenario)
 
 
 def count_scenarios_on_disk(scenario_base_path: Path) -> int | None:
@@ -186,19 +213,60 @@ def _format_count(value: int, *, compact: bool) -> str:
     return f"{value / 1e6:.1f}M"
 
 
+def _is_ego_scoped(counts_df: pd.DataFrame) -> bool:
+    """Reports whether every row was computed under the ego pair scope.
+
+    Under ``pair_scope="ego"`` every enumerated pair contains the ego agent, so the ego pair count equals
+    the total across pair types. A mismatch means the feature cache holds all-pairs artifacts, and a
+    mixture across rows means the caches disagree with each other.
+    """
+    pair_columns = [f"pairs_valid_{pair_type.name}" for pair_type in COUNTED_PAIR_TYPES]
+    scoped = [
+        int(row["pairs_with_ego_valid"]) == sum(int(row[column]) for column in pair_columns)
+        for row in counts_df.to_dict("records")
+    ]
+    if any(scoped) and not all(scoped):
+        all_pairs = [
+            str(row["dataset"])
+            for row, is_scoped in zip(counts_df.to_dict("records"), scoped, strict=True)
+            if not is_scoped
+        ]
+        logger.warning("Datasets %s are not ego-scoped; labelling the whole table as all-pairs", all_pairs)
+    return all(scoped)
+
+
+def _format_cell(total: int, values: NDArray[np.int64] | None, *, compact: bool) -> str:
+    """Renders one table cell as ``IQM (total)`` when per-scenario counts are given, else the total.
+
+    The interquartile mean rather than the mean: these counts are right-skewed to different degrees per
+    dataset, so a mean reports a heavier tail as if it were denser typical traffic. It is preferred over
+    the median because averaging the middle half keeps resolution where a median collapses to an integer.
+    Note that ``IQM * num_scenarios`` does not recover the total, which is why the total is printed too.
+    """
+    formatted_total = _format_count(total, compact=compact)
+    if values is None or values.size == 0:
+        return formatted_total
+    low, high = np.percentile(values, [25, 75])
+    middle = values[(values >= low) & (values <= high)]
+    interquartile_mean = middle.mean() if middle.size else 0.0
+    return f"{interquartile_mean:.1f} ({formatted_total})"
+
+
 def write_latex_table(
     counts_df: pd.DataFrame,
     output_path: Path,
     agent_types: list[str],
     pair_types: list[str],
     labels: dict[str, str] | None = None,
+    per_scenario_counts: dict[str, pd.DataFrame] | None = None,
     *,
     compact_numbers: bool = True,
 ) -> None:
     r"""Writes a booktabs table of valid trajectory and interaction counts, one row per dataset.
 
     Hand-rolled rather than ``DataFrame.to_latex`` because the layout needs ``\multicolumn`` group
-    headers and ``\cmidrule`` spans. Requires ``booktabs`` and ``graphicx`` in the document preamble.
+    headers and ``\cmidrule`` spans. Requires ``booktabs``, ``graphicx`` and, when per-scenario counts
+    are given, ``multirow`` in the document preamble.
 
     Args:
         counts_df (pd.DataFrame): One row per dataset, as written to ``dataset_counts.csv``.
@@ -207,64 +275,84 @@ def write_latex_table(
         pair_types (list[str]): ``AgentPairType`` names to render as interaction columns.
         labels (dict[str, str] | None): Optional dataset label -> LaTeX row label (e.g. a ``\cite``
             macro). Datasets absent from the mapping fall back to their plain label.
+        per_scenario_counts (dict[str, pd.DataFrame] | None): Dataset label -> per-scenario counts, as
+            returned by ``count_dataset_features``. When given, cells read ``IQM (total)``: the
+            interquartile mean keeps pools of different sizes comparable without letting the right skew
+            in these distributions inflate one dataset more than another, and the total preserves scale.
+            When omitted, cells carry the total alone.
         compact_numbers (bool): Render counts as ``300k`` / ``3.6M`` instead of ``300,000``.
     """
     labels = labels or {}
+    per_scenario_counts = per_scenario_counts or {}
+    ego_scoped = _is_ego_scoped(counts_df)
     num_agent_cols, num_pair_cols = len(agent_types), len(pair_types)
-    # Columns 1 and 2 are the dataset name and the scenario count; the groups follow.
-    agent_span = (3, 2 + num_agent_cols)
-    pair_span = (3 + num_agent_cols, 2 + num_agent_cols + num_pair_cols)
+    # The scenario count is stated in the surrounding text rather than given a column, which leaves each
+    # cell enough width to carry a central estimate and the dataset total at full size.
+    agent_span = (2, 1 + num_agent_cols)
+    pair_span = (2 + num_agent_cols, 1 + num_agent_cols + num_pair_cols)
 
-    headers = [_LATEX_SHORT_NAMES.get(name, name) for name in (*agent_types, *pair_types)]
+    pair_names = {**_LATEX_SHORT_NAMES, **_LATEX_EGO_SHORT_NAMES} if ego_scoped else _LATEX_SHORT_NAMES
+    pair_group = "Ego interactions" if ego_scoped else "Interactions"
+    headers = [_LATEX_SHORT_NAMES.get(name, name) for name in agent_types]
+    headers += [pair_names.get(name, name) for name in pair_types]
     lines = [
         r"\begin{table}[h]",
         r"    \centering",
         r"    \small",
-        r"    \resizebox{\columnwidth}{!}{%",
-        rf"    \begin{{tabular}}{{lc{'r' * (num_agent_cols + num_pair_cols)}}}",
+        # Shrink to fit the column but never scale up, so a narrow table is not blown up into the margins.
+        r"    \resizebox{\ifdim\width>\columnwidth\columnwidth\else\width\fi}{!}{%",
+        rf"    \begin{{tabular}}{{l{'c' * (num_agent_cols + num_pair_cols)}}}",
         r"        \toprule",
-        rf"        & & \multicolumn{{{num_agent_cols}}}{{c}}{{\textbf{{Trajectories}}}} "
-        rf"& \multicolumn{{{num_pair_cols}}}{{c}}{{\textbf{{Interactions}}}} \\",
+        rf"        & \multicolumn{{{num_agent_cols}}}{{c}}{{\textbf{{Trajectories}}}} "
+        rf"& \multicolumn{{{num_pair_cols}}}{{c}}{{\textbf{{{pair_group}}}}} \\",
         rf"        \cmidrule(lr){{{agent_span[0]}-{agent_span[1]}}} "
         rf"\cmidrule(lr){{{pair_span[0]}-{pair_span[1]}}}",
-        r"        \textbf{Dataset} & \textbf{Scenarios} & " + " & ".join(headers) + r" \\",
+        r"        \textbf{Dataset} & " + " & ".join(headers) + r" \\",
         r"        \midrule",
     ]
 
+    typed_columns = [
+        f"{prefix}{name}"
+        for prefix, names in (("agents_valid_", agent_types), ("pairs_valid_", pair_types))
+        for name in names
+    ]
     for row in counts_df.to_dict("records"):
-        label = labels.get(str(row["dataset"]), str(row["dataset"]))
-        cells = [f"{int(row['num_scenarios_counted']):,}"]
-        cells += [_format_count(int(row[f"agents_valid_{name}"]), compact=compact_numbers) for name in agent_types]
-        cells += [_format_count(int(row[f"pairs_valid_{name}"]), compact=compact_numbers) for name in pair_types]
+        dataset = str(row["dataset"])
+        label = labels.get(dataset, dataset)
+        scenario_counts = per_scenario_counts.get(dataset)
+        cells = [
+            _format_cell(
+                int(row[column]),
+                None if scenario_counts is None else np.asarray(scenario_counts[column]),
+                compact=compact_numbers,
+            )
+            for column in typed_columns
+        ]
         lines.append(f"        {label} & " + " & ".join(cells) + r" \\")
 
+    scope_sentence = (
+        "Every pair contains the ego agent, so interaction columns name the partner agent type. "
+        if ego_scoped
+        else "The ego agent is folded into the vehicle side of each pair type. "
+    )
+    normalization_sentence = (
+        "Cells report the per-scenario interquartile mean, the mean over the middle half of scenarios, "
+        "with the dataset total in parentheses. "
+    )
     lines += [
         r"        \bottomrule",
         r"    \end{tabular}",
         r"    }",
         r"    \caption{Valid individual trajectories and interaction counts per dataset. "
-        r"The ego agent is counted in its own trajectory column where present; on the interaction side "
-        r"it is folded into the vehicle pair types.}",
+        + (normalization_sentence if per_scenario_counts else "")
+        + scope_sentence
+        + r"The ego agent is counted in its own trajectory column where present.}",
         r"    \label{tab:experimental_setup}",
         r"\end{table}",
         "",
     ]
     output_path.write_text("\n".join(lines))
     logger.info("Saved LaTeX counts table -> %s", output_path)
-
-
-def _set_theme() -> None:
-    """Applies the shared analysis plot theme."""
-    sns.set_theme(
-        style="whitegrid",
-        font_scale=0.9,
-        rc={
-            "grid.linestyle": "--",
-            "grid.alpha": 0.3,
-            "font.family": "sans-serif",
-            "font.sans-serif": ["DejaVu Sans"],
-        },
-    )
 
 
 def _palette_by_label(counts_df: pd.DataFrame) -> dict[str, str]:
@@ -331,6 +419,79 @@ def plot_dataset_counts(
         ax.set_ylabel("Count (log scale)")
         ax.set_title(title)
         ax.grid(visible=True, linestyle="--", alpha=0.4)
+        ax.legend(title="Dataset", fontsize=8)
+
+        plt.tight_layout()
+        output_filepath = output_dir / filename
+        plt.savefig(output_filepath, dpi=dpi)
+        plt.close()
+        logger.info("Saved %s -> %s", title.lower(), output_filepath)
+
+
+def plot_dataset_distributions(
+    per_scenario_counts: dict[str, pd.DataFrame],
+    output_dir: Path,
+    agent_types: list[str],
+    pair_types: list[str],
+    dpi: int = 300,
+    dataset_names: dict[str, str] | None = None,
+) -> None:
+    """Plots the per-scenario count distributions as boxes, showing the spread the table summarizes.
+
+    The counts are right-skewed and skewed to different degrees across datasets, so a mean or even a
+    median alone understates how concentrated the population is. Log y-axis, since the tails run one to
+    two orders of magnitude above the median.
+
+    Args:
+        per_scenario_counts (dict[str, pd.DataFrame]): Dataset label -> per-scenario counts.
+        output_dir (Path): Directory to save the output plots.
+        agent_types (list[str]): ``AgentType`` names to plot on the trajectory chart.
+        pair_types (list[str]): ``AgentPairType`` names to plot on the interaction chart.
+        dpi (int): Dots per inch for the saved figures.
+        dataset_names (dict[str, str] | None): Dataset label -> canonical name, so colors match the
+            other analyses. Labels fall back to themselves when absent.
+    """
+    if not per_scenario_counts:
+        logger.warning("No per-scenario counts given; skipping distribution plots")
+        return
+
+    _set_theme()
+    labels = list(per_scenario_counts)
+    names = {label: (dataset_names or {}).get(label, label) for label in labels}
+    colors_by_name = get_dataset_colors(list(names.values()))
+    palette = {label: colors_by_name[name] for label, name in names.items()}
+    # Same invariant the table uses: under the ego scope every pair contains the ego agent.
+    ego_scoped = all(
+        int(frame["pairs_with_ego_valid"].sum())
+        == sum(int(frame[f"pairs_valid_{pair_type.name}"].sum()) for pair_type in COUNTED_PAIR_TYPES)
+        for frame in per_scenario_counts.values()
+    )
+    pair_names = {**_LATEX_SHORT_NAMES, **_LATEX_EGO_SHORT_NAMES} if ego_scoped else _LATEX_SHORT_NAMES
+
+    for prefix, type_names, short_names, title, filename in [
+        ("agents_valid_", agent_types, _LATEX_SHORT_NAMES, "Trajectories per Scenario", "trajectory_distribution.png"),
+        ("pairs_valid_", pair_types, pair_names, "Interactions per Scenario", "interaction_distribution.png"),
+    ]:
+        records = [
+            {"dataset": label, "type": short_names.get(name, name), "count": int(value)}
+            for label, frame in per_scenario_counts.items()
+            for name in type_names
+            for value in frame[f"{prefix}{name}"]
+        ]
+        df = pd.DataFrame(records)
+
+        _, ax = plt.subplots(1, 1, figsize=(10, 6))
+        sns.boxplot(data=df, x="type", y="count", hue="dataset", palette=palette, ax=ax, showfliers=False)
+        # Counts span two orders of magnitude but bottom out at zero, so symlog keeps the sparse types
+        # visible where a log axis would drop them. Clamp the bottom, or symlog reserves its negative half.
+        ax.set_yscale("symlog", linthresh=1)
+        ax.set_ylim(bottom=0, top=float(df["count"].max()) * 1.2)
+
+        sns.despine(top=True, right=True)
+        ax.set_xlabel("")
+        ax.set_ylabel("Count per scenario (symlog scale)")
+        ax.set_title(title)
+        ax.grid(visible=True, axis="y", linestyle="--", alpha=0.4)
         ax.legend(title="Dataset", fontsize=8)
 
         plt.tight_layout()

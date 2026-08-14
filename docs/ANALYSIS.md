@@ -80,9 +80,14 @@ artifacts.
 Each run writes a timestamped folder under `output_dir` (default: `${paths.cache_path}/analysis`) with:
 - `dataset_counts.csv` — one row per dataset, every agent type and pair type, `total` and `valid` columns
 - `dataset_counts.json` — the same counts, nested by dataset label
+- `dataset_counts_per_scenario.csv` — one row per scenario, so the choice of summary statistic can be
+  revisited without re-reading every feature pickle
 - `dataset_counts.tex` — booktabs table of the valid counts, ready to `\input` (needs `booktabs` and `graphicx`)
 - `trajectory_counts.png`, `interaction_counts.png` — grouped bars, one hue per dataset, log y-axis
 - `trajectory_composition.png`, `interaction_composition.png` — 100%-stacked bars of the class mix
+- `trajectory_distribution.png`, `interaction_distribution.png` — per-scenario count distributions as
+  boxes, symlog y-axis. These counts are right-skewed and skewed to different degrees across datasets,
+  so the table reports an interquartile mean rather than a mean, and these plots show the spread behind it
 
 ### Example usage
 
@@ -95,9 +100,11 @@ Count several datasets into one table, with LaTeX row labels:
 ```bash
 uv run python -m characterization.run_dataset_analysis \
     "datasets=[{label: Waymo, dataset_name: waymo, latex_label: '\womd~\cite{ettinger2021large}'}, \
-               {label: Argoverse2, dataset_name: argoverse2}, \
-               {label: nuPlan, dataset_name: nuplan}]"
+               {label: Argoverse2, dataset_name: argoverse2, latex_label: '\argoverse~\cite{wilson2021argoverse}'}, \
+               {label: nuPlan, dataset_name: nuplan, latex_label: '\nuplan~\cite{karnchanachari2024nuplan}'}]"
 ```
+
+`latex_label` is passed through verbatim, so the citation keys must match the manuscript's `ref.bib`.
 
 Include the VRU-only pair types in the table and plots:
 ```bash
@@ -110,6 +117,11 @@ Emit exact numbers instead of `300k` / `3.6M`:
 uv run python -m characterization.run_dataset_analysis latex_compact_numbers=false
 ```
 
+Report dataset totals alone, instead of `IQM (total)`:
+```bash
+uv run python -m characterization.run_dataset_analysis latex_per_scenario=false
+```
+
 ### Useful config overrides
 
 Commonly overridden keys:
@@ -117,7 +129,7 @@ Commonly overridden keys:
 - `scenario_types`, `criteria` (exactly one of each — see Notes)
 - `total_scenarios` (limit scenario count for faster runs)
 - `latex_agent_types`, `latex_pair_types` (which types the table and plots render)
-- `latex_compact_numbers`, `count_scenarios_on_disk`
+- `latex_compact_numbers`, `latex_per_scenario`, `count_scenarios_on_disk`
 - `output_dir`, `exp_tag`, `dpi`
 
 ### Notes
@@ -127,14 +139,17 @@ Commonly overridden keys:
   silently multiplying the numbers; re-run once per branch instead.
 - **`total` means enumerated by the pipeline, not present in the raw dataset.** For trajectories it is
   the full `agent_types` list; for interactions it is every pair in `interaction_status`, which is
-  `C(N,2)` under the default `pair_scope=all` but only `N-1` when features were computed with
+  `N-1` under `pair_scope=ego` and `C(N,2)` under `pair_scope=all`. `SafeShiftFeatures` derives the
+  scope from `score_weighting_method`, whose shipped default `distance_to_ego_agent` gives
   `pair_scope=ego`. Compare `num_scenarios_counted` against `num_scenarios_on_disk` to see whether
   feature computation covered the whole dataset.
 - **A pair is valid when its `interaction_status` is `COMPUTED_OK` or `PARTIAL_INVALID_HEADING`** — the
   same filter the interaction feature distributions use, so the counts match those plots exactly.
 - **The ego agent is counted in its own `TYPE_EGO_AGENT` trajectory bucket**, but `AgentPairType` has no
   ego member and `get_agent_pair_type` folds ego into vehicle, so ego pairs land in V-V / V-P / V-C. The
-  CSV and JSON carry `pairs_with_ego_total` / `pairs_with_ego_valid` so this stays visible.
+  CSV and JSON carry `pairs_with_ego_total` / `pairs_with_ego_valid` so this stays visible. When
+  `pairs_with_ego_valid` equals the sum over pair types, every pair contains the ego and the table
+  relabels those columns `E-V` / `E-P` / `E-C`. A mismatch means the cache holds all-pairs artifacts.
 - Composition plots take shares over the **selected** types only; excluding a type also removes it from
   the denominator.
 
@@ -317,6 +332,13 @@ uv run python -m characterization.run_scenario_viz organize_by_percentile=true p
 Visualize a different score head using a specific score tag:
 ```bash
 uv run python -m characterization.run_scenario_viz scores_tag=gt_critical_categorical score_to_visualize=interaction
+```
+
+Visualize specific scenarios only (`scenario_id` takes a single ID or a list). These two are the scenarios used in the
+manuscript figure `scenario_viz.png`:
+```bash
+uv run python -m characterization.run_scenario_viz paths=waymo viz=all_panes_scenario \
+	'scenario_id=[1ad304afd32ea9a6,63dc1d4d391ccd24]'
 ```
 
 Write visualizations to a custom location:
