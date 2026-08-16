@@ -18,6 +18,7 @@ Example usage::
     uv run python -m characterization.run_scenario_viz score_to_visualize=individual total_scenarios=50
     uv run python -m characterization.run_scenario_viz organize_by_percentile=true viz=categorical_scenario
     uv run python -m characterization.run_scenario_viz scenario_id=<scene_id>
+    uv run python -m characterization.run_scenario_viz 'scenario_id=[<scene_id_a>,<scene_id_b>]'
     uv run python -m characterization.run_scenario_viz viz=all_panes_scenario total_scenarios=5
 """
 
@@ -123,10 +124,21 @@ def _organize_scenarios_by_percentile(
     return scenario_output_dirs
 
 
+def _requested_scenario_ids(cfg: DictConfig) -> set[str] | None:
+    """Return the scenario IDs requested via ``cfg.scenario_id``, or ``None`` when unset.
+
+    Accepts either a single ID or a list of IDs.
+    """
+    if not cfg.scenario_id:
+        return None
+    ids = [cfg.scenario_id] if isinstance(cfg.scenario_id, str) else list(cfg.scenario_id)
+    return {str(scenario_id) for scenario_id in ids}
+
+
 def _get_probed_filepaths(cfg: DictConfig) -> list[Path] | None:
     """Load probed scenario filepaths from ``cfg.probed_scenarios_path``, filtering by ``cfg.scenario_id`` if set.
 
-    Returns the list of paths, or ``None`` if the directory does not exist or a requested scenario is not found.
+    Returns the list of paths, or ``None`` if the directory does not exist or no requested scenario is found.
     """
     probed_path = Path(cfg.probed_scenarios_path)
     if not probed_path.exists():
@@ -134,12 +146,13 @@ def _get_probed_filepaths(cfg: DictConfig) -> list[Path] | None:
         return None
     filepaths = list(probed_path.glob("*.pkl"))
     logger.info("Loading %d probed scenarios from %s", len(filepaths), probed_path)
-    if cfg.scenario_id:
-        filepaths = [fp for fp in filepaths if fp.stem == cfg.scenario_id]
+    requested_ids = _requested_scenario_ids(cfg)
+    if requested_ids is not None:
+        filepaths = [fp for fp in filepaths if fp.stem in requested_ids]
         if not filepaths:
-            logger.error("No probed scenario found with ID '%s' under %s", cfg.scenario_id, probed_path)
+            logger.error("No probed scenario found with ID in %s under %s", sorted(requested_ids), probed_path)
             return None
-        logger.info("Filtering to single probed scenario: %s", cfg.scenario_id)
+        logger.info("Filtering to %d requested probed scenarios: %s", len(filepaths), sorted(requested_ids))
     return filepaths
 
 
@@ -173,12 +186,13 @@ def run(cfg: DictConfig) -> None:
     scenario_filepaths = list(scenario_base_path.rglob("*.pkl"))
     scores_path = Path(cfg.scores_path) / cfg.scores_tag
 
-    if cfg.scenario_id and not viz_probed_scenarios:
-        scenario_filepaths = [fp for fp in scenario_filepaths if fp.stem == cfg.scenario_id]
+    requested_ids = _requested_scenario_ids(cfg)
+    if requested_ids is not None and not viz_probed_scenarios:
+        scenario_filepaths = [fp for fp in scenario_filepaths if fp.stem in requested_ids]
         if not scenario_filepaths:
-            logger.error("No scenario found with ID '%s' under %s", cfg.scenario_id, scenario_base_path)
+            logger.error("No scenario found with ID in %s under %s", sorted(requested_ids), scenario_base_path)
             return
-        logger.info("Filtering to single scenario: %s", cfg.scenario_id)
+        logger.info("Filtering to %d requested scenarios: %s", len(scenario_filepaths), sorted(requested_ids))
 
     logger.info("Instatiating visualizer: %s", cfg.viz._target_)
     viz_config = copy.deepcopy(cfg.viz)

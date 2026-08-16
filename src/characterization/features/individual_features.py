@@ -52,6 +52,9 @@ class IndividualFeatures(BaseFeature):
 
         self.categorize_features = FeatureType(self.config.get("feature_type", "continuous")) == FeatureType.CATEGORICAL
         if self.categorize_features:
+            # Tracks (feature, agent type) pairs already reported as missing so the warning is logged only once.
+            self._missing_categories: set[tuple[str, AgentType]] = set()
+
             vehicle_file = Path(self.config.get("vehicle_categorization_file", ""))
             if not vehicle_file.is_file():
                 msg = f"Vehicle categorization file {vehicle_file} does not exist."
@@ -82,7 +85,8 @@ class IndividualFeatures(BaseFeature):
             feature_name (str): The name of the feature being categorized.
 
         Returns:
-            float: The categorized feature value based on percentiles.
+            float: The categorized feature value based on percentiles, or NaN if no thresholds are available for
+                the given feature and agent type.
         """
         match agent_type:
             case AgentType.TYPE_VEHICLE | AgentType.TYPE_EGO_AGENT:
@@ -96,9 +100,16 @@ class IndividualFeatures(BaseFeature):
                 return -1.0
 
         if categories is None:
-            logger.error("No categories found for feature %s and agent type %s.", feature_name, agent_type)
-            error_message = f"No categories found for feature {feature_name} and agent type {agent_type}."
-            raise ValueError(error_message)
+            # The categorization metadata does not cover this feature, so treat it as unavailable instead of failing
+            # the whole run. This happens when the percentiles were computed from data where the feature was absent.
+            if (feature_name, agent_type) not in self._missing_categories:
+                self._missing_categories.add((feature_name, agent_type))
+                logger.warning(
+                    "No categories found for feature %s and agent type %s. Reporting it as unavailable (NaN).",
+                    feature_name,
+                    agent_type,
+                )
+            return float("nan")
 
         threshold_values = list(categories.values())
         return float(categorize_from_thresholds(value, threshold_values))
