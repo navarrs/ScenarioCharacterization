@@ -17,6 +17,7 @@ from characterization.utils.analysis.common_analysis import (
     compute_category_thresholds,
     compute_jaccard_index,
     get_dataset_colors,
+    set_analysis_theme,
 )
 from characterization.utils.io_utils import from_pickle, get_logger
 from characterization.utils.scenario_types import AgentType
@@ -79,6 +80,9 @@ def regroup_scenario_scores(
 ) -> tuple[dict[str, Any], ...]:
     """Loads scenario scores for given scenario types, scorers, and criteria.
 
+    Scenarios missing a score for any requested scorer are excluded from all returned dictionaries, so every key
+    holds the same number of entries, aligned with the returned ``scenario_ids``.
+
     Args:
         scenario_scores (dict[str, dict[str, ScenarioScores]]): Dictionary containing scenario scores.
         scenario_ids (list[str]): List of scenario IDs to load scores for.
@@ -93,27 +97,40 @@ def regroup_scenario_scores(
             - agent_scores: Dictionary mapping score keys to lists of agent scores.
             - scenario_scores: Dictionary mapping scenario IDs to their corresponding ScenarioScores.
     """
-    scene_scores = {"scenario_ids": scenario_ids}
-    agent_scores = {"scenario_ids": scenario_ids}
-    agent_scores_valid = {"scenario_ids": scenario_ids}
+    # (column key, scenario_scores group key, Score attribute) for every requested combination.
+    score_keys = [
+        (f"{scenario_type}_{criterion}_{scorer}", f"{scenario_type}_{criterion}", f"{scorer}_scores")
+        for scenario_type, scorer, criterion in product(scenario_types, scenario_scorers, criteria)
+    ]
+    scene_scores: dict[str, Any] = {"scenario_ids": [], **{key: [] for key, _, _ in score_keys}}
+    agent_scores: dict[str, Any] = {"scenario_ids": [], **{key: [] for key, _, _ in score_keys}}
+    agent_scores_valid: dict[str, Any] = {"scenario_ids": [], **{key: [] for key, _, _ in score_keys}}
 
-    for scenario_type, scorer, criterion in product(scenario_types, scenario_scorers, criteria):
-        key = f"{scenario_type}_{criterion}_{scorer}"
-        scene_scores[key] = []
-        agent_scores[key] = []
-        agent_scores_valid[key] = []
+    kept_ids: list[str] = []
+    dropped_ids: list[str] = []
+    for scenario_id in scenario_ids:
+        # A scenario is only usable if every requested scorer produced a complete score for it. Scenes holding a
+        # single agent have no interaction pair, so the interaction scorer returns None and safeshift's validity
+        # mask is missing; keeping them would leave the columns unequal and misaligned against scenario_ids.
+        entries = {key: scenario_scores[group][scenario_id][scores_key] for key, group, scores_key in score_keys}
+        if any(
+            entry.scene_score is None or entry.agent_scores is None or entry.agent_scores_valid is None
+            for entry in entries.values()
+        ):
+            dropped_ids.append(scenario_id)
+            continue
 
-    for scenario_type, criterion in product(scenario_types, criteria):
-        key = f"{scenario_type}_{criterion}"
-        for scores in scenario_scores[key].values():
-            for scorer in scenario_scorers:
-                key = f"{scenario_type}_{criterion}_{scorer}"
-                scores_key = f"{scorer}_scores"
-                scene_score = scores[scores_key].scene_score
-                if scene_score is not None:
-                    scene_scores[key].append(scene_score)
-                    agent_scores[key].append(scores[scores_key].agent_scores)
-                    agent_scores_valid[key].append(scores[scores_key].agent_scores_valid)
+        kept_ids.append(scenario_id)
+        for key, entry in entries.items():
+            scene_scores[key].append(entry.scene_score)
+            agent_scores[key].append(entry.agent_scores)
+            agent_scores_valid[key].append(entry.agent_scores_valid)
+
+    if dropped_ids:
+        logger.warning("Dropped %d scenario(s) with incomplete scores: %s", len(dropped_ids), dropped_ids)
+
+    for scores_dict in (scene_scores, agent_scores, agent_scores_valid):
+        scores_dict["scenario_ids"] = kept_ids
 
     return scene_scores, agent_scores, agent_scores_valid
 
@@ -422,16 +439,7 @@ def plot_agent_scores_voxel_by_agent_type(
         output_dir (Path): Directory to save the output plots.
         dpi (int): Dots per inch for the saved figure.
     """
-    sns.set_theme(
-        style="whitegrid",
-        font_scale=0.9,
-        rc={
-            "grid.linestyle": "--",
-            "grid.alpha": 0.3,
-            "font.family": "sans-serif",
-            "font.sans-serif": ["DejaVu Sans"],
-        },
-    )
+    set_analysis_theme()
     scenario_agent_types = agent_types["agent_types"]
 
     individual_agent_scores = agent_scores.get(f"{scenario_type}_{criterion}_individual")
@@ -584,7 +592,6 @@ def plot_multi_dataset_score_distributions(
             sns.histplot(
                 x=values,
                 color=dataset_colors[label],
-                bins=20,
                 kde=True,
                 stat="density",
                 alpha=0.6,
@@ -652,7 +659,6 @@ def plot_multi_dataset_agent_score_distributions(
             sns.histplot(
                 flattened,
                 color=dataset_colors[label],
-                bins=20,
                 kde=True,
                 stat="probability",
                 alpha=0.5,

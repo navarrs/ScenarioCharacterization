@@ -6,9 +6,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from natsort import natsorted
 from numpy.typing import NDArray
 
 from characterization.utils.io_utils import get_logger
+from characterization.utils.plot_style import configure_fonts
 from characterization.utils.scenario_types import AgentPairType, AgentType
 
 logger = get_logger(__name__)
@@ -48,11 +50,13 @@ AGENT_COLORS = {
 
 # Colors chosen to be visually distinct from all AGENT_COLORS hues (gray, slategray, plum, forestgreen,
 # dodgerblue, coral, lightpink, mediumseagreen, darkgreen).
+# nuplan deliberately shares nuscenes' teal: the two are never plotted against each other, and reusing
+# the hue keeps a dataset's color stable across figures that use one or the other.
 DATASET_COLORS: dict[str, str] = {
-    "waymo": "#1B82E2",  # vivid red
-    "nuscenes": "#52E2D1",  # vivid orange
-    "argoverse2": "#EEBC47",  # medium purple
-    "nuplan": "#9B5DE5",  # vivid purple
+    "waymo": "#1B82E2",  # blue
+    "nuscenes": "#52E2D1",  # teal
+    "argoverse2": "#EEBC47",  # amber
+    "nuplan": "#52E2D1",  # teal
 }
 
 _DATASET_FALLBACK_PALETTE: tuple[str, ...] = (
@@ -61,6 +65,13 @@ _DATASET_FALLBACK_PALETTE: tuple[str, ...] = (
     "#17BECF",  # cyan
     "#E377C2",  # magenta-pink
 )
+
+# Neutral gray for all plot text, so the data keeps the visual weight.
+TEXT_COLOR = "#666666"
+
+# Category boundary lines and their band tags. Crimson reads against every AGENT_COLORS bar hue and
+# against TEXT_COLOR, so the bands stay separable from both the data and the labels.
+CATEGORY_BOUNDARY_COLOR = "#D7263D"
 
 
 def get_dataset_colors(dataset_labels: list[str]) -> dict[str, str]:
@@ -85,6 +96,34 @@ DEFAULT_FEATURE_CATEGORIES: list[dict[str, Any]] = [
 ]
 
 
+def set_analysis_theme(font_scale: float = 0.9) -> None:
+    """Applies the shared analysis plot theme.
+
+    Args:
+        font_scale (float): Multiplier on seaborn's notebook-context sizes. These figures are authored
+            at 10x6 in and then shrunk when placed in a document, so the text has to be oversized here
+            to stay legible there — a scale of 2.0 puts tick labels near 22 pt.
+    """
+    sns.set_theme(
+        style="whitegrid",
+        font_scale=font_scale,
+        rc={
+            "grid.linestyle": "--",
+            "grid.alpha": 0.3,
+            "font.family": "sans-serif",
+            "axes.titleweight": "normal",
+            "figure.titleweight": "normal",
+            "text.color": TEXT_COLOR,
+            "axes.labelcolor": TEXT_COLOR,
+            "axes.titlecolor": TEXT_COLOR,
+            "xtick.labelcolor": TEXT_COLOR,
+            "ytick.labelcolor": TEXT_COLOR,
+        },
+    )
+    # Applied last: sns.set_theme resets font.sans-serif to seaborn's default.
+    configure_fonts()
+
+
 def get_valid_scenario_ids(scenario_types: list[str], criteria: list[str], base_path: Path) -> list[str]:
     """Finds scenario IDs that are common across all specified scenario types and criteria.
 
@@ -101,7 +140,7 @@ def get_valid_scenario_ids(scenario_types: list[str], criteria: list[str], base_
         scenarios_path = base_path / f"{scenario_type}_{criterion}"
         scenario_files = [f.name for f in scenarios_path.iterdir()]
         scenario_lists.append(scenario_files)
-    return list(set.intersection(*[set(scenario_list) for scenario_list in scenario_lists]))
+    return natsorted(set.intersection(*[set(scenario_list) for scenario_list in scenario_lists]))
 
 
 def plot_histograms_from_dataframe(
@@ -150,7 +189,7 @@ def plot_histograms_from_dataframe(
     plt.legend()
     plt.xlabel("Scores")
     plt.ylabel("Density")
-    plt.title("Score Density Function over Scenarios")
+    plt.title("Score Density Function\nover Scenarios")
     plt.grid(visible=True, linestyle="--", alpha=0.4)
     plt.tight_layout()
     plt.savefig(output_filepath, dpi=dpi)

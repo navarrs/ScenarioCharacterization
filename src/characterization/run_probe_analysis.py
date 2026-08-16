@@ -68,6 +68,7 @@ def _run_single_dataset(cfg: DictConfig, csv_path: Path, output_dir: Path) -> tu
     analysis.plot_score_delta_density(df_probed, output_dir, dpi)
     analysis.plot_score_delta_by_agent_type(df_probed, output_dir, dpi)
     analysis.plot_score_scatter(df_probed, output_dir, dpi)
+    analysis.plot_top_score_delta_scatters(df_probed, output_dir, dpi)
     analysis.plot_affected_agents_histogram(df_probed, output_dir, dpi)
     analysis.save_probe_summary_json(df, df_probed, output_dir)
 
@@ -88,6 +89,9 @@ def run(cfg: DictConfig) -> None:
              Multi-dataset: ``datasets=[{label: X, dataset_name: x}, ...]``.
     """
     print_config(cfg, theme="native")
+
+    # rcParams are process-global, so styling once here covers every figure below.
+    analysis.set_analysis_theme(float(cfg.get("probe_font_scale", 3.0)))
 
     subdir = ""
     if cfg.add_timestamp:
@@ -128,6 +132,7 @@ def run(cfg: DictConfig) -> None:
         analysis.plot_multi_dataset_probe_outcomes(all_dfs, combined_dir, dpi)
         analysis.plot_multi_dataset_probe_score_distributions(all_dfs_probed, combined_dir, dpi)
         analysis.plot_multi_dataset_probe_score_distributions_grid(all_dfs_probed, combined_dir, dpi)
+        analysis.plot_multi_dataset_probe_score_scatter(all_dfs_probed, combined_dir, dpi)
         analysis.plot_multi_dataset_probe_score_delta_density(all_dfs_probed, combined_dir, dpi)
 
     _LOGGER.info("Done. Results written to %s", output_dir)

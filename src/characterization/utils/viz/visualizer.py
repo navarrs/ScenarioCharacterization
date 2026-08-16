@@ -33,6 +33,14 @@ from characterization.utils.scenario_types import AgentType
 
 logger = get_logger(__name__)
 
+# Offset applied to probe labels so they clear the icon/marker they annotate. At the probe pane's zoom (~120 m across a
+# ~3.8 in axes) one point is ~0.43 m, so 14 pt clears an agent box while keeping the leader line short.
+PROBE_LABEL_OFFSET_PT = 14.0
+# Unit-vector component above which a label anchors to a side rather than staying centered on that axis.
+PROBE_LABEL_ANCHOR_THRESHOLD = 0.5
+# Below this norm the label direction is treated as degenerate and the label is pushed straight up.
+PROBE_LABEL_MIN_DIRECTION_NORM = 1e-6
+
 
 class SupportedPanes(Enum):
     """Enum for supported panes to plot in the visualizer."""
@@ -690,6 +698,45 @@ class BaseVisualizer(ABC):
                 a.set_xlim(last_ego_position[0] - distance, last_ego_position[0] + distance)
                 a.set_ylim(last_ego_position[1] - distance, last_ego_position[1] + distance)
 
+    def _annotate_offset(
+        self,
+        ax: Axes,
+        text: str,
+        xy: tuple[float, float],
+        direction: tuple[float, float],
+        color: str,
+    ) -> None:
+        """Annotate ``xy`` with ``text`` pushed a fixed point offset along ``direction``, over a halo and leader line.
+
+        The offset is in display points, so it is unaffected by the axis limits set after all drawing completes.
+
+        Args:
+            ax: Axes to draw on.
+            text: Label text.
+            xy: Data-space point being annotated.
+            direction: Data-space vector along which to push the label; falls back to straight up if degenerate.
+            color: Text and leader-line color.
+        """
+        norm = float(np.hypot(direction[0], direction[1]))
+        if norm > PROBE_LABEL_MIN_DIRECTION_NORM:
+            ux, uy = direction[0] / norm, direction[1] / norm
+        else:
+            ux, uy = 0.0, 1.0
+        threshold = PROBE_LABEL_ANCHOR_THRESHOLD
+        ax.annotate(
+            text,
+            xy,
+            xytext=(PROBE_LABEL_OFFSET_PT * ux, PROBE_LABEL_OFFSET_PT * uy),
+            textcoords="offset points",
+            fontsize=6,
+            color=color,
+            zorder=175,
+            ha="left" if ux > threshold else "right" if ux < -threshold else "center",
+            va="bottom" if uy > threshold else "top" if uy < -threshold else "center",
+            bbox={"boxstyle": "round,pad=0.15", "facecolor": "white", "alpha": 0.75, "edgecolor": "none"},
+            arrowprops={"arrowstyle": "-", "linewidth": 0.4, "color": color},
+        )
+
     def _render_probe_agent_icons(
         self,
         ax: Axes,
@@ -706,6 +753,16 @@ class BaseVisualizer(ABC):
         affected_id_set: set[int],
         show_probe_metadata: bool,  # noqa: FBT001
     ) -> None:
+        # Labels are pushed away from the centroid of the labeled agents, so they do not collide with each other.
+        labeled_pos = np.array(
+            [
+                all_pos[i, current_t]
+                for i, aid in enumerate(agent_ids)
+                if (i == probed_idx or aid in affected_id_set) and all_valid[i, current_t]
+            ]
+        )
+        centroid = (float(labeled_pos[:, 0].mean()), float(labeled_pos[:, 1].mean())) if len(labeled_pos) else None
+
         for i, (atype, amask) in enumerate(zip(agent_data.agent_types, all_valid, strict=False)):
             past_valid = np.where(amask[: current_t + 1])[0]  # pyright: ignore[reportIndexIssue]
             if len(past_valid) == 0:
@@ -736,7 +793,8 @@ class BaseVisualizer(ABC):
                 linewidth=linewidth,
             )
             if show_probe_metadata and is_probed_or_affected:
-                ax.annotate(f"id={agent_ids[i]}", (x, y), fontsize=6, zorder=175, ha="center", va="bottom")
+                direction = (x - centroid[0], y - centroid[1]) if centroid is not None else (0.0, 1.0)
+                self._annotate_offset(ax, f"id={agent_ids[i]}", (x, y), direction, "black")
 
     def _render_criticality_markers(
         self,
@@ -767,7 +825,7 @@ class BaseVisualizer(ABC):
                 label=f"Criticality (t={ts})",
             )
             if show_criticality_label:
-                ax.annotate(crit_result.metric.value, (cx, cy), fontsize=6, zorder=175, color="#FF8C00")
+                self._annotate_offset(ax, crit_result.metric.value, (cx, cy), (1.0, -1.0), "#FF8C00")
 
     def _render_criticality_gap(
         self,

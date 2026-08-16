@@ -19,7 +19,7 @@ from numpy.typing import NDArray
 from tqdm import tqdm
 
 from characterization.schemas import ScenarioFeatures
-from characterization.utils.analysis.common_analysis import AGENT_COLORS, get_dataset_colors
+from characterization.utils.analysis.common_analysis import AGENT_COLORS, get_dataset_colors, set_analysis_theme
 from characterization.utils.common import InteractionStatus
 from characterization.utils.io_utils import from_pickle, get_logger
 from characterization.utils.scenario_types import AgentPairType, AgentType, get_agent_pair_type
@@ -55,20 +55,6 @@ _LATEX_EGO_SHORT_NAMES: dict[str, str] = {
     "TYPE_VEHICLE_PEDESTRIAN": "E-P",
     "TYPE_VEHICLE_CYCLIST": "E-C",
 }
-
-
-def _set_theme() -> None:
-    """Applies the shared plot theme used by the dataset figures."""
-    sns.set_theme(
-        style="whitegrid",
-        font_scale=0.9,
-        rc={
-            "grid.linestyle": "--",
-            "grid.alpha": 0.3,
-            "font.family": "sans-serif",
-            "font.sans-serif": ["DejaVu Sans"],
-        },
-    )
 
 
 def _empty_counts() -> dict[str, int]:
@@ -398,7 +384,7 @@ def plot_dataset_counts(
         pair_types (list[str]): ``AgentPairType`` names to plot on the interaction chart.
         dpi (int): Dots per inch for the saved figures.
     """
-    _set_theme()
+    set_analysis_theme(0.9)
     palette = _palette_by_label(counts_df)
 
     for prefix, type_names, title, filename in [
@@ -455,7 +441,7 @@ def plot_dataset_distributions(
         logger.warning("No per-scenario counts given; skipping distribution plots")
         return
 
-    _set_theme()
+    set_analysis_theme(0.9)
     labels = list(per_scenario_counts)
     names = {label: (dataset_names or {}).get(label, label) for label in labels}
     colors_by_name = get_dataset_colors(list(names.values()))
@@ -520,7 +506,7 @@ def plot_dataset_composition(
         pair_types (list[str]): ``AgentPairType`` names to stack on the interaction chart.
         dpi (int): Dots per inch for the saved figures.
     """
-    _set_theme()
+    set_analysis_theme(0.9)
     dataset_labels = [str(label) for label in counts_df["dataset"]]
 
     for prefix, type_names, enum_cls, title, filename in [

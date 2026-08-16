@@ -13,10 +13,12 @@ from tqdm import tqdm
 from characterization.schemas import Individual, Interaction, ScenarioFeatures
 from characterization.utils.analysis.common_analysis import (
     AGENT_COLORS,
+    CATEGORY_BOUNDARY_COLOR,
     DEFAULT_FEATURE_CATEGORIES,
     FEATURE_COLOR_MAP,
     compute_category_thresholds,
     get_dataset_colors,
+    set_analysis_theme,
 )
 from characterization.utils.common import EPSILON, LARGE_VALUE, InteractionStatus
 from characterization.utils.io_utils import from_pickle, get_logger
@@ -251,6 +253,7 @@ def plot_feature_distributions(
     dpi: int = 300,
     tag: str = "",
     categories: list[dict[str, Any]] | None = None,
+    font_scale: float = 2.0,
     *,
     show_kde: bool = True,
     show_percentiles: bool = True,
@@ -268,6 +271,8 @@ def plot_feature_distributions(
             between consecutive categories are used as thresholds. If a boundary value duplicates the previous one, the
             range is scanned at finer granularity to find a unique value. Defaults to LOW/MEDIUM/HIGH/CRITICAL split at
             the 25th, 75th, and 90th percentiles.
+        font_scale (float): Multiplier on the theme's font sizes. These figures are authored at 10x6 in and
+            shrunk when placed in a document, so the text is oversized here to stay legible there.
         show_kde (bool): Whether to show the kernel density estimate on the plot.
         show_percentiles (bool): Whether to display percentile lines on the plot.
         show_colored_by_agent_type (bool): Whether to color the histograms by agent type.
@@ -275,16 +280,7 @@ def plot_feature_distributions(
     """
     if categories is None:
         categories = DEFAULT_FEATURE_CATEGORIES
-    sns.set_theme(
-        style="whitegrid",
-        font_scale=0.9,
-        rc={
-            "grid.linestyle": "--",
-            "grid.alpha": 0.3,
-            "font.family": "sans-serif",
-            "font.sans-serif": ["DejaVu Sans"],
-        },
-    )
+    set_analysis_theme(font_scale)
     prefix = f"{tag}_" if tag else ""
     feature_percentiles = {}
     for agent_type, features in feature_data.items():
@@ -336,11 +332,20 @@ def plot_feature_distributions(
 
             if show_percentiles:
                 for label, v in thresholds.items():
-                    ax.axvline(v, color="black", linestyle="--", alpha=0.9)
-                    y = ax.get_ylim()[1] * 0.9
-                    x = v + 0.08
-                    ax.text(
-                        x, y, f"{label}: {v:.2f}", rotation=90, verticalalignment="center", fontsize=8, color="dimgray"
+                    ax.axvline(v, color=CATEGORY_BOUNDARY_COLOR, linestyle="--", alpha=0.9, linewidth=1.5)
+                    # Anchored to the top of the axes so the label grows downwards into the plot rather
+                    # than upwards through the title. The boundary value itself stays in the JSON.
+                    ax.annotate(
+                        label,
+                        xy=(v, 0.98),
+                        xycoords=ax.get_xaxis_transform(),
+                        xytext=(-3, 0),
+                        textcoords="offset points",
+                        rotation=90,
+                        ha="right",
+                        va="top",
+                        fontsize=plt.rcParams["font.size"] * 0.75,
+                        color=CATEGORY_BOUNDARY_COLOR,
                     )
 
             # Only for speed_lim_diff aesthetics
@@ -364,6 +369,7 @@ def plot_multi_dataset_feature_distributions(
     output_dir: Path,
     dpi: int = 300,
     tag: str = "",
+    font_scale: float = 2.0,
     *,
     show_kde: bool = True,
     include_pairs_with_no_vehicles: bool = False,
@@ -380,20 +386,13 @@ def plot_multi_dataset_feature_distributions(
         output_dir (Path): Directory to save the output plots.
         dpi (int): Dots per inch for the saved figure.
         tag (str): Optional tag to prepend to output filenames.
+        font_scale (float): Multiplier on the theme's font sizes. These figures are authored at 10x6 in and
+            shrunk when placed in a document, so the text is oversized here to stay legible there.
         show_kde (bool): Whether to show the kernel density estimate on each histogram.
         include_pairs_with_no_vehicles (bool): Whether to include interaction pairs that do not
             involve any vehicles.
     """
-    sns.set_theme(
-        style="whitegrid",
-        font_scale=0.9,
-        rc={
-            "grid.linestyle": "--",
-            "grid.alpha": 0.3,
-            "font.family": "sans-serif",
-            "font.sans-serif": ["DejaVu Sans"],
-        },
-    )
+    set_analysis_theme(font_scale)
     prefix = f"{tag}_" if tag else ""
     dataset_labels = list(feature_data_by_dataset.keys())
     dataset_colors = get_dataset_colors(dataset_labels)
@@ -448,7 +447,7 @@ def plot_multi_dataset_feature_distributions(
             ax.set_ylabel("Density")
             ax.set_title(f"{feature_title} Distribution")
             ax.grid(visible=True, linestyle="--", alpha=0.4)
-            ax.legend(title="Dataset", fontsize=8)
+            ax.legend(title="Dataset")
 
             plt.tight_layout()
             output_filepath = (

@@ -7,6 +7,7 @@ from characterization.utils.analysis.common_analysis import (
     compute_jaccard_index,
     get_valid_scenario_ids,
     plot_histograms_from_dataframe,
+    set_analysis_theme,
 )
 from characterization.utils.analysis.dataset_analysis import (
     VALID_INTERACTION_STATUSES,
@@ -35,11 +36,13 @@ from characterization.utils.analysis.probe_analysis import (
     plot_multi_dataset_probe_score_delta_density,
     plot_multi_dataset_probe_score_distributions,
     plot_multi_dataset_probe_score_distributions_grid,
+    plot_multi_dataset_probe_score_scatter,
     plot_probe_outcome_pie,
     plot_score_delta_by_agent_type,
     plot_score_delta_density,
     plot_score_distributions,
     plot_score_scatter,
+    plot_top_score_delta_scatters,
     save_probe_summary_json,
 )
 from characterization.utils.analysis.score_analysis import (
@@ -90,16 +93,19 @@ __all__ = [
     "plot_multi_dataset_probe_score_delta_density",
     "plot_multi_dataset_probe_score_distributions",
     "plot_multi_dataset_probe_score_distributions_grid",
+    "plot_multi_dataset_probe_score_scatter",
     "plot_multi_dataset_score_distributions",
     "plot_probe_outcome_pie",
     "plot_score_delta_by_agent_type",
     "plot_score_delta_density",
     "plot_score_distributions",
     "plot_score_scatter",
+    "plot_top_score_delta_scatters",
     "regroup_individual_features",
     "regroup_interaction_features",
     "regroup_scenario_scores",
     "save_dataset_counts_json",
     "save_probe_summary_json",
+    "set_analysis_theme",
     "write_latex_table",
 ]
