@@ -1,13 +1,13 @@
 {
     "inv_separation": {
         "LOW/MEDIUM": 0.02,
-        "MEDIUM/HIGH": 0.05,
-        "HIGH/CRITICAL": 0.09
+        "MEDIUM/HIGH": 0.07,
+        "HIGH/CRITICAL": 0.13
     },
     "separation": {
-        "LOW/MEDIUM": 21.15,
-        "MEDIUM/HIGH": 65.75,
-        "HIGH/CRITICAL": 84.1
+        "LOW/MEDIUM": 13.58,
+        "MEDIUM/HIGH": 47.66,
+        "HIGH/CRITICAL": 70.15
     },
     "intersection": {
         "LOW/MEDIUM": 0.0,
@@ -22,36 +22,36 @@
     "inv_mttcp": {
         "LOW/MEDIUM": 0.0,
         "MEDIUM/HIGH": 0.0,
-        "HIGH/CRITICAL": 0.03
+        "HIGH/CRITICAL": 0.01
     },
     "mttcp": {
         "LOW/MEDIUM": 1000000.0,
         "MEDIUM/HIGH": 1000000.0,
-        "HIGH/CRITICAL": 1000000.0
+        "HIGH/CRITICAL": 1099781.06
     },
     "inv_thw": {
         "LOW/MEDIUM": 0.0,
-        "MEDIUM/HIGH": 0.06,
-        "HIGH/CRITICAL": 0.26
+        "MEDIUM/HIGH": 0.22,
+        "HIGH/CRITICAL": 0.76
     },
     "thw": {
-        "LOW/MEDIUM": 17.75,
+        "LOW/MEDIUM": 4.5,
         "MEDIUM/HIGH": 1000000.0,
-        "HIGH/CRITICAL": 1658652.37
+        "HIGH/CRITICAL": 1471824.08
     },
     "inv_ttc": {
         "LOW/MEDIUM": 0.0,
-        "MEDIUM/HIGH": 0.04,
-        "HIGH/CRITICAL": 0.29
+        "MEDIUM/HIGH": 0.19,
+        "HIGH/CRITICAL": 0.72
     },
     "ttc": {
-        "LOW/MEDIUM": 28.33,
+        "LOW/MEDIUM": 5.14,
         "MEDIUM/HIGH": 1000000.0,
         "HIGH/CRITICAL": 1000000.0
     },
     "drac": {
         "LOW/MEDIUM": 0.0,
-        "MEDIUM/HIGH": 0.04,
-        "HIGH/CRITICAL": 1.12
+        "MEDIUM/HIGH": 0.7,
+        "HIGH/CRITICAL": 2.88
     }
 }
