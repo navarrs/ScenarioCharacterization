@@ -9,6 +9,31 @@ This page explains how to obtain and preprocess each supported dataset for use w
 
 All preprocess scripts accept `--overwrite`, which removes the existing `scenarios/` directory and `processed_scenario_samples_infos.pkl` index under the output path before writing, clearing stale scenario pickles from a previous run. Without it, each pickle is overwritten in place and any stale files are left untouched.
 
+## Scenario Selection
+
+Preprocessing determines the *pool* of scenarios on disk; `num_scenarios` then draws a seeded random subset from that pool at load time, identically for every dataset (`sample_scenarios` in `utils/common.py`). The draw depends on both the seed and the pool contents, so re-preprocessing a dataset changes which subset comes out.
+
+For a comparable ~5000-scenario set per dataset, each pool is obtained from a held-out split without downloading the full dataset:
+
+| Dataset | Split | How the pool is obtained | Approx. pool size |
+|---|---|---|---|
+| Waymo | training | ~11 of 1000 tfrecord shards ([WAYMO_EXAMPLE.md](WAYMO_EXAMPLE.md)) | ~5,200 |
+| Argoverse 2 | val | Random subset of the 24,988 extracted scenario directories ([ARGOVERSE2_EXAMPLE.md](ARGOVERSE2_EXAMPLE.md)) | 5,000 |
+| nuPlan | val | Seeded, non-overlapping `--limit` draw over the `.db` logs ([NUPLAN_EXAMPLE.md](NUPLAN_EXAMPLE.md)) | mini caps at 3,473; 5,000 needs ~140 logs |
+| nuScenes | trainval | All 1,000 scenes ([NUSCENES_EXAMPLE.md](NUSCENES_EXAMPLE.md)) | 850 |
+
+The Argoverse 2 and nuPlan pool draws are not currently seeded, so they are random but not reproducible across preprocessing runs.
+
+### Scenario overlap
+
+The datasets differ in whether their pre-cut scenarios may overlap in time, which affects how many *independent* scenarios a pool really contains:
+
+- **Argoverse 2** extracts non-overlapping 11-second windows by construction.
+- **Waymo** cuts each 20-second segment into overlapping 9.1-second windows (validation/test at start offsets `{0, 5, 10}` s, training at `{0, 2, 4, 5, 6, 8, 10}` s). Sibling windows are spread across shards, so realised overlap scales with the fraction of shards downloaded — see the note in [WAYMO_EXAMPLE.md](WAYMO_EXAMPLE.md).
+- **nuPlan** enumerates one candidate scenario per lidar frame (20 Hz), so consecutive candidates are near-duplicates and a uniform draw over them produces heavily overlapping scenarios.
+
+Measured on the current ~5000-scenario pools (scenarios sharing at least 5 identical ego positions with another): Argoverse 2 2.4%, Waymo 4.0%, nuPlan 52.7%.
+
 ---
 
 ## Dataset Comparison
@@ -59,7 +84,7 @@ All preprocess scripts accept `--overwrite`, which removes the existing `scenari
 
 - Runs on Python 3.12 (same environment as the rest of the pipeline). The PyPI `nuplan-devkit` wheel declares no dependencies, so the `[nuplan]` extra lists them explicitly.
 - Native 20 Hz tracks are subsampled to 10 Hz (stride derived from `database_interval`); no interpolation required.
-- Provides tens of thousands of scenarios; the number processed is controlled by `--limit` (use `5000` to match Waymo/Argoverse 2).
+- The number processed is controlled by `--limit` (use `5000` to match Waymo/Argoverse 2), drawn with `--seed` from candidates spaced at least `--min_gap_seconds` apart so selected scenarios do not overlap. The mini split yields only 3,473 non-overlapping scenarios, so 5,000 requires a larger split such as `val`.
 - Agent velocities are recomputed via finite differences to avoid mixing ego body-frame and agent global-frame conventions.
 - No traffic signals; `DynamicMapData` fields are always `None`. All agents receive uniform `agent_relevance=1.0`.
 - No dedicated road-line layer (`road_line` is empty); roadblock polygons stand in for `road_edge`.
