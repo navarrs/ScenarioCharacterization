@@ -1,0 +1,37 @@
+{
+    "speed": {
+        "LOW/MEDIUM": 1.16,
+        "MEDIUM/HIGH": 2.05,
+        "HIGH/CRITICAL": 2.28
+    },
+    "speed_limit_diff": {
+        "LOW/MEDIUM": 10.08,
+        "MEDIUM/HIGH": 12.59,
+        "HIGH/CRITICAL": 13.16
+    },
+    "acceleration": {
+        "LOW/MEDIUM": 1.33,
+        "MEDIUM/HIGH": 3.12,
+        "HIGH/CRITICAL": 4.69
+    },
+    "deceleration": {
+        "LOW/MEDIUM": 1.31,
+        "MEDIUM/HIGH": 2.85,
+        "HIGH/CRITICAL": 4.34
+    },
+    "jerk": {
+        "LOW/MEDIUM": 12.34,
+        "MEDIUM/HIGH": 20.31,
+        "HIGH/CRITICAL": 26.53
+    },
+    "waiting_period": {
+        "LOW/MEDIUM": 0.16,
+        "MEDIUM/HIGH": 1.23,
+        "HIGH/CRITICAL": 2.88
+    },
+    "kalman_difficulty": {
+        "LOW/MEDIUM": 0.09,
+        "MEDIUM/HIGH": 0.4,
+        "HIGH/CRITICAL": 0.72
+    }
+}

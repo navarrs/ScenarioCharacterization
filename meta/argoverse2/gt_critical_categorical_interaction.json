@@ -1,5 +1,5 @@
 {
-    "LOW/MEDIUM": 1.01,
-    "MEDIUM/HIGH": 2.55,
-    "HIGH/CRITICAL": 4.95
+    "LOW/MEDIUM": 1.0,
+    "MEDIUM/HIGH": 2.5,
+    "HIGH/CRITICAL": 4.82
 }
