@@ -82,6 +82,16 @@ uv run pre-commit install
 ## Citing
 
 ```
+@misc{navarro2026scenchar,
+  title={ScenarioCharacterization: A Modular Toolkit for Characterizing Safety across Trajectory Datasets},
+  author={Ingrid Navarro and Yutong Duan and Jonathan Francis and Jean Oh},
+  year={2026},
+  eprint={2608.16041},
+  archivePrefix={arXiv},
+  primaryClass={cs.RO},
+  url={https://arxiv.org/abs/2608.16041},
+}
+
 @INPROCEEDINGS{stoler2024safeshift,
   author={Stoler, Benjamin and Navarro, Ingrid and Jana, Meghdeep and Hwang, Soonmin and Francis, Jonathan and Oh, Jean},
   booktitle={2024 IEEE Intelligent Vehicles Symposium (IV)},
