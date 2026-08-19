@@ -20,6 +20,8 @@ parallel: true
 batch_size: 8
 num_workers: 8
 shuffle: false
+# Number of agents processed per closest-distance chunk. Null uses the shared code default.
+chunk_size: null
 
 scenario_type: 'gt'
 return_criterion: 'critical'

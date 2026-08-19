@@ -105,23 +105,23 @@ class AnimatedScenarioVisualizer(BaseVisualizer):
         Returns:
             Path: The path to the saved visualization file.
         """
-        scenario_id = scenario.metadata.scenario_id
-        suffix = "" if scores is None or scores.scene_score is None else f"_{round(scores.scene_score, 2)}"
-        output_filepath = output_dir / f"{scenario_id}{suffix}.gif"
+        scenario_id: str = scenario.metadata.scenario_id
+        suffix: str = "" if scores is None or scores.scene_score is None else f"_{round(scores.scene_score, 2)}"
+        output_filepath: Path = output_dir / f"{scenario_id}{suffix}.gif"
 
-        timestamp_seconds = scenario.metadata.timestamps_seconds
-        scenario_fps = min(self.fps, scenario.metadata.frequency_hz)
-        total_timesteps = scenario.metadata.track_length
-        total_time = timestamp_seconds[-1] - timestamp_seconds[0]
-        num_frames = scenario_fps * total_time * self.time_scale_factor
-        step_size = max(1, total_timesteps // int(num_frames))
+        timestamp_seconds: list[float] = scenario.metadata.timestamps_seconds
+        scenario_fps: float = min(self.fps, scenario.metadata.frequency_hz)
+        total_timesteps: int = scenario.metadata.track_length
+        total_time: float = timestamp_seconds[-1] - timestamp_seconds[0]
+        num_frames: int = max(1, int(scenario_fps * total_time * self.time_scale_factor))
+        step_size: int = max(1, total_timesteps // num_frames)
 
         logger.info(
             "Saving scenario to %s [Num. timesteps: %d, Total time: %.2fs, Generating ~%d frames with step size %d]",
             output_filepath,
             total_timesteps,
             total_time,
-            int(num_frames),
+            num_frames,
             step_size,
         )
 

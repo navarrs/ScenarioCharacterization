@@ -969,6 +969,7 @@ class InteractionFeatures(BaseFeature):
         scenario: Scenario,
         *,
         max_workers: int | None = None,
+        chunk_size: int | None = None,
     ) -> ScenarioFeatures:
         """Compute scenario features focused on agent-to-agent interactions.
 
@@ -980,6 +981,8 @@ class InteractionFeatures(BaseFeature):
                 - static_map_data: Map conflict points and precomputed distances for mTTCP analysis
             max_workers (int | None): Maximum number of worker processes for parallel computation.
                 Defaults to None, which uses the number of processors on the machine.
+            chunk_size (int | None): Number of agents to process per closest-distance chunk. If omitted, uses the
+                configured value or the shared closest-distance default.
 
         Returns:
             ScenarioFeatures: Feature object containing:
@@ -999,7 +1002,13 @@ class InteractionFeatures(BaseFeature):
             agent_data = scenario.agent_data
             agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
             agent_positions = agent_trajectories.agent_xyz_pos
-            agent_to_agent_closest_dists = compute_agent_to_agent_closest_dists(agent_positions)
+            closest_distance_chunk_size = (
+                self.agent_to_agent_closest_dists_chunk_size if chunk_size is None else chunk_size
+            )
+            agent_to_agent_closest_dists = compute_agent_to_agent_closest_dists(
+                agent_positions,
+                chunk_size=closest_distance_chunk_size,
+            )
 
         return ScenarioFeatures(
             metadata=scenario.metadata,
