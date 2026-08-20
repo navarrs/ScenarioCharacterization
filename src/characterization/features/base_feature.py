@@ -19,6 +19,7 @@ class BaseFeature(ABC):
         features (Any): Feature configuration extracted from the config, if available.
         characterizer_type (str): Type identifier for the characterizer, always "feature".
         return_criterion (ReturnCriterion): Criterion determining when to return results.
+        agent_to_agent_closest_dists_chunk_size (int | None): Number of agents to process per closest-distance chunk.
     """
 
     def __init__(self, config: DictConfig) -> None:
@@ -31,6 +32,7 @@ class BaseFeature(ABC):
         self.characterizer_type = "feature"
         self.return_criterion = ReturnCriterion[config.get("return_criterion", "critical").upper()]
         self.compute_agent_to_agent_closest_dists = config.get("compute_agent_to_agent_closest_dists", False)
+        self.agent_to_agent_closest_dists_chunk_size: int | None = config.get("chunk_size")
 
     @property
     def name(self) -> str:
@@ -43,11 +45,13 @@ class BaseFeature(ABC):
         return re.sub(r"(?<!^)([A-Z])", r" \1", self.__class__.__name__).lower()
 
     @abstractmethod
-    def compute(self, scenario: Scenario) -> ScenarioFeatures:
+    def compute(self, scenario: Scenario, *, chunk_size: int | None = None) -> ScenarioFeatures:
         """Compute features for a given scenario.
 
         Args:
             scenario (Scenario): The scenario data containing trajectories, road geometry, and metadata.
+            chunk_size (int | None): Number of agents to process per closest-distance chunk. If omitted, uses the
+                configured value or the shared closest-distance default.
 
         Returns:
             ScenarioFeatures: Computed features for the scenario.

@@ -32,6 +32,7 @@ processor:
 
 characterizer:
   config:
+    chunk_size: ${chunk_size}
     feature_type: ${feature_type}
     include_pairs_with_no_vehicles: ${include_pairs_with_no_vehicles}
 

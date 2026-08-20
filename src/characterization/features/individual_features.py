@@ -284,7 +284,7 @@ class IndividualFeatures(BaseFeature):
             ),
         )
 
-    def compute(self, scenario: Scenario) -> ScenarioFeatures:
+    def compute(self, scenario: Scenario, *, chunk_size: int | None = None) -> ScenarioFeatures:
         """Compute comprehensive scenario features including individual agent features.
 
         Args:
@@ -292,6 +292,8 @@ class IndividualFeatures(BaseFeature):
                 - agent_data: Agent positions, velocities, validity masks, and type information
                 - metadata: Scenario timestamps, stationary speed thresholds, and other parameters
                 - static_map_data: Map conflict points and road geometry information
+            chunk_size (int | None): Number of agents to process per closest-distance chunk. If omitted, uses the
+                configured value or the shared closest-distance default.
 
         Returns:
             ScenarioFeatures: Comprehensive feature object containing:
@@ -310,7 +312,13 @@ class IndividualFeatures(BaseFeature):
             agent_data = scenario.agent_data
             agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
             agent_positions = agent_trajectories.agent_xyz_pos
-            agent_to_agent_closest_dists = compute_agent_to_agent_closest_dists(agent_positions)
+            closest_distance_chunk_size = (
+                self.agent_to_agent_closest_dists_chunk_size if chunk_size is None else chunk_size
+            )
+            agent_to_agent_closest_dists = compute_agent_to_agent_closest_dists(
+                agent_positions,
+                chunk_size=closest_distance_chunk_size,
+            )
 
         return ScenarioFeatures(
             metadata=scenario.metadata,

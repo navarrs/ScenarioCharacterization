@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from enum import Enum
 from itertools import pairwise
-from typing import Annotated, Any, ClassVar
+from typing import Annotated, Any, ClassVar, Final
 
 import numpy as np
 from natsort import natsorted
@@ -12,6 +12,7 @@ from characterization.utils.scenario_types import AgentType
 
 EPSILON = 1e-6
 LARGE_VALUE = 1e6
+DEFAULT_AGENT_TO_AGENT_CLOSEST_DISTS_CHUNK_SIZE: Final[int] = 8
 SUPPORTED_SCENARIO_TYPES = ["gt", "ho"]
 SUPPORTED_CRITERIA = ["critical", "average"]
 MIN_VALID_POINTS = 2

@@ -26,6 +26,9 @@ class ClosestDistanceTest(unittest.TestCase):
         dense_distances = np.linalg.norm(positions[:, np.newaxis, :] - positions[np.newaxis, :, :], axis=-1)
         expected = np.nan_to_num(np.nanmin(dense_distances, axis=-1), nan=np.inf).astype(np.float32)
 
+        actual_default = compute_agent_to_agent_closest_dists(positions)
+        np.testing.assert_array_equal(actual_default, expected)
+
         for chunk_size in (1, 2, 256):
             actual = compute_agent_to_agent_closest_dists(positions, chunk_size=chunk_size)
             np.testing.assert_array_equal(actual, expected)

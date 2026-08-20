@@ -40,6 +40,7 @@ class BaseScorer(ABC):
         self.max_critical_distance = self.config.get("max_critical_distance", 0.5)
         self.aggregated_score_weight = self.config.get("aggregated_score_weight", 0.5)
         self.reduce_distance_penalty = self.config.get("reduce_distance_penalty", False)
+        self.agent_to_agent_closest_dists_chunk_size: int | None = config.get("chunk_size")
 
         self.detections = FeatureDetections.from_dict(config.get("detections", None))
         self.weights = FeatureWeights.from_dict(config.get("weights", None))
@@ -68,13 +69,18 @@ class BaseScorer(ABC):
 
     @staticmethod
     def _get_agent_to_agent_closest_dists(
-        scenario: Scenario, scenario_features: ScenarioFeatures
+        scenario: Scenario,
+        scenario_features: ScenarioFeatures,
+        *,
+        chunk_size: int | None = None,
     ) -> NDArray[np.float32]:
         """Retrieves or computes the agent-to-agent closest distances.
 
         Args:
             scenario (Scenario): Scenario object containing agent information.
             scenario_features (ScenarioFeatures): ScenarioFeatures object containing precomputed distances.
+            chunk_size (int | None): Number of agents to process per closest-distance chunk. If omitted, the shared
+                closest-distance default is used.
 
         Returns:
             NDArray[np.float32]: The agent-to-agent closest distances.
@@ -84,7 +90,7 @@ class BaseScorer(ABC):
             agent_data = scenario.agent_data
             agent_trajectories = AgentTrajectoryMasker(agent_data.agent_trajectories)
             agent_positions = agent_trajectories.agent_xyz_pos
-            agent_to_agent_dists = compute_agent_to_agent_closest_dists(agent_positions)
+            agent_to_agent_dists = compute_agent_to_agent_closest_dists(agent_positions, chunk_size=chunk_size)
 
         return np.nan_to_num(agent_to_agent_dists, nan=np.inf)
 
@@ -108,6 +114,7 @@ class BaseScorer(ABC):
         vru_priority_weight: float = 1.0,
         *,
         reduce_distance_penalty: bool = False,
+        chunk_size: int | None = None,
     ) -> NDArray[np.float32]:
         """Computes the weights for scoring based on the scenario and features, with respect to the ego agent.
 
@@ -120,6 +127,8 @@ class BaseScorer(ABC):
             max_critical_distance (float): Maximum critical distance to cap the weight.
             vru_priority_weight (float): Weight multiplier for vulnerable road users.
             reduce_distance_penalty (bool): Whether to reduce the distance penalty by taking the square root.
+            chunk_size (int | None): Number of agents to process per closest-distance chunk. If omitted, the shared
+                closest-distance default is used.
 
         Returns:
             NDArray[np.float32]: The computed weights for each agent.
@@ -131,7 +140,9 @@ class BaseScorer(ABC):
         agent_to_ego_dists = scenario_features.agent_to_ego_closest_dists
         if agent_to_ego_dists is None:
             agent_to_agent_dists = BaseScorer._get_agent_to_agent_closest_dists(
-                scenario, scenario_features
+                scenario,
+                scenario_features,
+                chunk_size=chunk_size,
             )  # Shape (num_agents, num_agents)
             min_dist = agent_to_agent_dists[:, ego_agent_index]
         else:
@@ -161,6 +172,7 @@ class BaseScorer(ABC):
         vru_priority_weight: float = 1.0,
         *,
         reduce_distance_penalty: bool = False,
+        chunk_size: int | None = None,
     ) -> NDArray[np.float32]:
         """Computes the weights for scoring based on the scenario and features, with respect to relevant agents.
 
@@ -173,12 +185,16 @@ class BaseScorer(ABC):
             max_critical_distance (float): Maximum critical distance to cap the weight.
             vru_priority_weight (float): Weight multiplier for vulnerable road users.
             reduce_distance_penalty (bool): Whether to reduce the distance penalty by taking the square root.
+            chunk_size (int | None): Number of agents to process per closest-distance chunk. If omitted, the shared
+                closest-distance default is used.
 
         Returns:
             NDArray[np.float32]: The computed weights for each agent.
         """
         agent_to_agent_dists = BaseScorer._get_agent_to_agent_closest_dists(
-            scenario, scenario_features
+            scenario,
+            scenario_features,
+            chunk_size=chunk_size,
         )  # Shape (num_agents, num_agents)
 
         # Determine the weights of the relevant agents, if the agent relevance is not provided, use uniform weights.
@@ -293,6 +309,7 @@ class BaseScorer(ABC):
                     max_critical_distance=self.max_critical_distance,
                     vru_priority_weight=self.vru_priority_weight,
                     reduce_distance_penalty=self.reduce_distance_penalty,
+                    chunk_size=self.agent_to_agent_closest_dists_chunk_size,
                 )
             case ScoreWeightingMethod.DISTANCE_TO_RELEVANT_AGENTS:
                 return BaseScorer._get_weights_wrt_relevant_agents(
@@ -301,6 +318,7 @@ class BaseScorer(ABC):
                     max_critical_distance=self.max_critical_distance,
                     vru_priority_weight=self.vru_priority_weight,
                     reduce_distance_penalty=self.reduce_distance_penalty,
+                    chunk_size=self.agent_to_agent_closest_dists_chunk_size,
                 )
             case _:
                 error_message = f"Unknown score weighting method: {self.score_weighting_method}"

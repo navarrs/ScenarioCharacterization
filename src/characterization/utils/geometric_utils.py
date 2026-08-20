@@ -6,7 +6,12 @@ from numpy.typing import NDArray
 from scipy.signal import resample
 
 from characterization.schemas.scenario import Scenario
-from characterization.utils.common import EPSILON, MIN_VALID_POINTS, AgentTrajectoryMasker
+from characterization.utils.common import (
+    DEFAULT_AGENT_TO_AGENT_CLOSEST_DISTS_CHUNK_SIZE,
+    EPSILON,
+    MIN_VALID_POINTS,
+    AgentTrajectoryMasker,
+)
 
 
 def get_polyline_dir(polyline: NDArray[np.float32]) -> NDArray[np.float32]:
@@ -69,13 +74,14 @@ def compute_dists_to_conflict_points(
 def compute_agent_to_agent_closest_dists(
     positions: NDArray[np.float32],
     *,
-    chunk_size: int = 256,
+    chunk_size: int | None = None,
 ) -> NDArray[np.float32]:
     """Computes the closest distance between each agent and any other agent over their trajectories.
 
     Args:
         positions: Array of agent positions over time with shape [num_agents, num_time_steps, 3].
-        chunk_size: Number of agents to process per chunk. Smaller values reduce peak memory usage. Defaults to 256.
+        chunk_size: Number of agents to process per chunk. Smaller values reduce peak memory usage. If omitted, the
+            shared closest-distance default is used.
 
     Returns:
         Minimum distance from each agent to every other agent over time with shape [num_agents, num_agents]. NaN values
@@ -84,6 +90,7 @@ def compute_agent_to_agent_closest_dists(
     Raises:
         ValueError: If ``chunk_size`` is not positive.
     """
+    chunk_size = DEFAULT_AGENT_TO_AGENT_CLOSEST_DISTS_CHUNK_SIZE if chunk_size is None else chunk_size
     if chunk_size <= 0:
         error_message = f"chunk_size must be positive; got {chunk_size}."
         raise ValueError(error_message)
